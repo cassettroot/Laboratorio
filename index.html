@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generador de Etiquetas SGA Automatizado</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- SheetJS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+
+<body class="min-h-screen bg-slate-100 text-slate-900">
+  <main class="mx-auto max-w-5xl px-4 py-10">
+    <section class="rounded-3xl bg-white p-8 shadow-xl">
+      <div class="mb-8">
+        <p class="mb-2 text-sm font-semibold uppercase tracking-wide text-blue-600">
+          SGA / GHS Automation
+        </p>
+        <h1 class="text-3xl font-bold tracking-tight text-slate-950">
+          Generador de Etiquetas SGA Automatizado
+        </h1>
+        <p class="mt-3 max-w-3xl text-slate-600">
+          Busca una sustancia por nombre en inglés o número CAS, extrae clasificación GHS desde PubChem,
+          traduce frases H/P al español y exporta una plantilla Excel automáticamente.
+        </p>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-[1fr_auto]">
+        <div>
+          <label for="queryInput" class="mb-2 block text-sm font-medium text-slate-700">
+            Nombre de la sustancia o número CAS
+          </label>
+          <input
+            id="queryInput"
+            type="text"
+            placeholder="Ej. acetone, ethanol, sulfuric acid, 64-17-5"
+            class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+          />
+        </div>
+
+        <div class="flex items-end">
+          <button
+            id="generateBtn"
+            class="w-full rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400 md:w-auto"
+          >
+            Buscar y exportar
+          </button>
+        </div>
+      </div>
+
+      <section class="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <div class="flex items-center gap-3">
+          <div id="statusDot" class="h-3 w-3 rounded-full bg-slate-400"></div>
+          <h2 class="font-semibold text-slate-800">Estatus</h2>
+        </div>
+
+        <p id="statusText" class="mt-3 text-slate-700">
+          Esperando consulta...
+        </p>
+
+        <ul id="statusLog" class="mt-4 space-y-2 text-sm text-slate-600"></ul>
+      </section>
+
+      <section id="previewSection" class="mt-8 hidden">
+        <h2 class="mb-3 text-lg font-bold text-slate-900">Vista previa de datos exportados</h2>
+        <div class="overflow-x-auto rounded-2xl border border-slate-200">
+          <table class="min-w-full divide-y divide-slate-200 bg-white text-sm">
+            <thead class="bg-slate-50">
+              <tr>
+                <th class="px-4 py-3 text-left font-semibold">Sustancia</th>
+                <th class="px-4 py-3 text-left font-semibold">CAS</th>
+                <th class="px-4 py-3 text-left font-semibold">Palabra</th>
+                <th class="px-4 py-3 text-left font-semibold">Indicación H1</th>
+                <th class="px-4 py-3 text-left font-semibold">Indicación H2</th>
+                <th class="px-4 py-3 text-left font-semibold">Consejo P</th>
+                <th class="px-4 py-3 text-left font-semibold">Anaquel</th>
+              </tr>
+            </thead>
+            <tbody id="previewBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+
+    /************************************************************
+     * Configuración base
+     ************************************************************/
+    const PUBCHEM_BASE = "https://pubchem.ncbi.nlm.nih.gov/rest";
+    const OUTPUT_FILE = "plantilla_etiquetas_sga.xlsx";
+
+    const queryInput = document.getElementById("queryInput");
+    const generateBtn = document.getElementById("generateBtn");
+    const statusText = document.getElementById("statusText");
+    const statusLog = document.getElementById("statusLog");
+    const statusDot = document.getElementById("statusDot");
+    const previewSection = document.getElementById("previewSection");
+    const previewBody = document.getElementById("previewBody");
+
+    /************************************************************
+     * Diccionario local SGA/GHS común en español
+     * Amplía este objeto si tu institución requiere más códigos.
+     ************************************************************/
+    const SGA_ES = {
+      // Frases H - peligros físicos
+      H220: "Gas extremadamente inflamable.",
+      H221: "Gas inflamable.",
+      H222: "Aerosol extremadamente inflamable.",
+      H223: "Aerosol inflamable.",
+      H224: "Líquido y vapores extremadamente inflamables.",
+      H225: "Líquido y vapores muy inflamables.",
+      H226: "Líquidos y vapores inflamables.",
+      H228: "Sólido inflamable.",
+      H240: "Peligro de explosión en caso de calentamiento.",
+      H241: "Peligro de incendio o explosión en caso de calentamiento.",
+      H242: "Peligro de incendio en caso de calentamiento.",
+      H250: "Se inflama espontáneamente en contacto con el aire.",
+      H251: "Se calienta espontáneamente; puede inflamarse.",
+      H252: "Se calienta espontáneamente en grandes cantidades; puede inflamarse.",
+      H260: "En contacto con el agua desprende gases inflamables que pueden inflamarse espontáneamente.",
+      H261: "En contacto con el agua desprende gases inflamables.",
+      H270: "Puede provocar o agravar un incendio; comburente.",
+      H271: "Puede provocar un incendio o una explosión; muy comburente.",
+      H272: "Puede agravar un incendio; comburente.",
+      H280: "Contiene gas a presión; peligro de explosión en caso de calentamiento.",
+      H290: "Puede ser corrosivo para los metales.",
+
+      // Frases H - salud
+      H300: "Mortal en caso de ingestión.",
+      H301: "Tóxico en caso de ingestión.",
+      H302: "Nocivo en caso de ingestión.",
+      H304: "Puede ser mortal en caso de ingestión y penetración en las vías respiratorias.",
+      H310: "Mortal en contacto con la piel.",
+      H311: "Tóxico en contacto con la piel.",
+      H312: "Nocivo en contacto con la piel.",
+      H314: "Provoca quemaduras graves en la piel y lesiones oculares graves.",
+      H315: "Provoca irritación cutánea.",
+      H317: "Puede provocar una reacción alérgica en la piel.",
+      H318: "Provoca lesiones oculares graves.",
+      H319: "Provoca irritación ocular grave.",
+      H330: "Mortal en caso de inhalación.",
+      H331: "Tóxico en caso de inhalación.",
+      H332: "Nocivo en caso de inhalación.",
+      H334: "Puede provocar síntomas de alergia o asma o dificultades respiratorias en caso de inhalación.",
+      H335: "Puede irritar las vías respiratorias.",
+      H336: "Puede provocar somnolencia o vértigo.",
+      H340: "Puede provocar defectos genéticos.",
+      H341: "Se sospecha que provoca defectos genéticos.",
+      H350: "Puede provocar cáncer.",
+      H351: "Se sospecha que provoca cáncer.",
+      H360: "Puede perjudicar la fertilidad o dañar al feto.",
+      H361: "Se sospecha que perjudica la fertilidad o daña al feto.",
+      H362: "Puede perjudicar a los niños alimentados con leche materna.",
+      H370: "Provoca daños en los órganos.",
+      H371: "Puede provocar daños en los órganos.",
+      H372: "Provoca daños en los órganos tras exposiciones prolongadas o repetidas.",
+      H373: "Puede provocar daños en los órganos tras exposiciones prolongadas o repetidas.",
+
+      // Frases H - ambiente
+      H400: "Muy tóxico para los organismos acuáticos.",
+      H410: "Muy tóxico para los organismos acuáticos, con efectos duraderos.",
+      H411: "Tóxico para los organismos acuáticos, con efectos duraderos.",
+      H412: "Nocivo para los organismos acuáticos, con efectos duraderos.",
+      H413: "Puede ser nocivo para los organismos acuáticos, con efectos duraderos.",
+
+      // Combinaciones H frecuentes
+      "H302+H312": "Nocivo en caso de ingestión o en contacto con la piel.",
+      "H302+H332": "Nocivo en caso de ingestión o inhalación.",
+      "H312+H332": "Nocivo en contacto con la piel o inhalación.",
+      "H302+H312+H332": "Nocivo en caso de ingestión, en contacto con la piel o inhalación.",
+
+      // Consejos P - prevención
+      P201: "Solicitar instrucciones especiales antes del uso.",
+      P202: "No manipular la sustancia antes de haber leído y comprendido todas las instrucciones de seguridad.",
+      P210: "Mantener alejado del calor, superficies calientes, chispas, llamas abiertas y otras fuentes de ignición. No fumar.",
+      P211: "No pulverizar sobre una llama abierta u otra fuente de ignición.",
+      P220: "Mantener alejado de la ropa y otros materiales combustibles.",
+      P223: "No permitir el contacto con el agua.",
+      P233: "Mantener el recipiente herméticamente cerrado.",
+      P234: "Conservar únicamente en el embalaje original.",
+      P240: "Toma de tierra y enlace equipotencial del recipiente y del equipo receptor.",
+      P241: "Utilizar material eléctrico, de ventilación o de iluminación antideflagrante.",
+      P242: "Utilizar únicamente herramientas que no produzcan chispas.",
+      P243: "Tomar medidas de precaución contra las descargas electrostáticas.",
+      P260: "No respirar el polvo, el humo, el gas, la niebla, los vapores o el aerosol.",
+      P261: "Evitar respirar el polvo, el humo, el gas, la niebla, los vapores o el aerosol.",
+      P264: "Lavarse concienzudamente tras la manipulación.",
+      P270: "No comer, beber ni fumar durante su utilización.",
+      P271: "Utilizar únicamente en exteriores o en un lugar bien ventilado.",
+      P273: "Evitar su liberación al medio ambiente.",
+      P280: "Llevar guantes, ropa de protección, equipo de protección para los ojos y la cara.",
+      P284: "Llevar equipo de protección respiratoria.",
+
+      // Consejos P - respuesta
+      P301: "EN CASO DE INGESTIÓN:",
+      P302: "EN CASO DE CONTACTO CON LA PIEL:",
+      P303: "EN CASO DE CONTACTO CON LA PIEL o el pelo:",
+      P304: "EN CASO DE INHALACIÓN:",
+      P305: "EN CASO DE CONTACTO CON LOS OJOS:",
+      P310: "Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA o a un médico.",
+      P312: "Llamar a un CENTRO DE TOXICOLOGÍA o a un médico si la persona se encuentra mal.",
+      P321: "Se necesita un tratamiento específico.",
+      P330: "Enjuagarse la boca.",
+      P331: "NO provocar el vómito.",
+      P332: "En caso de irritación cutánea:",
+      P337: "Si persiste la irritación ocular:",
+      P338: "Quitar las lentes de contacto, si lleva y resulta fácil. Seguir aclarando.",
+      P351: "Aclarar cuidadosamente con agua durante varios minutos.",
+      P353: "Aclararse la piel con agua o ducharse.",
+      P361: "Quitar inmediatamente todas las prendas contaminadas.",
+      P362: "Quitar las prendas contaminadas.",
+      P364: "Lavar las prendas contaminadas antes de volver a usarlas.",
+      P370: "En caso de incendio:",
+      P378: "Utilizar medios adecuados para la extinción.",
+
+      // Combinaciones P frecuentes
+      "P301+P310": "EN CASO DE INGESTIÓN: llamar inmediatamente a un CENTRO DE TOXICOLOGÍA o a un médico.",
+      "P301+P312": "EN CASO DE INGESTIÓN: llamar a un CENTRO DE TOXICOLOGÍA o a un médico si la persona se encuentra mal.",
+      "P301+P330+P331": "EN CASO DE INGESTIÓN: enjuagarse la boca. NO provocar el vómito.",
+      "P303+P361+P353": "EN CASO DE CONTACTO CON LA PIEL o el pelo: quitar inmediatamente todas las prendas contaminadas. Aclararse la piel con agua o ducharse.",
+      "P304+P340": "EN CASO DE INHALACIÓN: transportar a la persona al aire libre y mantenerla en una posición que le facilite la respiración.",
+      "P305+P351+P338": "EN CASO DE CONTACTO CON LOS OJOS: aclarar cuidadosamente con agua durante varios minutos. Quitar las lentes de contacto, si lleva y resulta fácil. Seguir aclarando.",
+      "P332+P313": "En caso de irritación cutánea: consultar a un médico.",
+      "P337+P313": "Si persiste la irritación ocular: consultar a un médico.",
+      "P370+P378": "En caso de incendio: utilizar medios adecuados para la extinción.",
+
+      // Consejos P - almacenamiento y eliminación
+      P403: "Almacenar en un lugar bien ventilado.",
+      P405: "Guardar bajo llave.",
+      P406: "Almacenar en un recipiente resistente a la corrosión con revestimiento interior resistente.",
+      P410: "Proteger de la luz solar.",
+      P412: "No exponer a temperaturas superiores a 50 °C.",
+      P501: "Eliminar el contenido o el recipiente conforme a la normativa local, regional, nacional e internacional.",
+      "P403+P233": "Almacenar en un lugar bien ventilado. Mantener el recipiente herméticamente cerrado.",
+      "P403+P235": "Almacenar en un lugar bien ventilado. Mantener en lugar fresco.",
+      "P405+P501": "Guardar bajo llave. Eliminar el contenido o el recipiente conforme a la normativa aplicable."
+    };
+
+    /************************************************************
+     * Priorización de peligros
+     * Menor número = más peligroso para selección automática.
+     ************************************************************/
+    const HAZARD_PRIORITY = {
+      H300: 1, H310: 1, H330: 1,
+      H340: 2, H350: 2, H360: 2,
+      H314: 3, H318: 4,
+      H370: 5, H372: 6,
+      H304: 7,
+      H224: 8, H225: 9, H226: 10,
+      H260: 11, H261: 12,
+      H270: 13, H271: 13, H272: 14,
+      H301: 15, H311: 15, H331: 15,
+      H302: 20, H312: 20, H332: 20,
+      H315: 25, H319: 25, H335: 26, H336: 27,
+      H400: 30, H410: 31, H411: 32, H412: 33, H413: 34
+    };
+
+    const PREFERRED_P_CODES = [
+      "P280",
+      "P210",
+      "P260",
+      "P261",
+      "P271",
+      "P273",
+      "P301+P330+P331",
+      "P303+P361+P353",
+      "P304+P340",
+      "P305+P351+P338",
+      "P310",
+      "P312",
+      "P370+P378",
+      "P403+P235",
+      "P403+P233",
+      "P405",
+      "P501"
+    ];
+
+    /************************************************************
+     * Utilidades UI
+     ************************************************************/
+    function setStatus(message, type = "info") {
+      statusText.textContent = message;
+
+      const colorMap = {
+        info: "bg-blue-500",
+        success: "bg-emerald-500",
+        warning: "bg-amber-500",
+        error: "bg-red-500",
+        idle: "bg-slate-400"
+      };
+
+      statusDot.className = `h-3 w-3 rounded-full ${colorMap[type] || colorMap.info}`;
+
+      const li = document.createElement("li");
+      li.textContent = message;
+      statusLog.appendChild(li);
+    }
+
+    function resetUI() {
+      statusLog.innerHTML = "";
+      previewBody.innerHTML = "";
+      previewSection.classList.add("hidden");
+      setStatus("Iniciando proceso...", "info");
+    }
+
+    function renderPreview(row) {
+      previewBody.innerHTML = "";
+
+      const tr = document.createElement("tr");
+      const cells = [
+        row.Sustancia,
+        row.CAS,
+        row.Palabra_Advertencia,
+        row.Indicacion_H1,
+        row.Indicacion_H2,
+        row.Consejo_P,
+        row.Color_Anaquel
+      ];
+
+      for (const cell of cells) {
+        const td = document.createElement("td");
+        td.className = "max-w-md px-4 py-3 align-top text-slate-700";
+        td.textContent = cell || "";
+        tr.appendChild(td);
+      }
+
+      previewBody.appendChild(tr);
+      previewSection.classList.remove("hidden");
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    /************************************************************
+     * Fetch seguro
+     ************************************************************/
+    async function fetchJson(url, errorMessage) {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`${errorMessage}. Código HTTP: ${response.status}`);
+      }
+
+      return response.json();
+    }
+
+    /************************************************************
+     * PubChem
+     ************************************************************/
+    async function getCidFromQuery(query) {
+      const encodedQuery = encodeURIComponent(query.trim());
+      const url = `${PUBCHEM_BASE}/pug/compound/name/${encodedQuery}/cids/JSON`;
+
+      const data = await fetchJson(
+        url,
+        "No se encontró CID para la sustancia en PubChem"
+      );
+
+      const cid = data?.IdentifierList?.CID?.[0];
+
+      if (!cid) {
+        throw new Error("PubChem no devolvió un CID válido.");
+      }
+
+      return cid;
+    }
+
+    async function getGhsClassification(cid) {
+      const url = `${PUBCHEM_BASE}/pug_view/data/compound/${cid}/JSON?heading=GHS+Classification`;
+
+      return fetchJson(
+        url,
+        "No se pudo obtener la clasificación GHS desde PubChem"
+      );
+    }
+
+    async function getSynonyms(cid) {
+      const url = `${PUBCHEM_BASE}/pug/compound/cid/${cid}/synonyms/JSON`;
+
+      try {
+        const data = await fetchJson(url, "No se pudieron obtener sinónimos");
+        return data?.InformationList?.Information?.[0]?.Synonym || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function getRecordTitle(ghsJson, fallback) {
+      return ghsJson?.Record?.RecordTitle || fallback;
+    }
+
+    /************************************************************
+     * CAS
+     ************************************************************/
+    function isValidCas(cas) {
+      if (!/^\d{2,7}-\d{2}-\d$/.test(cas)) return false;
+
+      const digits = cas.replace(/-/g, "");
+      const checkDigit = Number(digits.at(-1));
+      const body = digits.slice(0, -1).split("").reverse();
+
+      const sum = body.reduce((acc, digit, index) => {
+        return acc + Number(digit) * (index + 1);
+      }, 0);
+
+      return sum % 10 === checkDigit;
+    }
+
+    function extractCasFromSynonyms(synonyms, originalQuery) {
+      const cleanQuery = originalQuery.trim();
+
+      if (isValidCas(cleanQuery)) {
+        return cleanQuery;
+      }
+
+      const cas = synonyms.find(item => isValidCas(String(item).trim()));
+      return cas || "No identificado";
+    }
+
+    /************************************************************
+     * Parser robusto para JSON anidado de PubChem
+     ************************************************************/
+    function collectStringsDeep(value, output = []) {
+      if (value === null || value === undefined) return output;
+
+      if (typeof value === "string") {
+        output.push(value);
+        return output;
+      }
+
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          collectStringsDeep(item, output);
+        }
+        return output;
+      }
+
+      if (typeof value === "object") {
+        for (const item of Object.values(value)) {
+          collectStringsDeep(item, output);
+        }
+      }
+
+      return output;
+    }
+
+    function normalizeCodeExpression(expression) {
+      const compact = String(expression).replace(/\s+/g, "").toUpperCase();
+      const parts = compact.split("+");
+
+      let currentPrefix = "";
+      const normalizedParts = parts.map(part => {
+        if (/^[HP]/.test(part)) {
+          currentPrefix = part[0];
+          return part;
+        }
+
+        return `${currentPrefix}${part}`;
+      });
+
+      return normalizedParts.join("+");
+    }
+
+    function getCodeExpressionsFromText(text) {
+      const regex = /\b[HP]\d{3}[A-Z]?(?:\s*\+\s*(?:[HP])?\d{3}[A-Z]?)*\b/g;
+      const matches = String(text).match(regex) || [];
+
+      return matches.map(normalizeCodeExpression);
+    }
+
+    function splitCodeExpression(codeExpression) {
+      return String(codeExpression)
+        .split("+")
+        .map(part => part.trim().toUpperCase())
+        .filter(Boolean);
+    }
+
+    function buildCodeRegex(codeExpression) {
+      const parts = splitCodeExpression(codeExpression);
+      const flexible = parts
+        .map(part => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+        .join("\\s*\\+\\s*");
+
+      return new RegExp(flexible, "i");
+    }
+
+    function extractStatementNearCode(rawText, codeExpression) {
+      const compactText = String(rawText)
+        .replace(/\s+/g, " ")
+        .replace(/\u00A0/g, " ")
+        .trim();
+
+      const codeRegex = buildCodeRegex(codeExpression);
+      const match = compactText.match(codeRegex);
+
+      if (!match || match.index === undefined) return "";
+
+      let segment = compactText.slice(match.index, match.index + 300);
+
+      segment = segment
+        .replace(codeRegex, "")
+        .replace(/^[:;,\-\s()[\]{}0-9%.]+/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const sentenceEnd = segment.search(/\.\s/);
+      if (sentenceEnd > 20) {
+        segment = segment.slice(0, sentenceEnd + 1);
+      }
+
+      return segment;
+    }
+
+    function extractCodesFromGhsJson(ghsJson) {
+      const allStrings = collectStringsDeep(ghsJson);
+      const codes = new Map();
+
+      for (const rawText of allStrings) {
+        const expressions = getCodeExpressionsFromText(rawText);
+
+        for (const expression of expressions) {
+          if (!codes.has(expression)) {
+            codes.set(expression, {
+              code: expression,
+              rawText,
+              englishText: extractStatementNearCode(rawText, expression)
+            });
+          }
+        }
+      }
+
+      return {
+        codes,
+        allStrings
+      };
+    }
+
+    /************************************************************
+     * Traducción
+     ************************************************************/
+    function getLocalSpanishText(codeExpression) {
+      if (SGA_ES[codeExpression]) return SGA_ES[codeExpression];
+
+      const parts = splitCodeExpression(codeExpression);
+      const translatedParts = parts
+        .map(part => SGA_ES[part])
+        .filter(Boolean);
+
+      if (translatedParts.length === parts.length && translatedParts.length > 0) {
+        return translatedParts.join(" ");
+      }
+
+      return "";
+    }
+
+    async function translateBriefTextToSpanish(text) {
+      const cleanText = String(text || "").trim();
+
+      if (!cleanText) return "";
+
+      try {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=en|es`;
+        const data = await fetchJson(url, "No se pudo traducir el texto");
+
+        return data?.responseData?.translatedText || cleanText;
+      } catch {
+        return cleanText;
+      }
+    }
+
+    async function resolveStatementInSpanish(codeInfo) {
+      const localText = getLocalSpanishText(codeInfo.code);
+
+      if (localText) {
+        return `${codeInfo.code}: ${localText}`;
+      }
+
+      const translated = await translateBriefTextToSpanish(codeInfo.englishText || codeInfo.rawText);
+
+      return `${codeInfo.code}: ${translated || "Texto no disponible en español."}`;
+    }
+
+    /************************************************************
+     * Selección automática de frases
+     ************************************************************/
+    function getHazardPriority(codeExpression) {
+      const parts = splitCodeExpression(codeExpression);
+      const priorities = parts.map(part => HAZARD_PRIORITY[part] ?? 999);
+      return Math.min(...priorities);
+    }
+
+    function selectTopHazardCodes(codesMap) {
+      return Array.from(codesMap.values())
+        .filter(item => item.code.startsWith("H"))
+        .sort((a, b) => {
+          const priorityA = getHazardPriority(a.code);
+          const priorityB = getHazardPriority(b.code);
+
+          if (priorityA !== priorityB) return priorityA - priorityB;
+          return a.code.localeCompare(b.code);
+        })
+        .slice(0, 2);
+    }
+
+    function selectPrecautionCodes(codesMap) {
+      const pCodes = Array.from(codesMap.values())
+        .filter(item => item.code.startsWith("P"));
+
+      const selected = [];
+
+      for (const preferredCode of PREFERRED_P_CODES) {
+        const match = pCodes.find(item => item.code === preferredCode);
+        if (match) selected.push(match);
+        if (selected.length >= 3) return selected;
+      }
+
+      for (const item of pCodes) {
+        if (!selected.some(selectedItem => selectedItem.code === item.code)) {
+          selected.push(item);
+        }
+
+        if (selected.length >= 3) break;
+      }
+
+      return selected;
+    }
+
+    function extractSignalWord(allStrings, selectedHazards) {
+      const joined = allStrings.join(" ").toLowerCase();
+
+      if (joined.includes("danger")) return "Peligro";
+      if (joined.includes("warning")) return "Atención";
+
+      const severeHazard = selectedHazards.some(item => getHazardPriority(item.code) <= 15);
+
+      if (severeHazard) return "Peligro";
+      if (selectedHazards.length > 0) return "Atención";
+
+      return "Sin clasificar";
+    }
+
+    function assignShelfColor(hazardCodes) {
+      const expandedCodes = hazardCodes.flatMap(item => splitCodeExpression(item.code));
+      const has = (...codes) => codes.some(code => expandedCodes.includes(code));
+
+      // Prioridad sugerida. Ajusta según el protocolo interno de almacenamiento de tu laboratorio.
+      if (has("H220", "H221", "H222", "H223", "H224", "H225", "H226", "H228", "H240", "H241", "H242", "H250", "H251", "H252", "H260", "H261")) {
+        return "ROJO";
+      }
+
+      if (has("H314", "H318", "H290")) {
+        return "BLANCO";
+      }
+
+      if (has("H270", "H271", "H272")) {
+        return "AMARILLO";
+      }
+
+      if (has("H300", "H301", "H310", "H311", "H330", "H331", "H340", "H350", "H360", "H370", "H372")) {
+        return "AZUL";
+      }
+
+      if (has("H400", "H410", "H411", "H412", "H413")) {
+        return "GRIS";
+      }
+
+      if (expandedCodes.length > 0) {
+        return "VERDE";
+      }
+
+      return "SIN COLOR";
+    }
+
+    /************************************************************
+     * Excel
+     ************************************************************/
+    function calculateColumnWidths(rows) {
+      const headers = [
+        "Sustancia",
+        "CAS",
+        "Palabra_Advertencia",
+        "Indicacion_H1",
+        "Indicacion_H2",
+        "Consejo_P",
+        "Color_Anaquel"
+      ];
+
+      return headers.map(header => {
+        const maxContentLength = rows.reduce((max, row) => {
+          const value = row[header] || "";
+          return Math.max(max, String(value).length);
+        }, header.length);
+
+        return {
+          wch: Math.min(Math.max(maxContentLength + 2, 16), 80)
+        };
+      });
+    }
+
+    function exportToExcel(rows) {
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+
+      worksheet["!cols"] = calculateColumnWidths(rows);
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Etiquetas SGA");
+
+      XLSX.writeFile(workbook, OUTPUT_FILE);
+    }
+
+    /************************************************************
+     * Flujo principal
+     ************************************************************/
+    async function generateSgaLabel() {
+      const query = queryInput.value.trim();
+
+      if (!query) {
+        setStatus("Ingresa un nombre de sustancia o número CAS.", "warning");
+        return;
+      }
+
+      generateBtn.disabled = true;
+      resetUI();
+
+      try {
+        setStatus("Conectando a la API de PubChem...", "info");
+        await sleep(150);
+
+        const cid = await getCidFromQuery(query);
+        setStatus(`CID encontrado: ${cid}`, "success");
+
+        setStatus("Extrayendo clasificación GHS...", "info");
+        await sleep(150);
+
+        const ghsJson = await getGhsClassification(cid);
+
+        setStatus("Buscando sinónimos y número CAS...", "info");
+        await sleep(150);
+
+        const synonyms = await getSynonyms(cid);
+        const cas = extractCasFromSynonyms(synonyms, query);
+
+        setStatus("Parseando JSON anidado de PubChem...", "info");
+        await sleep(150);
+
+        const { codes, allStrings } = extractCodesFromGhsJson(ghsJson);
+
+        if (codes.size === 0) {
+          throw new Error("No se detectaron frases H o P en la clasificación GHS disponible para esta sustancia.");
+        }
+
+        const selectedHazards = selectTopHazardCodes(codes);
+        const selectedPrecautions = selectPrecautionCodes(codes);
+
+        setStatus("Traduciendo datos...", "info");
+        await sleep(150);
+
+        const hazardStatements = await Promise.all(
+          selectedHazards.map(resolveStatementInSpanish)
+        );
+
+        const precautionStatements = await Promise.all(
+          selectedPrecautions.map(resolveStatementInSpanish)
+        );
+
+        const substanceName = getRecordTitle(ghsJson, query);
+        const signalWord = extractSignalWord(allStrings, selectedHazards);
+        const shelfColor = assignShelfColor(selectedHazards);
+
+        const row = {
+          Sustancia: substanceName,
+          CAS: cas,
+          Palabra_Advertencia: signalWord,
+          Indicacion_H1: hazardStatements[0] || "No disponible",
+          Indicacion_H2: hazardStatements[1] || "No disponible",
+          Consejo_P: precautionStatements.join(" | ") || "No disponible",
+          Color_Anaquel: shelfColor
+        };
+
+        renderPreview(row);
+
+        setStatus("Exportando Excel...", "info");
+        await sleep(150);
+
+        exportToExcel([row]);
+
+        setStatus(`Excel generado correctamente: ${OUTPUT_FILE}`, "success");
+      } catch (error) {
+        console.error(error);
+        setStatus(error.message || "Ocurrió un error inesperado.", "error");
+      } finally {
+        generateBtn.disabled = false;
+      }
+    }
+
+    generateBtn.addEventListener("click", generateSgaLabel);
+
+    queryInput.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        generateSgaLabel();
+      }
+    });
+  </script>
+</body>
+</html>
