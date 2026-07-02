@@ -56,18 +56,6 @@ window.showNfpaLevel = showNfpaLevel;
 
 async function renderConsultaView(container) {
     container.innerHTML = `
-        <div class="bg-white/80 backdrop-blur-xl rounded-3xl shadow-lg border border-white/20 p-6">
-            <div class="flex items-center gap-3 mb-2">
-                <div class="p-2.5 rounded-2xl bg-brand-100">
-                    <i data-lucide="book-open-check" class="w-6 h-6 text-brand-600"></i>
-                </div>
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-800">Centro de Consulta</h2>
-                    <p class="text-sm text-slate-500">Informacion de referencia para el laboratorio quimico</p>
-                </div>
-            </div>
-        </div>
-
         <div class="mt-6 overflow-x-auto no-scrollbar">
             <div class="flex gap-2 min-w-max pb-2">
                 ${SECTIONS.map(s => `
