@@ -56,10 +56,10 @@ window.showNfpaLevel = showNfpaLevel;
 
 async function renderConsultaView(container) {
     container.innerHTML = `
-        <div class="mt-6 overflow-x-auto no-scrollbar">
-            <div class="flex gap-2 min-w-max pb-2">
+        <div class="mt-6">
+            <div class="flex flex-wrap gap-2">
                 ${SECTIONS.map(s => `
-                    <button id="consulta-tab-${s.id}" class="consulta-tab flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${s.id === 'ghs' ? 'bg-brand-500 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}"
+                    <button id="consulta-tab-${s.id}" class="consulta-tab flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${s.id === 'ghs' ? 'bg-brand-500 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}"
                             onclick="activateSection('${s.id}')">
                         <i data-lucide="${s.icon}" class="w-4 h-4"></i>
                         <span>${s.label}</span>
