@@ -1,5 +1,6 @@
 let currentModalType = '';
 let currentEditId = null;
+let pendingDelete = null;
 
 function closeModal() {
     const modal = document.getElementById('item-modal');
@@ -464,7 +465,18 @@ async function handleFormSubmit() {
     }
 }
 
-async function deleteItem(type, id) {
+function closeDeleteModal() {
+    const modal = document.getElementById('delete-modal');
+    const content = document.getElementById('delete-modal-content');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        pendingDelete = null;
+    }, 200);
+}
+
+function deleteItem(type, id) {
     if (!state.isLoggedIn) {
         alert("Debe iniciar sesión para eliminar elementos del inventario.");
         openAuthModal();
@@ -473,11 +485,39 @@ async function deleteItem(type, id) {
     const isSub = type === 'substances';
     const label = isSub ? 'la sustancia' : 'el material';
 
-    if (!confirm(`¿Está seguro de que desea eliminar permanentemente ${label}? Esta acción se registrará en la bitácora.`)) {
-        return;
+    const message = document.getElementById('delete-modal-message');
+    const iconContainer = document.querySelector('#delete-modal-content .bg-red-50');
+    message.textContent = `¿Está seguro de eliminar permanentemente ${label}?`;
+
+    const labels = {
+        substances: 'Sustancia Química',
+        chemical_materials: 'Material Químico',
+        didactic_materials: 'Material Didáctico'
+    };
+    if (iconContainer) {
+        iconContainer.innerHTML = `<i data-lucide="trash-2" class="w-6 h-6"></i>`;
+        if (window.lucide) window.lucide.createIcons();
     }
 
-    const apiPath = type === 'chemical_materials' ? 'chemical-materials' : (type === 'didactic_materials' ? 'didactic-materials' : 'substances');
+    const modal = document.getElementById('delete-modal');
+    const content = document.getElementById('delete-modal-content');
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 50);
+
+    pendingDelete = { type, id, label, apiPath: type === 'chemical_materials' ? 'chemical-materials' : (type === 'didactic_materials' ? 'didactic-materials' : 'substances') };
+
+    const btnConfirm = document.getElementById('btn-confirm-delete');
+    btnConfirm.onclick = executeDelete;
+}
+
+async function executeDelete() {
+    if (!pendingDelete) return;
+    const { type, id, apiPath } = pendingDelete;
+
+    closeDeleteModal();
 
     try {
         const res = await fetch(`/api/${apiPath}/${id}`, {
