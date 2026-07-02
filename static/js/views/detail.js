@@ -23,8 +23,16 @@ async function renderItemDetail(container, typePath, itemId) {
         const simRes = await fetch(`/api/${apiPath}?similar_to=${item.id}`).then(r => r.json());
         const similars = simRes.data || [];
 
+        const backPath = typePath === 'substances' ? '#/substances' : (typePath === 'chemical-materials' ? '#/chemical-materials' : '#/didactic-materials');
+
         container.innerHTML = `
             <div class="space-y-8 animate-fade-in print-card bg-white p-8 rounded-3xl border border-slate-200 shadow-xl relative">
+                <div class="no-print flex items-center gap-3 mb-2">
+                    <a href="${backPath}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-600 transition">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span>Volver al listado</span>
+                    </a>
+                </div>
                 <div class="flex flex-col md:flex-row justify-between items-start gap-6">
                     <div class="flex-1 space-y-4">
                         <div class="flex flex-wrap items-center gap-3">
