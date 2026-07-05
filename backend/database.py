@@ -1,12 +1,44 @@
 import sqlite3
 import os
+import base64
+import hashlib
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'inventario.db')
+
+SECRET_CIPHER_KEY = "itma2-super-secret-key-laboratorio"
+
+def encrypt_username(username: str) -> str:
+    if not username:
+        return ""
+    key_hash = hashlib.sha256(SECRET_CIPHER_KEY.encode()).digest()
+    data = username.encode('utf-8')
+    encrypted = bytes(b ^ key_hash[i % len(key_hash)] for i, b in enumerate(data))
+    return base64.b64encode(encrypted).decode('utf-8')
+
+def decrypt_username(encrypted_username: str) -> str:
+    if not encrypted_username:
+        return ""
+    try:
+        key_hash = hashlib.sha256(SECRET_CIPHER_KEY.encode()).digest()
+        data = base64.b64decode(encrypted_username.encode('utf-8'))
+        decrypted = bytes(b ^ key_hash[i % len(key_hash)] for i, b in enumerate(data))
+        return decrypted.decode('utf-8')
+    except Exception:
+        return encrypted_username
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+def get_user_by_username(username):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    enc_username = encrypt_username(username)
+    cursor.execute('SELECT * FROM users WHERE username = ?', (enc_username,))
+    user = cursor.fetchone()
+    conn.close()
+    return user
 
 def init_db():
     conn = get_db_connection()
@@ -105,11 +137,54 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'responsable',
+            active INTEGER NOT NULL DEFAULT 1,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
+    # 6. Tabla de Solicitudes de Cambio (change_requests)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS change_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            requester_username TEXT NOT NULL,
+            type TEXT NOT NULL,
+            action TEXT NOT NULL,
+            target_id TEXT,
+            target_name TEXT,
+            data TEXT,
+            status TEXT DEFAULT 'PENDIENTE',
+            feedback TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     # Migraciones para agregar columnas nuevas si la base de datos ya existía
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'responsable'")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1")
+    except sqlite3.OperationalError:
+        pass
+
+    # Migrar usuarios existentes para cifrar sus nombres de usuario si es necesario
+    cursor.execute("SELECT id, username, role FROM users")
+    existing_users = cursor.fetchall()
+    for row in existing_users:
+        user_id = row['id']
+        raw_username = row['username']
+        decrypted = decrypt_username(raw_username)
+        # Si decrypt_username retorna el mismo valor, significa que no estaba encriptado (o falló el descifrado)
+        if decrypted == raw_username:
+            encrypted = encrypt_username(raw_username)
+            # Si era el usuario "admin" previo, asegurar que su rol sea admin
+            new_role = 'admin' if raw_username == 'admin' else row['role']
+            cursor.execute("UPDATE users SET username = ?, role = ? WHERE id = ?", (encrypted, new_role, user_id))
+
     try:
         cursor.execute("ALTER TABLE substances ADD COLUMN external_links TEXT")
     except sqlite3.OperationalError:
@@ -139,8 +214,16 @@ def init_db():
     cursor.execute("SELECT COUNT(*) FROM users")
     if cursor.fetchone()[0] == 0:
         from werkzeug.security import generate_password_hash
-        hashed_password = generate_password_hash('admin')
-        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", ('admin', hashed_password))
+        # Usamos credenciales seguras definidas
+        username_plain = "admin_lab_2026"
+        password_plain = "PasswordLabKeep2026!"
+        
+        hashed_password = generate_password_hash(password_plain)
+        encrypted_username = encrypt_username(username_plain)
+        cursor.execute(
+            "INSERT INTO users (username, password, role, active) VALUES (?, ?, ?, ?)", 
+            (encrypted_username, hashed_password, 'admin', 1)
+        )
 
     # Inicializar y sembrar datos de la sección consulta
     import json

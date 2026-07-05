@@ -52,6 +52,11 @@ async function activateSection(sectionId) {
                 const sec = SECTIONS.find(s => s.id === sectionId);
                 if (sec) {
                     content.innerHTML = sec.render(res.data);
+                    
+                    // Ocultar botones de borrar si el usuario no es admin
+                    if (state.userRole !== 'admin') {
+                        content.querySelectorAll('[onclick^="deleteConsultaItem"]').forEach(el => el.remove());
+                    }
                 }
             } else {
                 content.innerHTML = `<div class="p-6 text-center text-red-500 font-bold">Error: ${res.message}</div>`;
@@ -137,6 +142,11 @@ function selectGlossaryTerm(term) {
                 <p class="text-sm text-slate-600 leading-relaxed">${entry.def}</p>
                 ${imgHtml}
             </div>`;
+            
+        // Ocultar botones de borrar en glosario si el usuario no es admin
+        if (state.userRole !== 'admin') {
+            detail.querySelectorAll('[onclick^="deleteConsultaItem"]').forEach(el => el.remove());
+        }
             
         if (window.lucide) window.lucide.createIcons();
     }

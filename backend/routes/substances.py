@@ -99,6 +99,11 @@ def create_substance():
     """
     Crea una sustancia, genera su QR localmente y guarda la acción en el historial.
     """
+    from backend.routes.change_requests import check_and_queue_request
+    pending_resp = check_and_queue_request('substances', 'CREACION')
+    if pending_resp:
+        return pending_resp
+
     data = request.get_json() or {}
     from flask import session
     user_responsible = session.get('user', request.headers.get('X-User-Responsible', 'Sistema Local'))
@@ -198,6 +203,11 @@ def update_substance(item_id):
     """
     Actualiza la sustancia, audita campos modificados y regenera el QR si cambió su contenido.
     """
+    from backend.routes.change_requests import check_and_queue_request
+    pending_resp = check_and_queue_request('substances', 'EDICION', target_id=item_id)
+    if pending_resp:
+        return pending_resp
+
     data = request.get_json() or {}
     from flask import session
     user_responsible = session.get('user', request.headers.get('X-User-Responsible', 'Sistema Local'))
@@ -308,6 +318,11 @@ def update_substance(item_id):
 
 @substances_bp.route('/api/substances/<int:item_id>', methods=['DELETE'])
 def delete_substance(item_id):
+    from backend.routes.change_requests import check_and_queue_request
+    pending_resp = check_and_queue_request('substances', 'ELIMINACION', target_id=item_id)
+    if pending_resp:
+        return pending_resp
+
     from flask import session
     user_responsible = session.get('user', request.headers.get('X-User-Responsible', 'Sistema Local'))
 

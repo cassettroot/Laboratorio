@@ -64,6 +64,11 @@ def get_consulta_section(section):
 
 @consulta_bp.route('/api/consulta/<section>', methods=['POST'])
 def add_consulta_item(section):
+    from backend.routes.change_requests import check_and_queue_request
+    pending_resp = check_and_queue_request(f'consulta_{section}', 'CREACION')
+    if pending_resp:
+        return pending_resp
+
     table_name = TABLE_MAPPING.get(section)
     if not table_name:
         return jsonify({"status": "error", "message": "Sección no encontrada"}), 404
@@ -181,6 +186,11 @@ def add_consulta_item(section):
 
 @consulta_bp.route('/api/consulta/<section>/<item_id>', methods=['PUT'])
 def update_consulta_item(section, item_id):
+    from backend.routes.change_requests import check_and_queue_request
+    pending_resp = check_and_queue_request(f'consulta_{section}', 'EDICION', target_id=item_id)
+    if pending_resp:
+        return pending_resp
+
     table_name = TABLE_MAPPING.get(section)
     if not table_name:
         return jsonify({"status": "error", "message": "Sección no encontrada"}), 404
@@ -305,6 +315,13 @@ def update_consulta_item(section, item_id):
 
 @consulta_bp.route('/api/consulta/<section>/<item_id>', methods=['DELETE'])
 def delete_consulta_item(section, item_id):
+    from flask import session
+    from backend.database import get_user_by_username
+    user = session.get('user')
+    user_data = get_user_by_username(user) if user else None
+    if not user_data or user_data['role'] != 'admin':
+        return jsonify({"status": "error", "message": "Acceso denegado. Solo el administrador puede eliminar elementos de consulta."}), 403
+
     table_name = TABLE_MAPPING.get(section)
     if not table_name:
         return jsonify({"status": "error", "message": "Sección no encontrada"}), 404

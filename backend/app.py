@@ -8,6 +8,7 @@ from backend.routes.history import history_bp
 from backend.routes.tools import tools_bp
 from backend.routes.auth import auth_bp
 from backend.routes.consulta import consulta_bp
+from backend.routes.change_requests import change_requests_bp
 
 def create_app():
     # Asegurar que la base de datos esté inicializada
@@ -21,19 +22,62 @@ def create_app():
     # Configurar secret_key para sesiones de Flask
     app.secret_key = os.environ.get('SECRET_KEY', 'labkeep-secret-key-1823791283')
     
-    # Interceptor global para requerir autenticación en peticiones modificadoras
+    # Interceptor global para requerir autenticación en peticiones modificadoras y validar roles
     @app.before_request
     def check_auth():
-        # Permitir métodos de lectura
-        if request.method in ['GET', 'OPTIONS']:
+        # Permitir rutas de autenticación sin restricciones de sesión
+        # Nota: Status y login/logout se gestionan por separado
+        if request.path.startswith('/api/auth/login') or request.path.startswith('/api/auth/logout') or request.path.startswith('/api/auth/status'):
             return
-        # Permitir rutas de autenticación y consulta de escaneo de código QR
-        if request.path.startswith('/api/auth/') or request.path == '/api/scan-qr':
+
+        user_logged_in = 'user' in session
+        user_role = None
+        user_active = 0
+
+        if user_logged_in:
+            from backend.database import get_user_by_username
+            user_data = get_user_by_username(session['user'])
+            if user_data:
+                user_role = user_data['role']
+                user_active = user_data['active']
+            else:
+                session.pop('user', None)
+                user_logged_in = False
+
+        # 1. Sesión cerrada (petición de usuario no autenticado):
+        if not user_logged_in:
+            if request.path.startswith('/api/'):
+                # Solo se permite:
+                # - GET a sustancias, materiales químicos y didácticos
+                # - POST a /api/scan-qr (escaneo de QR)
+                allowed_logged_out = (
+                    (request.method == 'GET' and (
+                        request.path.startswith('/api/substances') or
+                        request.path.startswith('/api/chemical-materials') or
+                        request.path.startswith('/api/didactic-materials')
+                    )) or
+                    (request.method == 'POST' and request.path == '/api/scan-qr')
+                )
+                if not allowed_logged_out:
+                    return jsonify({"status": "error", "message": "No autorizado. Inicie sesión para realizar esta acción."}), 401
             return
-        # Restringir el resto de las rutas API de escritura si no hay sesión iniciada
-        if request.path.startswith('/api/'):
-            if 'user' not in session:
-                return jsonify({"status": "error", "message": "No autorizado. Inicie sesión para realizar cambios."}), 401
+
+        # 2. Usuario Inactivo (no puede hacer ningún cambio):
+        if user_active == 0:
+            if request.method not in ['GET', 'OPTIONS']:
+                return jsonify({"status": "error", "message": "Su usuario está inactivo. No tiene permisos para realizar cambios."}), 403
+            
+            # Si intenta ver la lista de usuarios o base de datos y no es admin, denegar
+            if request.path.startswith('/api/database') or request.path.startswith('/api/users'):
+                if user_role != 'admin':
+                    return jsonify({"status": "error", "message": "Acceso denegado. Permisos insuficientes."}), 403
+            return
+
+        # 3. Usuario Activo - Validación de Roles:
+        if user_role == 'responsable':
+            # Responsable no puede ver el panel de base de datos, los usuarios, ni el historial de cambios
+            if request.path.startswith('/api/users') or request.path.startswith('/api/database') or request.path.startswith('/api/history'):
+                return jsonify({"status": "error", "message": "Acceso denegado. Permisos insuficientes."}), 403
 
     # Registrar Blueprints de la API
     app.register_blueprint(substances_bp)
@@ -43,6 +87,7 @@ def create_app():
     app.register_blueprint(tools_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(consulta_bp)
+    app.register_blueprint(change_requests_bp)
 
     # Ruta raíz: sirve el archivo index.html del frontend
     @app.route('/')

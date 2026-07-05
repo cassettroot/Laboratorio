@@ -21,6 +21,14 @@ function openAddModal(type) {
         openAuthModal();
         return;
     }
+    if (state.userRole !== 'admin' && state.userRole !== 'responsable') {
+        alert("No tiene permisos para registrar nuevos elementos.");
+        return;
+    }
+    if (state.userActive !== 1) {
+        alert("Su usuario está inactivo. No tiene permisos para realizar cambios.");
+        return;
+    }
     currentModalType = type;
     currentEditId = null;
 
@@ -47,6 +55,14 @@ async function openEditModal(type, id) {
     if (!state.isLoggedIn) {
         alert("Debe iniciar sesión para editar elementos.");
         openAuthModal();
+        return;
+    }
+    if (state.userRole !== 'admin' && state.userRole !== 'responsable') {
+        alert("No tiene permisos para modificar elementos.");
+        return;
+    }
+    if (state.userActive !== 1) {
+        alert("Su usuario está inactivo. No tiene permisos para realizar cambios.");
         return;
     }
     currentModalType = type;
@@ -126,18 +142,20 @@ function buildFormHtml(type, data = {}) {
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Nombre de la sustancia *</label>
                         <input type="text" id="form-name" value="${data.name || ''}" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Grupo Químico</label>
-                        <select id="form-substance-group" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
-                            <option value="" ${!data.substance_group ? 'selected' : ''}>-- Seleccionar Grupo --</option>
-                            <option value="Inflamables" ${data.substance_group === 'Inflamables' ? 'selected' : ''}>Inflamables</option>
-                            <option value="Tóxicos" ${data.substance_group === 'Tóxicos' ? 'selected' : ''}>Tóxicos</option>
-                            <option value="Corrosivos" ${data.substance_group === 'Corrosivos' ? 'selected' : ''}>Corrosivos</option>
-                            <option value="Explosivos" ${data.substance_group === 'Explosivos' ? 'selected' : ''}>Explosivos</option>
-                            <option value="Comburentes" ${data.substance_group === 'Comburentes' ? 'selected' : ''}>Comburentes</option>
-                            <option value="Irritantes" ${data.substance_group === 'Irritantes' ? 'selected' : ''}>Irritantes</option>
-                            <option value="Otros" ${data.substance_group === 'Otros' ? 'selected' : ''}>Otros</option>
-                        </select>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Grupo(s) Químico(s)</label>
+                        <div id="form-substance-groups-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                            ${(() => {
+                                const allGroups = ['Inflamables', 'Tóxicos', 'Corrosivos', 'Explosivos', 'Comburentes', 'Irritantes', 'Inertes', 'Otros'];
+                                const selected = data.substance_group ? data.substance_group.split(',').map(g => g.trim()) : [];
+                                return allGroups.map(g => `
+                                    <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none">
+                                        <input type="checkbox" name="substance_group_check" value="${g}" ${selected.includes(g) ? 'checked' : ''} class="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500">
+                                        <span>${g}</span>
+                                    </label>
+                                `).join('');
+                            })()}
+                        </div>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Fórmula Química</label>
@@ -449,15 +467,29 @@ async function handleFormSubmit() {
     });
 
     if (currentModalType === 'substances') {
+        const checkedGroups = [];
+        document.querySelectorAll('input[name="substance_group_check"]:checked').forEach(cb => {
+            checkedGroups.push(cb.value);
+        });
+        payload.substance_group = checkedGroups.join(', ');
+
         const containerContent = (document.getElementById('form-container-content') ? document.getElementById('form-container-content').value : '') || '';
         const match = containerContent.trim().match(/[a-zA-ZáéíóúÁÉÍÓÚñÑ°%]+$/);
         payload.unit = match ? match[0] : 'g';
     }
 
-    const isEdit = currentEditId !== null;
-    const apiPath = currentModalType === 'chemical_materials' ? 'chemical-materials' : (currentModalType === 'didactic_materials' ? 'didactic-materials' : 'substances');
-    const url = isEdit ? `/api/${apiPath}/${currentEditId}` : `/api/${apiPath}`;
-    const method = isEdit ? 'PUT' : 'POST';
+    const isRequestEdit = (state.editingRequestId !== undefined && state.editingRequestId !== null);
+    let url, method;
+
+    if (isRequestEdit) {
+        url = `/api/change-requests/${state.editingRequestId}`;
+        method = 'PUT';
+    } else {
+        const isEdit = currentEditId !== null;
+        const apiPath = currentModalType === 'chemical_materials' ? 'chemical-materials' : (currentModalType === 'didactic_materials' ? 'didactic-materials' : 'substances');
+        url = isEdit ? `/api/${apiPath}/${currentEditId}` : `/api/${apiPath}`;
+        method = isEdit ? 'PUT' : 'POST';
+    }
 
     try {
         const res = await fetch(url, {
@@ -471,7 +503,18 @@ async function handleFormSubmit() {
 
         if (res.status === 'success') {
             closeModal();
-            router();
+            if (isRequestEdit) {
+                state.editingRequestId = null;
+                // Si la vista activa es notificaciones, forzar recarga
+                if (state.activeRoute === '#/notifications' && typeof renderNotificationsView === 'function') {
+                    const mainEl = document.getElementById('main-content');
+                    renderNotificationsView(mainEl);
+                } else {
+                    router();
+                }
+            } else {
+                router();
+            }
         } else {
             alert(res.message);
         }
@@ -495,6 +538,14 @@ function deleteItem(type, id) {
     if (!state.isLoggedIn) {
         alert("Debe iniciar sesión para eliminar elementos del inventario.");
         openAuthModal();
+        return;
+    }
+    if (state.userRole !== 'admin' && state.userRole !== 'responsable') {
+        alert("No tiene permisos para eliminar elementos.");
+        return;
+    }
+    if (state.userActive !== 1) {
+        alert("Su usuario está inactivo. No tiene permisos para realizar cambios.");
         return;
     }
     const isSub = type === 'substances';

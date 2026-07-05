@@ -9,6 +9,32 @@ function setActiveTab(id) {
 function router() {
     state.activeRoute = window.location.hash || '#/';
 
+    // Redirección y validación de permisos de rutas
+    const allowedLoggedOutRoutes = [
+        '#/substances',
+        '#/chemical-materials',
+        '#/didactic-materials',
+        '#/scan-qr'
+    ];
+
+    if (!state.isLoggedIn) {
+        // Si no ha iniciado sesión, solo se permiten las vistas de reactivos, materiales y escanear QR
+        const isAllowed = allowedLoggedOutRoutes.some(route => state.activeRoute.startsWith(route));
+        if (!isAllowed) {
+            window.location.hash = '#/substances';
+            return;
+        }
+    } else {
+        // Con sesión iniciada
+        if (state.userRole === 'responsable') {
+            // El responsable no puede ver el panel de base de datos, los usuarios, ni el historial de cambios
+            if (state.activeRoute.startsWith('#/backup') || state.activeRoute.startsWith('#/users') || state.activeRoute.startsWith('#/history')) {
+                window.location.hash = '#/';
+                return;
+            }
+        }
+    }
+
     stopQrScanner();
     stopWebcam();
 
@@ -74,6 +100,21 @@ function router() {
         setActiveTab('nav-backup');
         titleEl.textContent = "Base de Datos";
         renderBackupView(mainEl);
+    }
+    else if (state.activeRoute === '#/users') {
+        setActiveTab('nav-users');
+        titleEl.textContent = "Administración de Usuarios";
+        renderUsersView(mainEl);
+    }
+    else if (state.activeRoute === '#/notifications') {
+        setActiveTab('nav-notifications');
+        titleEl.textContent = "Bandeja de Notificaciones";
+        renderNotificationsView(mainEl);
+    }
+    else if (state.activeRoute === '#/account') {
+        setActiveTab('nav-account');
+        titleEl.textContent = "Mi Cuenta";
+        renderAccountView(mainEl);
     }
     else {
         mainEl.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Ruta no encontrada.</div>`;

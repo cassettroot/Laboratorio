@@ -1,3 +1,20 @@
+function buildGroupBadgesHtml(substance_group) {
+    if (!substance_group) return '';
+    const groups = substance_group.split(',').map(g => g.trim()).filter(Boolean);
+    return groups.map(group => {
+        let gColor = 'bg-slate-100 text-slate-700 border-slate-200';
+        const g = group.toLowerCase();
+        if (g.includes('inflam')) gColor = 'bg-red-50 text-red-700 border-red-200';
+        else if (g.includes('tox') || g.includes('venen')) gColor = 'bg-purple-50 text-purple-700 border-purple-200';
+        else if (g.includes('corros')) gColor = 'bg-orange-50 text-orange-700 border-orange-200';
+        else if (g.includes('explos')) gColor = 'bg-yellow-50 text-yellow-800 border-yellow-300';
+        else if (g.includes('comburent')) gColor = 'bg-pink-50 text-pink-700 border-pink-200';
+        else if (g.includes('irrit')) gColor = 'bg-teal-50 text-teal-700 border-teal-200';
+        else if (g.includes('inert')) gColor = 'bg-blue-50 text-blue-700 border-blue-200';
+        return `<span class="px-2.5 py-0.5 rounded border text-3xs font-extrabold uppercase tracking-wider ${gColor}">${group}</span>`;
+    }).join(' ');
+}
+
 async function renderSubstancesList(container) {
     container.innerHTML = `
         <div class="space-y-6 animate-fade-in">
@@ -25,12 +42,14 @@ async function renderSubstancesList(container) {
                         </button>
                     </div>
 
+                    ${(state.isLoggedIn && state.userRole === 'admin') ? `
                     <button onclick="exportTableToExcel('substances')" class="bg-white hover:bg-slate-50 border border-slate-300 font-semibold px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 transition text-slate-700 shadow-sm">
                         <i data-lucide="download" class="w-4 h-4"></i>
                         <span>Exportar Excel</span>
                     </button>
+                    ` : ''}
 
-                    ${state.isLoggedIn ? `
+                    ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
                     <button onclick="openAddModal('substances')" class="bg-brand-600 hover:bg-brand-700 font-bold px-5 py-2.5 rounded-xl text-sm text-white flex items-center gap-2 transition shadow-lg shadow-brand-600/10">
                         <i data-lucide="plus" class="w-4 h-4"></i>
                         <span>Registrar Sustancia</span>
@@ -131,9 +150,7 @@ async function renderSubstancesList(container) {
                                                     </div>
                                                 </td>
                                                 <td class="py-4 px-6">
-                                                    ${s.substance_group ? `
-                                                        <span class="px-2 py-0.5 rounded border text-3xs font-bold bg-brand-50 text-brand-700 border-brand-100">${s.substance_group}</span>
-                                                    ` : '-'}
+                                                    ${buildGroupBadgesHtml(s.substance_group) || '-'}
                                                 </td>
                                                 <td class="py-4 px-6">
                                                     <div class="text-sm text-slate-800 font-semibold">${s.chemical_formula || '-'}</div>
@@ -159,7 +176,7 @@ async function renderSubstancesList(container) {
                                                         <a href="#/substances/${s.id}" class="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition" title="Ver Ficha Detallada">
                                                             <i data-lucide="eye" class="w-4 h-4"></i>
                                                         </a>
-                                                        ${isLogged ? `
+                                                        ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
                                                             <button onclick="openEditModal('substances', ${s.id})" class="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition" title="Editar">
                                                                 <i data-lucide="edit-3" class="w-4 h-4"></i>
                                                             </button>
@@ -193,19 +210,7 @@ async function renderSubstancesList(container) {
                                 }
                             }
 
-                            let groupBadgeHtml = '';
-                            if (s.substance_group) {
-                                let gColor = 'bg-slate-100 text-slate-700 border-slate-200';
-                                const g = s.substance_group.toLowerCase();
-                                if (g.includes('inflam')) gColor = 'bg-red-50 text-red-700 border-red-200';
-                                else if (g.includes('tox') || g.includes('venen')) gColor = 'bg-purple-50 text-purple-700 border-purple-200';
-                                else if (g.includes('corros')) gColor = 'bg-orange-50 text-orange-700 border-orange-200';
-                                else if (g.includes('explos')) gColor = 'bg-yellow-50 text-yellow-800 border-yellow-300';
-                                else if (g.includes('comburent')) gColor = 'bg-pink-50 text-pink-700 border-pink-200';
-                                else if (g.includes('irrit')) gColor = 'bg-teal-50 text-teal-700 border-teal-200';
-
-                                groupBadgeHtml = `<span class="px-2 py-0.5 rounded-lg border text-3xs font-bold ${gColor}">${s.substance_group}</span>`;
-                            }
+                            let groupBadgeHtml = buildGroupBadgesHtml(s.substance_group);
 
                             return `
                                 <div class="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 flex flex-col group relative">
@@ -245,7 +250,7 @@ async function renderSubstancesList(container) {
                                             <a href="#/substances/${s.id}" class="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition" title="Ver Detalle">
                                                 <i data-lucide="eye" class="w-4 h-4"></i>
                                             </a>
-                                            ${isLogged ? `
+                                            ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
                                                 <button onclick="openEditModal('substances', ${s.id})" class="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition" title="Editar">
                                                     <i data-lucide="edit-3" class="w-4 h-4"></i>
                                                 </button>

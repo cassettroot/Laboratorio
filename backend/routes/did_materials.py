@@ -86,6 +86,11 @@ def get_material(item_id):
 
 @did_materials_bp.route('/api/didactic-materials', methods=['POST'])
 def create_material():
+    from backend.routes.change_requests import check_and_queue_request
+    pending_resp = check_and_queue_request('didactic_materials', 'CREACION')
+    if pending_resp:
+        return pending_resp
+
     data = request.get_json() or {}
     from flask import session
     user_responsible = session.get('user', request.headers.get('X-User-Responsible', 'Sistema Local'))
@@ -145,6 +150,11 @@ def create_material():
 
 @did_materials_bp.route('/api/didactic-materials/<int:item_id>', methods=['PUT'])
 def update_material(item_id):
+    from backend.routes.change_requests import check_and_queue_request
+    pending_resp = check_and_queue_request('didactic_materials', 'EDICION', target_id=item_id)
+    if pending_resp:
+        return pending_resp
+
     data = request.get_json() or {}
     from flask import session
     user_responsible = session.get('user', request.headers.get('X-User-Responsible', 'Sistema Local'))
@@ -217,6 +227,11 @@ def update_material(item_id):
 
 @did_materials_bp.route('/api/didactic-materials/<int:item_id>', methods=['DELETE'])
 def delete_material(item_id):
+    from backend.routes.change_requests import check_and_queue_request
+    pending_resp = check_and_queue_request('didactic_materials', 'ELIMINACION', target_id=item_id)
+    if pending_resp:
+        return pending_resp
+
     from flask import session
     user_responsible = session.get('user', request.headers.get('X-User-Responsible', 'Sistema Local'))
 

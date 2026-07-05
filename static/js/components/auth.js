@@ -121,6 +121,8 @@ async function checkSessionStatus() {
         if (res.status === 'success' && res.logged_in) {
             state.isLoggedIn = true;
             state.activeUser = res.user;
+            state.userRole = res.role;
+            state.userActive = res.active;
 
             if (container) {
                 container.innerHTML = `
@@ -137,6 +139,8 @@ async function checkSessionStatus() {
         } else {
             state.isLoggedIn = false;
             state.activeUser = '';
+            state.userRole = null;
+            state.userActive = 0;
 
             if (container) {
                 container.innerHTML = `
@@ -152,6 +156,8 @@ async function checkSessionStatus() {
             }
         }
 
+        updateSidebarVisibility();
+
         if (window.lucide) window.lucide.createIcons();
 
         if (typeof router === 'function' && state.activeRoute) {
@@ -159,5 +165,55 @@ async function checkSessionStatus() {
         }
     } catch (err) {
         console.error("Error comprobando sesión: ", err);
+    }
+}
+
+function updateSidebarVisibility() {
+    const navDashboard = document.getElementById('nav-dashboard');
+    const navSubstances = document.getElementById('nav-substances');
+    const navChemMaterials = document.getElementById('nav-chem-materials');
+    const navDidMaterials = document.getElementById('nav-did-materials');
+    const navScanQr = document.getElementById('nav-scan-qr');
+    const navHistory = document.getElementById('nav-history');
+    const navConsulta = document.getElementById('nav-consulta');
+    const navBackup = document.getElementById('nav-backup');
+    const navUsers = document.getElementById('nav-users');
+    const navNotifications = document.getElementById('nav-notifications');
+    const navAccount = document.getElementById('nav-account');
+
+    if (!state.isLoggedIn) {
+        // Cerrada la sesión: solo sustancias químicas, materiales químicos, material didáctico, escáner QR
+        if (navDashboard) navDashboard.classList.add('hidden');
+        if (navSubstances) navSubstances.classList.remove('hidden');
+        if (navChemMaterials) navChemMaterials.classList.remove('hidden');
+        if (navDidMaterials) navDidMaterials.classList.remove('hidden');
+        if (navScanQr) navScanQr.classList.remove('hidden');
+        if (navHistory) navHistory.classList.add('hidden');
+        if (navConsulta) navConsulta.classList.add('hidden');
+        if (navBackup) navBackup.classList.add('hidden');
+        if (navUsers) navUsers.classList.add('hidden');
+        if (navNotifications) navNotifications.classList.add('hidden');
+        if (navAccount) navAccount.classList.add('hidden');
+    } else {
+        // Sesión iniciada:
+        if (navDashboard) navDashboard.classList.remove('hidden');
+        if (navSubstances) navSubstances.classList.remove('hidden');
+        if (navChemMaterials) navChemMaterials.classList.remove('hidden');
+        if (navDidMaterials) navDidMaterials.classList.remove('hidden');
+        if (navScanQr) navScanQr.classList.remove('hidden');
+        if (navConsulta) navConsulta.classList.remove('hidden');
+        if (navNotifications) navNotifications.classList.remove('hidden');
+        if (navAccount) navAccount.classList.remove('hidden');
+
+        if (state.userRole === 'admin') {
+            if (navHistory) navHistory.classList.remove('hidden');
+            if (navBackup) navBackup.classList.remove('hidden');
+            if (navUsers) navUsers.classList.remove('hidden');
+        } else {
+            // responsable no puede ver historial, base de datos ni usuarios
+            if (navHistory) navHistory.classList.add('hidden');
+            if (navBackup) navBackup.classList.add('hidden');
+            if (navUsers) navUsers.classList.add('hidden');
+        }
     }
 }
