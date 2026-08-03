@@ -25,6 +25,10 @@ def create_app():
     # Interceptor global para requerir autenticación en peticiones modificadoras y validar roles
     @app.before_request
     def check_auth():
+        # Permitir preflight OPTIONS para peticiones desde aplicaciones móviles
+        if request.method == 'OPTIONS':
+            return
+
         # Permitir rutas de autenticación sin restricciones de sesión
         # Nota: Status y login/logout se gestionan por separado
         if request.path.startswith('/api/auth/login') or request.path.startswith('/api/auth/logout') or request.path.startswith('/api/auth/status'):
@@ -107,6 +111,15 @@ def create_app():
         if not request.path.startswith('/api/'):
             return send_from_directory(static_folder, 'index.html')
         return jsonify({"status": "error", "message": "Recurso no encontrado"}), 404
+
+    @app.after_request
+    def add_cors_headers(response):
+        origin = request.headers.get('Origin', '*')
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-Requested-With'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        return response
 
     return app
 

@@ -146,7 +146,12 @@ function buildFormHtml(type, data = {}) {
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Grupo(s) Químico(s)</label>
                         <div id="form-substance-groups-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
                             ${(() => {
-                                const allGroups = ['Inflamables', 'Tóxicos', 'Corrosivos', 'Explosivos', 'Comburentes', 'Irritantes', 'Inertes', 'Otros'];
+                                const allGroups = [
+                                    'Inflamables', 'Tóxicos', 'Corrosivos', 'Explosivos', 'Comburentes', 'Irritantes', 'Inertes',
+                                    'Aldehídos', 'Alcoholes', 'Ácidos', 'Bases', 'Solventes', 'Hidrocarburos', 'Indicadores',
+                                    'Metales', 'Óxidos', 'Sales', 'Colorantes', 'Cetonas', 'Ésteres', 'Halogenuros', 'Sulfóxidos',
+                                    'Carbono / Adsorbentes', 'Otros'
+                                ];
                                 const selected = data.substance_group ? data.substance_group.split(',').map(g => g.trim()) : [];
                                 return allGroups.map(g => `
                                     <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none">

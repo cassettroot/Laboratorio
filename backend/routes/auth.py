@@ -73,6 +73,7 @@ def status():
                 "status": "success", 
                 "logged_in": True, 
                 "user": session['user'],
+                "email": user_data['email'] if 'email' in user_data.keys() else '',
                 "role": user_data['role'],
                 "active": user_data['active']
             })
@@ -80,6 +81,7 @@ def status():
         "status": "success", 
         "logged_in": False, 
         "user": None,
+        "email": None,
         "role": None,
         "active": 0
     })
@@ -117,7 +119,7 @@ def change_password():
 def get_users():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT id, username, role, active, created_at FROM users ORDER BY id DESC')
+    cursor.execute('SELECT id, username, email, role, active, created_at FROM users ORDER BY id DESC')
     rows = cursor.fetchall()
     conn.close()
     
@@ -126,6 +128,7 @@ def get_users():
         users.append({
             "id": r['id'],
             "username": decrypt_username(r['username']),
+            "email": r['email'] or '',
             "role": r['role'],
             "active": r['active'],
             "created_at": r['created_at']
@@ -138,6 +141,7 @@ def create_user():
     data = request.get_json() or {}
     username = data.get('username', '').strip()
     password = data.get('password', '').strip()
+    email = data.get('email', '').strip()
     role = data.get('role', 'responsable').strip()
     active = int(data.get('active', 1))
     
@@ -154,8 +158,8 @@ def create_user():
             
         hashed_pw = generate_password_hash(password)
         cursor.execute(
-            'INSERT INTO users (username, password, role, active) VALUES (?, ?, ?, ?)', 
-            (enc_username, hashed_pw, role, active)
+            'INSERT INTO users (username, password, email, role, active) VALUES (?, ?, ?, ?, ?)', 
+            (enc_username, hashed_pw, email, role, active)
         )
         conn.commit()
         return jsonify({"status": "success", "message": "Usuario creado exitosamente."})
@@ -169,6 +173,7 @@ def update_user(user_id):
     data = request.get_json() or {}
     username = data.get('username', '').strip()
     password = data.get('password', '').strip()
+    email = data.get('email', '').strip()
     role = data.get('role', 'responsable').strip()
     active = int(data.get('active', 1))
     
@@ -187,13 +192,13 @@ def update_user(user_id):
         if password:
             hashed_pw = generate_password_hash(password)
             cursor.execute(
-                'UPDATE users SET username = ?, password = ?, role = ?, active = ? WHERE id = ?', 
-                (enc_username, hashed_pw, role, active, user_id)
+                'UPDATE users SET username = ?, password = ?, email = ?, role = ?, active = ? WHERE id = ?', 
+                (enc_username, hashed_pw, email, role, active, user_id)
             )
         else:
             cursor.execute(
-                'UPDATE users SET username = ?, role = ?, active = ? WHERE id = ?', 
-                (enc_username, role, active, user_id)
+                'UPDATE users SET username = ?, email = ?, role = ?, active = ? WHERE id = ?', 
+                (enc_username, email, role, active, user_id)
             )
         conn.commit()
         return jsonify({"status": "success", "message": "Usuario actualizado exitosamente."})

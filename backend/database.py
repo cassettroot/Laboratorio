@@ -137,6 +137,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
+            email TEXT,
             role TEXT NOT NULL DEFAULT 'responsable',
             active INTEGER NOT NULL DEFAULT 1,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -168,6 +169,11 @@ def init_db():
 
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 1")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN email TEXT")
     except sqlite3.OperationalError:
         pass
 

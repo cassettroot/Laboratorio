@@ -51,6 +51,10 @@ async function renderUsersView(container) {
                         <input type="text" id="user-form-username" placeholder="Ej. alejandro_ruiz" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm outline-none transition font-semibold focus:border-brand-500 focus:bg-white">
                     </div>
                     <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Correo Electrónico (para Notificaciones)</label>
+                        <input type="email" id="user-form-email" placeholder="ejemplo@tecnm.mx" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm outline-none transition font-semibold focus:border-brand-500 focus:bg-white">
+                    </div>
+                    <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Contraseña</label>
                         <input type="password" id="user-form-password" placeholder="••••••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm outline-none transition font-semibold focus:border-brand-500 focus:bg-white">
                         <span id="user-form-password-help" class="text-3xs text-slate-400 block mt-1 hidden">Dejar vacío para mantener la contraseña actual.</span>
@@ -114,7 +118,10 @@ async function fetchAndRenderUsers() {
                             <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 border border-slate-200/50">
                                 ${u.username.substring(0, 2).toUpperCase()}
                             </div>
-                            <span class="text-sm font-bold text-slate-900">${u.username}</span>
+                            <div>
+                                <span class="text-sm font-bold text-slate-900 block">${u.username}</span>
+                                ${u.email ? `<span class="text-xs text-slate-400 font-normal">${u.email}</span>` : '<span class="text-3xs text-amber-500 font-normal">Sin correo</span>'}
+                            </div>
                         </div>
                     </td>
                     <td class="py-4 px-6">
@@ -156,6 +163,7 @@ function openUserCreateModal() {
     document.getElementById('user-form-id').value = "";
     document.getElementById('user-form-username').value = "";
     document.getElementById('user-form-username').disabled = false;
+    document.getElementById('user-form-email').value = "";
     document.getElementById('user-form-password').value = "";
     document.getElementById('user-form-password').required = true;
     document.getElementById('user-form-password-help').classList.add('hidden');
@@ -176,8 +184,8 @@ function openUserEditModal(user) {
     document.getElementById('user-modal-title').textContent = "Editar Usuario";
     document.getElementById('user-form-id').value = user.id;
     document.getElementById('user-form-username').value = user.username;
-    // Permitir editar el nombre si se desea, pero bloquear si es el usuario logueado por seguridad
     document.getElementById('user-form-username').disabled = (user.username === state.activeUser);
+    document.getElementById('user-form-email').value = user.email || "";
     
     document.getElementById('user-form-password').value = "";
     document.getElementById('user-form-password').required = false;
@@ -206,11 +214,12 @@ function closeUserModal() {
 async function handleUserFormSubmit() {
     const userId = document.getElementById('user-form-id').value;
     const username = document.getElementById('user-form-username').value.trim();
+    const email = document.getElementById('user-form-email').value.trim();
     const password = document.getElementById('user-form-password').value.trim();
     const role = document.getElementById('user-form-role').value;
     const active = parseInt(document.getElementById('user-form-active').value);
 
-    const payload = { username, role, active };
+    const payload = { username, email, role, active };
     if (password) payload.password = password;
 
     const isEdit = userId !== "";

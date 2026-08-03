@@ -91,6 +91,14 @@ def approve_change_request(req_id):
         )
         
         conn.commit()
+
+        # Notificar al usuario por correo
+        try:
+            from backend.services.email_service import notify_user_request_status
+            notify_user_request_status(req['requester_username'], dict(req), 'APROBADO')
+        except Exception as e:
+            print("[EMAIL WARN]", str(e))
+
         return jsonify({"status": "success", "message": "Solicitud aprobada y cambios aplicados exitosamente.", "target_id": applied_id})
     except Exception as e:
         conn.rollback()
@@ -130,6 +138,14 @@ def reject_change_request(req_id):
             (feedback, req_id)
         )
         conn.commit()
+
+        # Notificar al usuario por correo
+        try:
+            from backend.services.email_service import notify_user_request_status
+            notify_user_request_status(req['requester_username'], dict(req), 'RECHAZADO', feedback)
+        except Exception as e:
+            print("[EMAIL WARN]", str(e))
+
         return jsonify({"status": "success", "message": "Solicitud devuelta para corrección."})
     except Exception as e:
         conn.rollback()
@@ -468,8 +484,22 @@ def check_and_queue_request(req_type, req_action, target_id=None, target_name=No
             INSERT INTO change_requests (requester_username, type, action, target_id, target_name, data, status)
             VALUES (?, ?, ?, ?, ?, ?, 'PENDIENTE')
         ''', (user, req_type, req_action, target_id_str, t_name, json.dumps(data_payload)))
+        new_req_id = cursor.lastrowid
         conn.commit()
         conn.close()
+
+        # Notificar administradores por correo
+        try:
+            from backend.services.email_service import notify_admins_new_request
+            notify_admins_new_request({
+                "id": new_req_id,
+                "requester_username": user,
+                "type": req_type,
+                "action": req_action,
+                "target_name": t_name
+            })
+        except Exception as e:
+            print("[EMAIL WARN]", str(e))
 
         return jsonify({
             "status": "success",

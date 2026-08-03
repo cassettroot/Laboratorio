@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "LabKeep Mobile",
+    "slug": "labkeep-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tecnm.labkeep"
+    },
+    "android": {
+      "package": "com.tecnm.labkeep",
+      "permissions": ["CAMERA"]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permite acceder a la cámara para escanear códigos QR de los reactivos y materiales."
+        }
+      ]
+    ]
+  }
+}
