@@ -14,7 +14,9 @@ function router() {
         '#/substances',
         '#/chemical-materials',
         '#/didactic-materials',
-        '#/scan-qr'
+        '#/scan-qr',
+        '#/warehouse',
+        '#/loans'
     ];
 
     if (!state.isLoggedIn) {
@@ -85,6 +87,16 @@ function router() {
         setActiveTab('nav-scan-qr');
         titleEl.textContent = "Escaneo de Códigos QR";
         renderScanQrView(mainEl);
+    }
+    else if (state.activeRoute === '#/warehouse') {
+        setActiveTab('nav-warehouse');
+        titleEl.textContent = "Almacén y Estantería de Laboratorio";
+        renderWarehouseView(mainEl);
+    }
+    else if (state.activeRoute === '#/loans') {
+        setActiveTab('nav-loans');
+        titleEl.textContent = "Control de Préstamos y Devoluciones";
+        renderLoansView(mainEl);
     }
     else if (state.activeRoute === '#/history') {
         setActiveTab('nav-history');

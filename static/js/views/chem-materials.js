@@ -1,12 +1,20 @@
 async function renderChemicalMaterialsList(container) {
     container.innerHTML = `
         <div class="space-y-6 animate-fade-in">
-            <div class="flex flex-col md:flex-row gap-4 items-center justify-between no-print">
+            <div class="sticky -top-8 z-20 bg-slate-50/95 backdrop-blur-md py-3 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b border-slate-200/80 flex flex-col md:flex-row gap-4 items-center justify-between no-print shadow-xs">
                 <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
                     <div class="relative w-full md:w-64">
                         <input id="search-materials" type="text" placeholder="Buscar material (nombre, ubicación)..." class="w-full bg-white border border-slate-300 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:border-brand-500 outline-none transition shadow-sm">
                         <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
                     </div>
+                    <select id="sort-materials" class="bg-white border border-slate-300 px-3 py-2.5 rounded-xl text-sm outline-none transition shadow-sm focus:border-brand-500 font-semibold text-slate-700">
+                        <option value="name_asc">🔤 Orden: Nombre (A - Z)</option>
+                        <option value="name_desc">🔤 Orden: Nombre (Z - A)</option>
+                        <option value="quantity_desc">📦 Orden: Stock (Mayor a Menor)</option>
+                        <option value="quantity_asc">📦 Orden: Stock (Menor a Mayor)</option>
+                        <option value="id_desc">🆕 Orden: Registro (Recientes)</option>
+                        <option value="id_asc">⌛ Orden: Registro (Antiguos)</option>
+                    </select>
                     <select id="filter-category" class="bg-white border border-slate-300 px-3 py-2.5 rounded-xl text-sm outline-none transition shadow-sm focus:border-brand-500">
                         <option value="">-- Categoría --</option>
                         <option value="Vidriería">Vidriería</option>
@@ -70,7 +78,20 @@ async function renderChemicalMaterialsList(container) {
             if (category) url.searchParams.append('category', category);
 
             const res = await fetch(url).then(r => r.json());
-            state.chemMaterials = res.data || [];
+            let materialsList = res.data || [];
+
+            const sortBy = document.getElementById('sort-materials').value;
+            materialsList.sort((a, b) => {
+                if (sortBy === 'name_asc') return (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' });
+                if (sortBy === 'name_desc') return (b.name || '').localeCompare(a.name || '', 'es', { sensitivity: 'base' });
+                if (sortBy === 'quantity_desc') return (b.quantity || 0) - (a.quantity || 0);
+                if (sortBy === 'quantity_asc') return (a.quantity || 0) - (b.quantity || 0);
+                if (sortBy === 'id_asc') return a.id - b.id;
+                if (sortBy === 'id_desc') return b.id - a.id;
+                return (a.name || '').localeCompare(b.name || '', 'es');
+            });
+
+            state.chemMaterials = materialsList;
 
             if (state.chemMaterials.length === 0) {
                 body.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-slate-400">No se encontraron materiales químicos.</td></tr>`;
@@ -133,6 +154,7 @@ async function renderChemicalMaterialsList(container) {
     };
 
     document.getElementById('search-materials').addEventListener('input', fetchAndRender);
+    document.getElementById('sort-materials').addEventListener('change', fetchAndRender);
     document.getElementById('filter-category').addEventListener('change', fetchAndRender);
     fetchAndRender();
 }

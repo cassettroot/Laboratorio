@@ -169,9 +169,8 @@ def create_substance():
         
         record_id = cursor.lastrowid
 
-        # Generar QR único (estático para evitar que cambie el patrón impreso al actualizar)
-        custom_qr_content = data.get('qr_content', '').strip() or f"LAB-SUBSTANCES-{record_id}"
-
+        # Generar QR estático (LAB-SUB-id) que no cambia aunque se modifique la sustancia
+        custom_qr_content = data.get('qr_content', '').strip() or f"LAB-SUB-{record_id}"
         qr_path, qr_content = generate_qr('substances', record_id, custom_qr_content)
 
         # Actualizar ruta y contenido de QR
@@ -265,17 +264,9 @@ def update_substance(item_id):
             **optional_vals
         }
 
-        # Manejo de cambios en el QR
-        custom_qr_content = data.get('qr_content', '').strip() or f"LAB-SUBSTANCES-{item_id}"
-        new_qr_content = custom_qr_content
-
-        qr_path = old_row['qr_path']
-        qr_content = old_row['qr_content']
-        
-        # Si se especificó un contenido de QR nuevo (o cambiaron los datos de la sustancia) y es distinto al actual
-        if new_qr_content != old_row['qr_content']:
-            qr_path, qr_content = generate_qr('substances', item_id, new_qr_content)
-            new_data["qr_content"] = qr_content
+        # Preservar QR estático (no cambia al editar)
+        qr_path = old_row['qr_path'] or f"/static/uploads/qrs/qr_substances_{item_id}.png"
+        qr_content = old_row['qr_content'] or f"LAB-SUB-{item_id}"
 
         # Auditar actualizaciones campo por campo
         log_updates(conn, user_responsible, 'substances', item_id, old_row, new_data)

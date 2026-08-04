@@ -116,8 +116,9 @@ def scan_qr():
     """
     Busca en las tres tablas un registro que coincida con el contenido del código QR escaneado.
     """
+    import re
     data = request.get_json() or {}
-    qr_code = data.get('qr_code')
+    qr_code = str(data.get('qr_code') or '').strip()
 
     if not qr_code:
         return jsonify({"status": "error", "message": "Falta el código QR"}), 400
@@ -125,25 +126,44 @@ def scan_qr():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Buscar en sustancias
-    cursor.execute('''
-        SELECT * FROM substances 
-        WHERE qr_content = ? OR id = ? OR ('LAB-SUBSTANCES-' || id) = ?
-    ''', (qr_code, qr_code, qr_code))
-    substance = cursor.fetchone()
-    if substance:
-        conn.close()
-        return jsonify({
-            "status": "success",
-            "type": "substance",
-            "data": dict(substance)
-        })
+    # 1. Extraer ID numérico si existe un patrón como LAB-SUB-15 o sustancias/15 o es solo números
+    sub_match = re.search(r'substance[s]?/(\d+)', qr_code, re.IGNORECASE) or re.search(r'LAB-SUB(?:STANCES)?-(\d+)', qr_code, re.IGNORECASE)
+    int_id = int(sub_match.group(1)) if sub_match else (int(qr_code) if qr_code.isdigit() else -1)
 
-    # Buscar en materiales químicos
+    # Buscar por ID primero en sustancias
+    if int_id > 0:
+        cursor.execute('SELECT * FROM substances WHERE id = ?', (int_id,))
+        substance = cursor.fetchone()
+        if substance:
+            conn.close()
+            return jsonify({"status": "success", "type": "substance", "data": dict(substance)})
+
+    # Buscar por coincidencia de qr_content, CAS o Nombre en sustancias
+    cursor.execute('SELECT * FROM substances')
+    substances = cursor.fetchall()
+    for s in substances:
+        s_dict = dict(s)
+        # Coincidencia por qr_content o ID dentro del texto
+        if s_dict.get('qr_content') and (s_dict['qr_content'].strip() == qr_code or f"LAB-SUB-{s_dict['id']}" in qr_code):
+            conn.close()
+            return jsonify({"status": "success", "type": "substance", "data": s_dict})
+        # Coincidencia por CAS number
+        if s_dict.get('cas_number') and len(s_dict['cas_number'].strip()) >= 4 and s_dict['cas_number'].strip() in qr_code:
+            conn.close()
+            return jsonify({"status": "success", "type": "substance", "data": s_dict})
+        # Coincidencia por Nombre
+        if s_dict.get('name') and len(s_dict['name'].strip()) >= 3 and s_dict['name'].strip().lower() in qr_code.lower():
+            conn.close()
+            return jsonify({"status": "success", "type": "substance", "data": s_dict})
+
+    # 4. Buscar en materiales químicos
+    chem_match = re.search(r'chemical_materials/(\d+)', qr_code, re.IGNORECASE) or re.search(r'LAB-CHM-(\d+)', qr_code, re.IGNORECASE)
+    chem_id = int(chem_match.group(1)) if (chem_match and chem_match.group(1).isdigit()) else int_id
+
     cursor.execute('''
         SELECT * FROM chemical_materials 
-        WHERE qr_content = ? OR id = ? OR ('LAB-CHEMICAL_MATERIALS-' || id) = ?
-    ''', (qr_code, qr_code, qr_code))
+        WHERE id = ? OR qr_content = ? OR ('LAB-CHEMICAL_MATERIALS-' || id) = ? OR ('LAB-CHM-' || id) = ?
+    ''', (chem_id, qr_code, qr_code, qr_code))
     chem_material = cursor.fetchone()
     if chem_material:
         conn.close()
@@ -153,11 +173,14 @@ def scan_qr():
             "data": dict(chem_material)
         })
 
-    # Buscar en materiales didácticos
+    # 5. Buscar en materiales didácticos
+    did_match = re.search(r'didactic_materials/(\d+)', qr_code, re.IGNORECASE) or re.search(r'LAB-DID-(\d+)', qr_code, re.IGNORECASE)
+    did_id = int(did_match.group(1)) if (did_match and did_match.group(1).isdigit()) else int_id
+
     cursor.execute('''
         SELECT * FROM didactic_materials 
-        WHERE qr_content = ? OR id = ? OR ('LAB-DIDACTIC_MATERIALS-' || id) = ?
-    ''', (qr_code, qr_code, qr_code))
+        WHERE id = ? OR qr_content = ? OR ('LAB-DIDACTIC_MATERIALS-' || id) = ? OR ('LAB-DID-' || id) = ?
+    ''', (did_id, qr_code, qr_code, qr_code))
     did_material = cursor.fetchone()
     if did_material:
         conn.close()

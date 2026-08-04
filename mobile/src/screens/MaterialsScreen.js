@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,11 +7,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  TextInput
+  TextInput,
+  Image
 } from 'react-native';
+import { AuthContext } from '../context/AuthContext';
 import { apiService } from '../api/services';
+import { getImageUrl } from '../api/client';
 
 export default function MaterialsScreen({ route, navigation }) {
+  const { serverUrl } = useContext(AuthContext);
   const initialTab = route.params?.initialTab || 'quimicos';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [chemMaterials, setChemMaterials] = useState([]);
@@ -52,39 +56,54 @@ export default function MaterialsScreen({ route, navigation }) {
     );
   });
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.card}
-      onPress={() => navigation.navigate('Detail', { 
-        type: activeTab === 'quimicos' ? 'chem_material' : 'did_material', 
-        item 
-      })}
-    >
-      <View style={styles.cardHeader}>
-        <Text style={styles.name}>{item.name}</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{item.quantity} {item.unit || 'piezas'}</Text>
+  const renderItem = ({ item }) => {
+    const photoUri = getImageUrl(item.image_path, serverUrl);
+
+    return (
+      <TouchableOpacity 
+        style={styles.card}
+        onPress={() => navigation.navigate('Detail', { 
+          type: activeTab === 'quimicos' ? 'chem_material' : 'did_material', 
+          item 
+        })}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={{ width: 56, height: 56, borderRadius: 10 }} resizeMode="cover" />
+          ) : (
+            <View style={{ width: 56, height: 56, borderRadius: 10, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ fontSize: 22 }}>📦</Text>
+            </View>
+          )}
+
+          <View style={{ flex: 1 }}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{item.quantity} {item.unit || 'piezas'}</Text>
+              </View>
+            </View>
+
+            {item.category ? (
+              <Text style={styles.category}>Categoría: {item.category}</Text>
+            ) : null}
+
+            <View style={styles.cardFooter}>
+              <Text style={styles.meta}>📍 {item.location || 'Sin ubicación'}</Text>
+              {item.status ? (
+                <Text style={[
+                  styles.status, 
+                  item.status === 'Disponible' || item.status === 'Bueno' ? styles.statusOk : styles.statusWarn
+                ]}>
+                  {item.status}
+                </Text>
+              ) : null}
+            </View>
+          </View>
         </View>
-      </View>
-
-      {item.category ? (
-        <Text style={styles.category}>Categoría: {item.category}</Text>
-      ) : null}
-
-      <View style={styles.cardFooter}>
-        <Text style={styles.meta}>📍 {item.location || 'Sin ubicación'}</Text>
-
-        {item.status ? (
-          <Text style={[
-            styles.status, 
-            item.status === 'Disponible' || item.status === 'Bueno' ? styles.statusOk : styles.statusWarn
-          ]}>
-            {item.status}
-          </Text>
-        ) : null}
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>

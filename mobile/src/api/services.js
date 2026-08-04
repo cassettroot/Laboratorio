@@ -28,6 +28,28 @@ export const apiService = {
     return response.data;
   },
 
+  createSubstance: async (data) => {
+    const response = await apiClient.post('/api/substances', data);
+    return response.data;
+  },
+
+  updateSubstance: async (id, data) => {
+    const response = await apiClient.put(`/api/substances/${id}`, data);
+    return response.data;
+  },
+
+  deleteSubstance: async (id) => {
+    const response = await apiClient.delete(`/api/substances/${id}`);
+    return response.data;
+  },
+
+  uploadPhoto: async (formData) => {
+    const response = await apiClient.post('/api/upload-photo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
   // Materiales Químicos
   getChemicalMaterials: async () => {
     const response = await apiClient.get('/api/chemical-materials');
@@ -37,6 +59,12 @@ export const apiService = {
   // Materiales Didácticos
   getDidacticMaterials: async () => {
     const response = await apiClient.get('/api/didactic-materials');
+    return response.data;
+  },
+
+  // Préstamos
+  getLoans: async () => {
+    const response = await apiClient.get('/api/loans');
     return response.data;
   },
 

@@ -22,11 +22,22 @@ apiClient.interceptors.request.use(async (config) => {
     const customUrl = await AsyncStorage.getItem('custom_server_url');
     if (customUrl) {
       config.baseURL = customUrl;
+      apiClient.defaults.baseURL = customUrl;
     }
   } catch (e) {
     console.warn("No se pudo leer custom_server_url:", e);
   }
   return config;
 }, (error) => Promise.reject(error));
+
+export const getImageUrl = (imagePath, customServerUrl = '') => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) return imagePath;
+
+  const base = customServerUrl || apiClient.defaults.baseURL || DEFAULT_API_BASE;
+  const cleanBase = base.replace(/\/+$/, '');
+  const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+  return `${cleanBase}${cleanPath}`;
+};
 
 export default apiClient;

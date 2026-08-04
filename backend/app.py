@@ -9,6 +9,7 @@ from backend.routes.tools import tools_bp
 from backend.routes.auth import auth_bp
 from backend.routes.consulta import consulta_bp
 from backend.routes.change_requests import change_requests_bp
+from backend.routes.loans import loans_bp
 
 def create_app():
     # Asegurar que la base de datos esté inicializada
@@ -30,7 +31,6 @@ def create_app():
             return
 
         # Permitir rutas de autenticación sin restricciones de sesión
-        # Nota: Status y login/logout se gestionan por separado
         if request.path.startswith('/api/auth/login') or request.path.startswith('/api/auth/logout') or request.path.startswith('/api/auth/status'):
             return
 
@@ -48,17 +48,15 @@ def create_app():
                 session.pop('user', None)
                 user_logged_in = False
 
-        # 1. Sesión cerrada (petición de usuario no autenticado):
+        # 1. Sesión cerrada:
         if not user_logged_in:
             if request.path.startswith('/api/'):
-                # Solo se permite:
-                # - GET a sustancias, materiales químicos y didácticos
-                # - POST a /api/scan-qr (escaneo de QR)
                 allowed_logged_out = (
                     (request.method == 'GET' and (
                         request.path.startswith('/api/substances') or
                         request.path.startswith('/api/chemical-materials') or
-                        request.path.startswith('/api/didactic-materials')
+                        request.path.startswith('/api/didactic-materials') or
+                        request.path.startswith('/api/loans')
                     )) or
                     (request.method == 'POST' and request.path == '/api/scan-qr')
                 )
@@ -66,22 +64,11 @@ def create_app():
                     return jsonify({"status": "error", "message": "No autorizado. Inicie sesión para realizar esta acción."}), 401
             return
 
-        # 2. Usuario Inactivo (no puede hacer ningún cambio):
+        # 2. Usuario Inactivo:
         if user_active == 0:
             if request.method not in ['GET', 'OPTIONS']:
-                return jsonify({"status": "error", "message": "Su usuario está inactivo. No tiene permisos para realizar cambios."}), 403
-            
-            # Si intenta ver la lista de usuarios o base de datos y no es admin, denegar
-            if request.path.startswith('/api/database') or request.path.startswith('/api/users'):
-                if user_role != 'admin':
-                    return jsonify({"status": "error", "message": "Acceso denegado. Permisos insuficientes."}), 403
+                return jsonify({"status": "error", "message": "Su usuario está inactivo."}), 403
             return
-
-        # 3. Usuario Activo - Validación de Roles:
-        if user_role == 'responsable':
-            # Responsable no puede ver el panel de base de datos, los usuarios, ni el historial de cambios
-            if request.path.startswith('/api/users') or request.path.startswith('/api/database') or request.path.startswith('/api/history'):
-                return jsonify({"status": "error", "message": "Acceso denegado. Permisos insuficientes."}), 403
 
     # Registrar Blueprints de la API
     app.register_blueprint(substances_bp)
@@ -92,6 +79,7 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(consulta_bp)
     app.register_blueprint(change_requests_bp)
+    app.register_blueprint(loans_bp)
 
     # Ruta raíz: sirve el archivo index.html del frontend
     @app.route('/')

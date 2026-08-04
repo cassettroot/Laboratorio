@@ -121,6 +121,11 @@ export default function RequestsScreen() {
         </Text>
         <Text style={styles.targetText}>Elemento: {item.target_name || 'Nuevo registro'}</Text>
         <Text style={styles.requesterText}>Solicitante: {item.requester_username}</Text>
+        {item.approved_by ? (
+          <Text style={styles.approvedByText}>
+            👤 {isApproved ? 'Aprobado por:' : 'Revisado por:'} <Text style={{fontWeight: 'bold', color: '#38bdf8'}}>{item.approved_by}</Text>
+          </Text>
+        ) : null}
 
         {item.feedback ? (
           <View style={styles.feedbackBox}>
@@ -272,9 +277,16 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   requesterText: {
-    fontSize: 12,
-    color: '#94a3b8',
-    marginBottom: 8,
+    fontSize: 13,
+    color: '#cbd5e1',
+    marginBottom: 4,
+  },
+  approvedByText: {
+    fontSize: 13,
+    color: '#34d399',
+    marginTop: 2,
+    marginBottom: 4,
+    fontWeight: '600',
   },
   feedbackBox: {
     backgroundColor: '#451a03',

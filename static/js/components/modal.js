@@ -108,9 +108,10 @@ function buildFormHtml(type, data = {}) {
             </button>
         </div>
     ` : `
-        <div class="w-full aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 p-4 bg-slate-50 text-slate-400">
+        <div class="w-full aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 p-4 bg-slate-50 text-slate-400">
             <i data-lucide="image" class="w-8 h-8"></i>
             <span class="text-xs text-center font-semibold">Sube o toma una foto</span>
+            <span class="text-3xs text-center text-slate-400">o presiona <kbd class="px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded text-3xs font-mono font-bold">Ctrl + V</kbd> para pegar</span>
             <input type="hidden" id="form-image-path" value="">
         </div>
     `;
@@ -152,7 +153,7 @@ function buildFormHtml(type, data = {}) {
                                     'Metales', 'Óxidos', 'Sales', 'Colorantes', 'Cetonas', 'Ésteres', 'Halogenuros', 'Sulfóxidos',
                                     'Carbono / Adsorbentes', 'Otros'
                                 ];
-                                const selected = data.substance_group ? data.substance_group.split(',').map(g => g.trim()) : [];
+                                const selected = data.substance_group ? data.substance_group.split(/[,/;|]/).map(g => g.trim()) : [];
                                 return allGroups.map(g => `
                                     <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer select-none">
                                         <input type="checkbox" name="substance_group_check" value="${g}" ${selected.includes(g) ? 'checked' : ''} class="w-4 h-4 text-brand-600 border-slate-300 rounded focus:ring-brand-500">
@@ -207,8 +208,19 @@ function buildFormHtml(type, data = {}) {
                         <input type="date" id="form-entry-date" value="${data.entry_date || ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Fecha de Caducidad</label>
-                        <input type="date" id="form-expiration-date" value="${data.expiration_date || ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Fecha de Caducidad</label>
+                            ${(() => {
+                                const isNoExp = data.expiration_date === 'Sin caducidad' || data.expiration_date === 'No aplica';
+                                return `
+                                    <button type="button" id="btn-toggle-no-exp" onclick="toggleNoExpiration()" class="text-3xs font-bold px-2 py-0.5 rounded-lg border transition ${isNoExp ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'}">
+                                        ${isNoExp ? '✓ Sin Caducidad' : '+ Marcar Sin Caducidad'}
+                                    </button>
+                                `;
+                            })()}
+                        </div>
+                        <input type="date" id="form-expiration-date" value="${(data.expiration_date && data.expiration_date !== 'Sin caducidad' && data.expiration_date !== 'No aplica') ? data.expiration_date : ''}" ${(data.expiration_date === 'Sin caducidad' || data.expiration_date === 'No aplica') ? 'disabled' : ''} class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold disabled:bg-slate-200 disabled:text-slate-500">
+                        <input type="hidden" id="form-is-no-exp" value="${(data.expiration_date === 'Sin caducidad' || data.expiration_date === 'No aplica') ? 'true' : 'false'}">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Responsable Custodia</label>
@@ -396,13 +408,54 @@ function bindFormEvents() {
 function removeFormPhoto() {
     const container = document.getElementById('form-photo-container');
     container.innerHTML = `
-        <div class="w-full aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 p-4 bg-slate-50 text-slate-400">
+        <div class="w-full aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 p-4 bg-slate-50 text-slate-400">
             <i data-lucide="image" class="w-8 h-8"></i>
             <span class="text-xs text-center font-semibold">Sube o toma una foto</span>
+            <span class="text-3xs text-center text-slate-400">o presiona <kbd class="px-1.5 py-0.5 bg-slate-200 text-slate-700 rounded text-3xs font-mono font-bold">Ctrl + V</kbd> para pegar</span>
             <input type="hidden" id="form-image-path" value="">
         </div>
     `;
+    if (window.lucide) window.lucide.createIcons();
 }
+
+// Soporte para comando Pegar (Ctrl + V) de imágenes desde el portapapeles
+document.addEventListener('paste', async (e) => {
+    const container = document.getElementById('form-photo-container') || document.getElementById('consulta-form-photo-container');
+    if (!container) return;
+
+    const items = (e.clipboardData || window.clipboardData)?.items;
+    if (!items) return;
+
+    let imageFile = null;
+    for (let item of items) {
+        if (item.type && item.type.indexOf('image') === 0) {
+            imageFile = item.getAsFile();
+            break;
+        }
+    }
+
+    if (!imageFile) return;
+
+    e.preventDefault();
+
+    const formData = new FormData();
+    formData.append('photo', imageFile, 'pasted_image.png');
+
+    try {
+        const res = await fetch('/api/upload-photo', {
+            method: 'POST',
+            body: formData
+        }).then(r => r.json());
+
+        if (res.status === 'success') {
+            setFormPhoto(res.image_path);
+        } else {
+            alert(res.message);
+        }
+    } catch (err) {
+        alert(`Error al pegar imagen: ${err.message}`);
+    }
+});
 
 function removeFormPdf() {
     const preview = document.getElementById('form-pdf-preview');
@@ -445,6 +498,28 @@ function setFormPhoto(path) {
     }
 }
 
+function toggleNoExpiration() {
+    const input = document.getElementById('form-expiration-date');
+    const btn = document.getElementById('btn-toggle-no-exp');
+    const isNoExpInput = document.getElementById('form-is-no-exp');
+
+    if (!input || !btn || !isNoExpInput) return;
+
+    const currentNoExp = isNoExpInput.value === 'true';
+    if (!currentNoExp) {
+        isNoExpInput.value = 'true';
+        input.value = '';
+        input.disabled = true;
+        btn.textContent = '✓ Sin Caducidad';
+        btn.className = 'text-3xs font-bold px-2 py-0.5 rounded-lg border transition bg-amber-100 text-amber-800 border-amber-300';
+    } else {
+        isNoExpInput.value = 'false';
+        input.disabled = false;
+        btn.textContent = '+ Marcar Sin Caducidad';
+        btn.className = 'text-3xs font-bold px-2 py-0.5 rounded-lg border transition bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200';
+    }
+}
+
 async function handleFormSubmit() {
     if (!state.isLoggedIn) {
         alert("Debe iniciar sesión para registrar o modificar elementos.");
@@ -465,11 +540,16 @@ async function handleFormSubmit() {
     if (qrEl) payload.qr_content = qrEl.value.trim();
 
     form.querySelectorAll('input, select, textarea').forEach(el => {
-        if (el.id && el.id.startsWith('form-') && el.id !== 'form-photo-file' && el.id !== 'form-image-path' && el.id !== 'form-qr-content') {
+        if (el.id && el.id.startsWith('form-') && el.id !== 'form-photo-file' && el.id !== 'form-image-path' && el.id !== 'form-qr-content' && el.id !== 'form-is-no-exp') {
             const key = el.id.replace('form-', '').replace(/-/g, '_');
             payload[key] = el.value;
         }
     });
+
+    const isNoExpInput = document.getElementById('form-is-no-exp');
+    if (isNoExpInput && isNoExpInput.value === 'true') {
+        payload.expiration_date = 'Sin caducidad';
+    }
 
     if (currentModalType === 'substances') {
         const checkedGroups = [];

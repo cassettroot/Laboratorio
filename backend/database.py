@@ -131,15 +131,27 @@ def init_db():
         )
     ''')
 
-    # 5. Tabla de Usuarios
+    # 5. Tabla de Préstamos y Devoluciones con Evidencia de Foto y Verificación Admin
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
+        CREATE TABLE IF NOT EXISTS loans (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            email TEXT,
-            role TEXT NOT NULL DEFAULT 'responsable',
-            active INTEGER NOT NULL DEFAULT 1,
+            item_type TEXT NOT NULL DEFAULT 'substance',
+            item_id INTEGER DEFAULT 0,
+            item_name TEXT NOT NULL,
+            items_json TEXT,
+            borrower_name TEXT NOT NULL,
+            borrower_user_id INTEGER,
+            borrower_type TEXT DEFAULT 'Docente',
+            quantity_borrowed REAL NOT NULL DEFAULT 1.0,
+            loan_date TEXT NOT NULL,
+            return_date TEXT,
+            return_photo_path TEXT,
+            status TEXT NOT NULL DEFAULT 'Prestado',
+            verification_status TEXT NOT NULL DEFAULT 'Prestado',
+            approved_by TEXT NOT NULL,
+            verified_by_admin TEXT,
+            verified_at TEXT,
+            notes TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -174,6 +186,11 @@ def init_db():
 
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN email TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE change_requests ADD COLUMN approved_by TEXT")
     except sqlite3.OperationalError:
         pass
 

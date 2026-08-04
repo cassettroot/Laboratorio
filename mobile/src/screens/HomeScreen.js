@@ -67,7 +67,9 @@ export default function HomeScreen({ navigation }) {
         <View>
           <Text style={styles.greeting}>Hola, <Text style={{fontWeight: 'bold'}}>{user}</Text></Text>
           <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{role === 'admin' ? 'Administrador' : 'Responsable'}</Text>
+            <Text style={styles.roleText}>
+              {role === 'admin' ? 'Administrador' : (role === 'estudiante' ? '🎓 Estudiante' : 'Responsable')}
+            </Text>
           </View>
         </View>
         <TouchableOpacity style={styles.logoutBtn} onPress={logout}>

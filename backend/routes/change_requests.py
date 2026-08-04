@@ -84,10 +84,11 @@ def approve_change_request(req_id):
         # Aplicar el cambio a la base de datos
         applied_id = apply_request_to_db(cursor, req)
         
-        # Actualizar estado de la solicitud
+        # Actualizar estado de la solicitud y registrar qué administrador aprobó
+        admin_username = session.get('user', 'admin')
         cursor.execute(
-            "UPDATE change_requests SET status = 'APROBADO', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            (req_id,)
+            "UPDATE change_requests SET status = 'APROBADO', approved_by = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (admin_username, req_id)
         )
         
         conn.commit()
@@ -99,7 +100,7 @@ def approve_change_request(req_id):
         except Exception as e:
             print("[EMAIL WARN]", str(e))
 
-        return jsonify({"status": "success", "message": "Solicitud aprobada y cambios aplicados exitosamente.", "target_id": applied_id})
+        return jsonify({"status": "success", "message": f"Solicitud aprobada por {admin_username} y cambios aplicados exitosamente.", "target_id": applied_id})
     except Exception as e:
         conn.rollback()
         return jsonify({"status": "error", "message": f"Error al procesar la aprobación: {str(e)}"}), 500
@@ -133,9 +134,10 @@ def reject_change_request(req_id):
         if req['status'] != 'PENDIENTE':
             return jsonify({"status": "error", "message": "Esta solicitud ya ha sido procesada."}), 400
 
+        admin_username = session.get('user', 'admin')
         cursor.execute(
-            "UPDATE change_requests SET status = 'CORRECCION', feedback = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            (feedback, req_id)
+            "UPDATE change_requests SET status = 'CORRECCION', feedback = ?, approved_by = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (feedback, admin_username, req_id)
         )
         conn.commit()
 

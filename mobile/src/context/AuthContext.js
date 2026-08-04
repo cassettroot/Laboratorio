@@ -63,6 +63,11 @@ export const AuthProvider = ({ children }) => {
     await checkAuthStatus();
   };
 
+  const loginAsStudent = () => {
+    setUser('Estudiante');
+    setRole('estudiante');
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -71,6 +76,7 @@ export const AuthProvider = ({ children }) => {
       serverUrl,
       login,
       logout,
+      loginAsStudent,
       updateServerUrl,
       checkAuthStatus
     }}>

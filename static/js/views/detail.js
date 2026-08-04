@@ -45,7 +45,7 @@ async function renderItemDetail(container, typePath, itemId) {
 
                         ${typePath === 'substances' ? `
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3.5 text-sm pt-2">
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Grupo Químico</span><span class="px-2 py-0.5 rounded bg-brand-100 text-brand-800 text-xs font-bold inline-block border border-brand-200">${item.substance_group || 'General / Ninguno'}</span></div>
+                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Grupo Químico</span><div class="flex flex-wrap gap-1.5 mt-1">${buildGroupBadgesHtml(item.substance_group) || '<span class="px-2 py-0.5 rounded bg-brand-100 text-brand-800 text-xs font-bold inline-block border border-brand-200">General / Ninguno</span>'}</div></div>
                                 <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Fórmula Química</span><span class="font-bold text-slate-800 text-base">${item.chemical_formula || 'Sin fórmula'}</span></div>
                                 <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Número CAS</span><span class="font-bold text-slate-800 text-base">${item.cas_number || 'N/D'}</span></div>
                                 <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Concentración</span><span>${item.concentration || '-'}</span></div>

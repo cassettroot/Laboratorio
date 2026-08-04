@@ -16,7 +16,7 @@ import { AuthContext } from '../context/AuthContext';
 import { DEFAULT_API_BASE } from '../api/client';
 
 export default function LoginScreen() {
-  const { login, serverUrl, updateServerUrl } = useContext(AuthContext);
+  const { login, loginAsStudent, serverUrl, updateServerUrl } = useContext(AuthContext);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -97,8 +97,16 @@ export default function LoginScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Ingresar al Sistema</Text>
+              <Text style={styles.buttonText}>Ingresar como Personal</Text>
             )}
+          </TouchableOpacity>
+
+          {/* Botón de Acceso Directo para Estudiantes */}
+          <TouchableOpacity 
+            style={styles.studentButton} 
+            onPress={loginAsStudent}
+          >
+            <Text style={styles.studentButtonText}>🎓 Modo Estudiantes / Consultar Sustancias</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -239,8 +247,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  studentButton: {
+    backgroundColor: '#059669',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  studentButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   configLink: {
-    marginTop: 20,
+    marginTop: 18,
     alignItems: 'center',
   },
   configLinkText: {
