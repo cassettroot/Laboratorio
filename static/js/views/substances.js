@@ -23,6 +23,8 @@ function getMissingSubstanceFields(s) {
     if (!s.image_path || !s.image_path.trim()) missing.push('Foto');
     if (!s.chemical_formula || !s.chemical_formula.trim()) missing.push('Fórmula');
     if (!s.cas_number || !s.cas_number.trim()) missing.push('CAS');
+    if (!s.pdf_path || !s.pdf_path.trim()) missing.push('PDF (HDS)');
+    if (!s.external_links || !s.external_links.trim()) missing.push('Links Ref.');
     return missing;
 }
 
@@ -30,10 +32,22 @@ function toggleSubstancesFiltersPanel() {
     const panel = document.getElementById('substances-filters-panel');
     if (panel) {
         panel.classList.toggle('hidden');
+        if (!state.substancesFilters) state.substancesFilters = {};
+        state.substancesFilters.isPanelOpen = !panel.classList.contains('hidden');
     }
 }
 
 function resetSubstancesFilters() {
+    state.substancesFilters = {
+        search: '',
+        sort: 'name_asc',
+        group: '',
+        physical_state: '',
+        completeness: '',
+        location: '',
+        isPanelOpen: false
+    };
+
     const search = document.getElementById('search-substances');
     const sort = document.getElementById('sort-substances');
     const group = document.getElementById('group-substances');
@@ -58,6 +72,20 @@ function resetSubstancesFilters() {
 }
 
 async function renderSubstancesList(container) {
+    if (!state.substancesFilters) {
+        state.substancesFilters = {
+            search: '',
+            sort: 'name_asc',
+            group: '',
+            physical_state: '',
+            completeness: '',
+            location: '',
+            isPanelOpen: false
+        };
+    }
+
+    const f = state.substancesFilters;
+
     container.innerHTML = `
         <div class="space-y-6 animate-fade-in">
             <div class="sticky -top-8 z-20 bg-slate-50/95 backdrop-blur-md py-3 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b border-slate-200/80 space-y-3 no-print shadow-xs">
@@ -65,7 +93,7 @@ async function renderSubstancesList(container) {
                 <div class="flex flex-col md:flex-row gap-3 items-center justify-between">
                     <div class="flex items-center gap-3 w-full md:w-auto flex-1 max-w-xl">
                         <div class="relative w-full">
-                            <input id="search-substances" type="text" placeholder="Buscar por CAS, nombre, grupo o ubicación..." class="w-full bg-white border border-slate-300 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:border-brand-500 outline-none transition shadow-sm font-medium text-slate-800 placeholder:text-slate-400">
+                            <input id="search-substances" type="text" value="${f.search || ''}" placeholder="Buscar por CAS, nombre, grupo o ubicación..." class="w-full bg-white border border-slate-300 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:border-brand-500 outline-none transition shadow-sm font-medium text-slate-800 placeholder:text-slate-400">
                             <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
                         </div>
                         
@@ -103,7 +131,7 @@ async function renderSubstancesList(container) {
                 </div>
 
                 <!-- Panel Plegable de Filtros Avanzados y Ordenamiento -->
-                <div id="substances-filters-panel" class="hidden bg-white border border-slate-200 rounded-2xl p-4 shadow-lg animate-fade-in space-y-3">
+                <div id="substances-filters-panel" class="${f.isPanelOpen ? '' : 'hidden'} bg-white border border-slate-200 rounded-2xl p-4 shadow-lg animate-fade-in space-y-3">
                     <div class="flex items-center justify-between pb-2 border-b border-slate-100">
                         <span class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                             <i data-lucide="filter" class="w-3.5 h-3.5 text-brand-600"></i>
@@ -119,52 +147,54 @@ async function renderSubstancesList(container) {
                         <div>
                             <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ordenar por</label>
                             <select id="sort-substances" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
-                                <option value="name_asc">🔤 Nombre (A - Z)</option>
-                                <option value="name_desc">🔤 Nombre (Z - A)</option>
-                                <option value="cas_asc">🔢 Número CAS (A - Z)</option>
-                                <option value="cas_desc">🔢 Número CAS (Z - A)</option>
-                                <option value="quantity_desc">📦 Stock (Mayor a Menor)</option>
-                                <option value="quantity_asc">📦 Stock (Menor a Mayor)</option>
-                                <option value="id_desc">🆕 Registro (Más recientes)</option>
-                                <option value="id_asc">⌛ Registro (Más antiguos)</option>
+                                <option value="name_asc" ${f.sort === 'name_asc' ? 'selected' : ''}>🔤 Nombre (A - Z)</option>
+                                <option value="name_desc" ${f.sort === 'name_desc' ? 'selected' : ''}>🔤 Nombre (Z - A)</option>
+                                <option value="cas_asc" ${f.sort === 'cas_asc' ? 'selected' : ''}>🔢 Número CAS (A - Z)</option>
+                                <option value="cas_desc" ${f.sort === 'cas_desc' ? 'selected' : ''}>🔢 Número CAS (Z - A)</option>
+                                <option value="quantity_desc" ${f.sort === 'quantity_desc' ? 'selected' : ''}>📦 Stock (Mayor a Menor)</option>
+                                <option value="quantity_asc" ${f.sort === 'quantity_asc' ? 'selected' : ''}>📦 Stock (Menor a Mayor)</option>
+                                <option value="id_desc" ${f.sort === 'id_desc' ? 'selected' : ''}>🆕 Registro (Más recientes)</option>
+                                <option value="id_asc" ${f.sort === 'id_asc' ? 'selected' : ''}>⌛ Registro (Más antiguos)</option>
                             </select>
                         </div>
 
                         <div>
                             <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Agrupar por</label>
                             <select id="group-substances" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
-                                <option value="">-- Sin Agrupar --</option>
-                                <option value="physical_state">📁 Estado Físico</option>
-                                <option value="location">📍 Ubicación</option>
-                                <option value="substance_group">🏷️ Grupo Químico</option>
+                                <option value="" ${!f.group ? 'selected' : ''}>-- Sin Agrupar --</option>
+                                <option value="physical_state" ${f.group === 'physical_state' ? 'selected' : ''}>📁 Estado Físico</option>
+                                <option value="location" ${f.group === 'location' ? 'selected' : ''}>📍 Ubicación</option>
+                                <option value="substance_group" ${f.group === 'substance_group' ? 'selected' : ''}>🏷️ Grupo Químico</option>
                             </select>
                         </div>
 
                         <div>
                             <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Estado Físico</label>
                             <select id="filter-state" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
-                                <option value="">-- Todos --</option>
-                                <option value="Sólido">Sólido</option>
-                                <option value="Líquido">Líquido</option>
-                                <option value="Gaseoso">Gaseoso</option>
+                                <option value="" ${!f.physical_state ? 'selected' : ''}>-- Todos --</option>
+                                <option value="Sólido" ${f.physical_state === 'Sólido' ? 'selected' : ''}>Sólido</option>
+                                <option value="Líquido" ${f.physical_state === 'Líquido' ? 'selected' : ''}>Líquido</option>
+                                <option value="Gaseoso" ${f.physical_state === 'Gaseoso' ? 'selected' : ''}>Gaseoso</option>
                             </select>
                         </div>
 
                         <div>
                             <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Incompletos / Faltan Datos</label>
                             <select id="filter-completeness" class="w-full bg-amber-50/50 border border-amber-200 px-3 py-2 rounded-xl text-xs font-semibold text-amber-900 outline-none focus:border-brand-500">
-                                <option value="">-- Todos los reactivos --</option>
-                                <option value="incomplete">⚠️ Ver solo Incompletos</option>
-                                <option value="missing_location">📍 Falta Ubicación</option>
-                                <option value="missing_expiration">📅 Falta Caducidad</option>
-                                <option value="missing_photo">📷 Falta Foto</option>
-                                <option value="missing_formula">🧪 Falta Fórmula / CAS</option>
+                                <option value="" ${!f.completeness ? 'selected' : ''}>-- Todos los reactivos --</option>
+                                <option value="incomplete" ${f.completeness === 'incomplete' ? 'selected' : ''}>⚠️ Ver solo Incompletos</option>
+                                <option value="missing_location" ${f.completeness === 'missing_location' ? 'selected' : ''}>📍 Falta Ubicación</option>
+                                <option value="missing_expiration" ${f.completeness === 'missing_expiration' ? 'selected' : ''}>📅 Falta Caducidad</option>
+                                <option value="missing_photo" ${f.completeness === 'missing_photo' ? 'selected' : ''}>📷 Falta Foto</option>
+                                <option value="missing_formula" ${f.completeness === 'missing_formula' ? 'selected' : ''}>🧪 Falta Fórmula / CAS</option>
+                                <option value="missing_pdf" ${f.completeness === 'missing_pdf' ? 'selected' : ''}>📄 Falta Documento PDF (HDS)</option>
+                                <option value="missing_links" ${f.completeness === 'missing_links' ? 'selected' : ''}>🔗 Falta Links de Referencia</option>
                             </select>
                         </div>
 
                         <div>
                             <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ubicación</label>
-                            <input id="filter-location" type="text" placeholder="Ej. Estante 1..." class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
+                            <input id="filter-location" type="text" value="${f.location || ''}" placeholder="Ej. Estante 1..." class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
                         </div>
                     </div>
                 </div>
@@ -187,6 +217,15 @@ async function renderSubstancesList(container) {
         const sortVal = document.getElementById('sort-substances')?.value;
         const groupVal = document.getElementById('group-substances')?.value;
         const completenessVal = document.getElementById('filter-completeness')?.value;
+
+        // Persistir en objeto de estado global
+        if (!state.substancesFilters) state.substancesFilters = {};
+        state.substancesFilters.search = search;
+        state.substancesFilters.physical_state = physical_state;
+        state.substancesFilters.location = location;
+        state.substancesFilters.sort = sortVal;
+        state.substancesFilters.group = groupVal;
+        state.substancesFilters.completeness = completenessVal;
 
         // Contador de Filtros Activos
         let activeCount = 0;
@@ -240,6 +279,10 @@ async function renderSubstancesList(container) {
                 substancesList = substancesList.filter(s => !s.image_path || !s.image_path.trim());
             } else if (completeness === 'missing_formula') {
                 substancesList = substancesList.filter(s => !s.chemical_formula || !s.chemical_formula.trim() || !s.cas_number || !s.cas_number.trim());
+            } else if (completeness === 'missing_pdf') {
+                substancesList = substancesList.filter(s => !s.pdf_path || !s.pdf_path.trim());
+            } else if (completeness === 'missing_links') {
+                substancesList = substancesList.filter(s => !s.external_links || !s.external_links.trim());
             }
 
             const sortBy = document.getElementById('sort-substances').value;
@@ -294,6 +337,14 @@ async function renderSubstancesList(container) {
             }
 
             if (window.lucide) window.lucide.createIcons();
+
+            // Restaurar posición del Scroll si se regresa de una ficha detallada
+            const savedScroll = sessionStorage.getItem('substances_scroll_y');
+            if (savedScroll) {
+                setTimeout(() => {
+                    window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'instant' });
+                }, 60);
+            }
         } catch (err) {
             dataContainer.innerHTML = `<div class="bg-white border rounded-3xl p-12 text-center text-red-500 font-bold">Error al cargar datos.</div>`;
         }
@@ -316,10 +367,12 @@ function renderSubstancesBlock(items, mode) {
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase tracking-wider text-xs">
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-xs">
+                                <th class="py-4 px-4 text-center w-12">#</th>
                                 <th class="py-4 px-6">Sustancia</th>
-                                <th class="py-4 px-6">Grupo</th>
+                                <th class="py-4 px-6">Grupo SGA</th>
                                 <th class="py-4 px-6">Fórmula / CAS</th>
+                                <th class="py-4 px-6">Ubicación Estante</th>
                                 <th class="py-4 px-6">Estado Físico</th>
                                 <th class="py-4 px-6">Cantidad</th>
                                 <th class="py-4 px-6">Caducidad</th>
@@ -327,7 +380,7 @@ function renderSubstancesBlock(items, mode) {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
-                            ${items.map(s => {
+                            ${items.map((s, idx) => {
                                 const today = new Date();
                                 let expBadge = `<span class="text-slate-600">${s.expiration_date || 'N/D'}</span>`;
                                 if (s.expiration_date === 'Sin caducidad' || s.expiration_date === 'No aplica') {
@@ -359,15 +412,18 @@ function renderSubstancesBlock(items, mode) {
                                 ` : '';
 
                                 return `
-                                    <tr class="hover:bg-slate-50/50 transition">
+                                    <tr class="hover:bg-slate-50/80 transition duration-150 border-b border-slate-100">
+                                        <td class="py-4 px-4 text-center">
+                                            <span class="inline-flex items-center justify-center w-7 h-7 bg-slate-100 text-slate-700 font-extrabold text-xs font-mono rounded-full border border-slate-200 shadow-2xs">${idx + 1}</span>
+                                        </td>
                                         <td class="py-4 px-6">
                                             <div class="flex items-center gap-3">
-                                                <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden border border-slate-200/50 shrink-0">
-                                                    ${s.image_path ? `<img src="${s.image_path}" class="w-full h-full object-cover">` : `<i data-lucide="flask-conical" class="w-5 h-5"></i>`}
+                                                <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden border border-slate-200/60 shrink-0 shadow-2xs ${s.image_path ? 'cursor-pointer hover:ring-2 hover:ring-brand-500 transition' : ''}" ${s.image_path ? `onclick="openImageViewer('${s.image_path}', '${(s.name || '').replace(/'/g, "\\'")}')" title="Haz clic para ver foto en tamaño completo"` : ''}>
+                                                    ${s.image_path ? `<img src="${s.image_path}" class="w-full h-full object-cover">` : `<i data-lucide="flask-conical" class="w-5 h-5 text-slate-400"></i>`}
                                                 </div>
                                                 <div>
                                                     <a href="#/substances/${s.id}" class="text-sm font-bold text-slate-900 hover:text-brand-600 transition block">${s.name}</a>
-                                                    <span class="text-3xs text-slate-400 uppercase tracking-wider">ID: LAB-SUB-${s.id}</span>
+                                                    <span class="text-3xs text-slate-400 uppercase tracking-wider font-mono">LAB-SUB-${s.id}</span>
                                                     ${missingBadge}
                                                 </div>
                                             </div>
@@ -378,6 +434,18 @@ function renderSubstancesBlock(items, mode) {
                                         <td class="py-4 px-6">
                                             <div class="text-sm text-slate-800 font-semibold">${s.chemical_formula || '-'}</div>
                                             <div class="text-2xs text-slate-400 font-medium">CAS: ${s.cas_number || '-'}</div>
+                                        </td>
+                                        <td class="py-4 px-6">
+                                            <div class="flex flex-col gap-1 items-start">
+                                                <span class="text-2xs font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg inline-block max-w-[180px] truncate" title="${s.location || 'No asignada'}">
+                                                    📍 ${s.location || 'No asignada'}
+                                                </span>
+                                                ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
+                                                    <button type="button" onclick="openShelfSelectorModalForSubstance(${s.id}, '${(s.location || '').replace(/'/g, "\\'")}')" class="text-3xs text-brand-600 hover:text-brand-800 font-bold hover:underline flex items-center gap-1">
+                                                        <i data-lucide="map-pin" class="w-3 h-3"></i> Cambiar Estante
+                                                    </button>
+                                                ` : ''}
+                                            </div>
                                         </td>
                                         <td class="py-4 px-6">
                                             <div class="flex flex-col gap-1 items-start">
@@ -396,14 +464,12 @@ function renderSubstancesBlock(items, mode) {
                                         </td>
                                         <td class="py-4 px-6 no-print text-right">
                                             <div class="flex items-center justify-end gap-1.5">
-                                                <a href="#/substances/${s.id}" class="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition" title="Ver Ficha Detallada">
+                                                <a href="#/substances/${s.id}" class="p-2 bg-slate-50 hover:bg-brand-50 text-slate-600 hover:text-brand-700 border border-slate-200 hover:border-brand-200 rounded-xl transition shadow-2xs flex items-center gap-1 text-xs font-bold" title="Ver Detalle y Editar">
                                                     <i data-lucide="eye" class="w-4 h-4"></i>
+                                                    <span>Ver</span>
                                                 </a>
                                                 ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
-                                                    <button onclick="openEditModal('substances', ${s.id})" class="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition" title="Editar">
-                                                        <i data-lucide="edit-3" class="w-4 h-4"></i>
-                                                    </button>
-                                                    <button onclick="deleteItem('substances', ${s.id})" class="p-2 hover:bg-red-50 text-red-500 rounded-lg transition" title="Eliminar">
+                                                    <button onclick="deleteItem('substances', ${s.id})" class="p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-xl transition" title="Eliminar">
                                                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                                                     </button>
                                                 ` : ''}
@@ -438,17 +504,31 @@ function renderSubstancesBlock(items, mode) {
                     }
 
                     let groupBadgeHtml = buildGroupBadgesHtml(s.substance_group);
+                    let presBadge = '';
+                    if (s.presentation_images) {
+                        try {
+                            const imgs = typeof s.presentation_images === 'string' ? JSON.parse(s.presentation_images) : s.presentation_images;
+                            if (Array.isArray(imgs) && imgs.length > 0) {
+                                presBadge = `<span class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-sm text-white text-3xs font-extrabold px-2 py-1 rounded-xl border border-white/20 z-10 flex items-center gap-1 shadow-sm"><i data-lucide="image" class="w-3 h-3 text-brand-300"></i> ${imgs.length + (s.image_path ? 1 : 0)} fotos</span>`;
+                            }
+                        } catch(e) {}
+                    }
 
                     return `
                         <div class="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 flex flex-col group relative">
-                            <div class="relative w-full aspect-square bg-slate-50 border-b flex items-center justify-center text-slate-300 overflow-hidden shrink-0">
+                            <div class="relative w-full aspect-square bg-slate-50 border-b flex items-center justify-center text-slate-300 overflow-hidden shrink-0 group/img ${s.image_path ? 'cursor-pointer' : ''}" ${s.image_path ? `onclick="openImageViewer('${s.image_path}', '${(s.name || '').replace(/'/g, "\\'")}')"` : ''}>
                                 ${expBadge}
+                                ${presBadge}
                                 ${s.image_path ? `
-                                    <img src="${s.image_path}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                                    <img src="${s.image_path}" class="w-full h-full object-cover group-hover/img:scale-105 transition duration-500">
+                                    <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/img:opacity-100 transition flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px]">
+                                        <i data-lucide="maximize-2" class="w-4 h-4 text-brand-400"></i>
+                                        <span>Ver Foto Completa</span>
+                                    </div>
                                 ` : `
                                     <i data-lucide="flask-conical" class="w-12 h-12 text-slate-300"></i>
                                 `}
-                                <div class="absolute bottom-3 left-3 right-3 bg-slate-900/70 backdrop-blur-md text-white text-3xs rounded-2xl p-2.5 flex justify-center items-center shadow-lg border border-white/10">
+                                <div class="absolute bottom-3 left-3 right-3 bg-slate-900/70 backdrop-blur-md text-white text-3xs rounded-2xl p-2.5 flex justify-center items-center shadow-lg border border-white/10 z-10">
                                     <span class="font-bold flex items-center gap-1">
                                         <i data-lucide="scale" class="w-3.5 h-3.5 text-brand-400"></i>
                                         <span>${s.container_content || s.unit || ''}</span>
@@ -468,7 +548,7 @@ function renderSubstancesBlock(items, mode) {
                                         <div class="flex justify-between"><span class="font-medium text-slate-400">Fórmula:</span><span class="font-semibold text-slate-800 truncate max-w-[140px]" title="${s.chemical_formula || ''}">${s.chemical_formula || '-'}</span></div>
                                         <div class="flex justify-between"><span class="font-medium text-slate-400">CAS:</span><span class="font-semibold text-slate-800">${s.cas_number || '-'}</span></div>
                                         <div class="flex justify-between"><span class="font-medium text-slate-400">Estado:</span><span class="font-bold text-brand-700">${s.physical_state || 'N/D'}</span></div>
-                                        <div class="flex justify-between"><span class="font-medium text-slate-400">Ubicación:</span><span class="font-semibold text-slate-700 truncate max-w-[140px]">${s.location || '-'}</span></div>
+                                        <div class="flex justify-between items-center"><span class="font-medium text-slate-400">Ubicación:</span><span class="font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-3xs truncate max-w-[130px]" title="${s.location || 'No asignada'}">📍 ${s.location || 'No asignada'}</span></div>
                                         <div class="flex justify-between"><span class="font-medium text-slate-400">Total Stock:</span><span class="font-bold text-slate-900">${s.quantity} ${s.unit}</span></div>
                                         ${(() => {
                                             const missing = getMissingSubstanceFields(s);
@@ -484,14 +564,15 @@ function renderSubstancesBlock(items, mode) {
                                 </div>
 
                                 <div class="flex items-center justify-end gap-1.5 border-t border-slate-50 pt-3">
-                                    <a href="#/substances/${s.id}" class="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition" title="Ver Detalle">
+                                    <a href="#/substances/${s.id}" class="p-2 bg-slate-50 hover:bg-brand-50 text-slate-600 hover:text-brand-700 border border-slate-200 hover:border-brand-200 rounded-xl transition shadow-2xs flex items-center gap-1 text-xs font-bold" title="Ver Detalle y Editar">
                                         <i data-lucide="eye" class="w-4 h-4"></i>
+                                        <span>Ver Detalle</span>
                                     </a>
                                     ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
-                                        <button onclick="openEditModal('substances', ${s.id})" class="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition" title="Editar">
-                                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                        <button onclick="openShelfSelectorModalForSubstance(${s.id}, '${(s.location || '').replace(/'/g, "\\'")}')" class="p-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl transition" title="Cambiar Ubicación en Estante">
+                                            <i data-lucide="map-pin" class="w-4 h-4"></i>
                                         </button>
-                                        <button onclick="deleteItem('substances', ${s.id})" class="p-2 hover:bg-red-50 text-red-500 rounded-lg transition" title="Eliminar">
+                                        <button onclick="deleteItem('substances', ${s.id})" class="p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-xl transition" title="Eliminar">
                                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                                         </button>
                                     ` : ''}
@@ -502,5 +583,212 @@ function renderSubstancesBlock(items, mode) {
                 }).join('')}
             </div>
         `;
+    }
+}
+
+async function openSubstanceLoanModal(substanceId) {
+    if (!state.isLoggedIn) {
+        alert("Debe iniciar sesión para solicitar un préstamo.");
+        return;
+    }
+
+    let modalEl = document.getElementById('modal-request-substance-loan');
+    if (!modalEl) {
+        modalEl = document.createElement('div');
+        modalEl.id = 'modal-request-substance-loan';
+        modalEl.className = 'fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4';
+        document.body.appendChild(modalEl);
+    }
+
+    modalEl.innerHTML = `
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-fade-in relative border border-slate-200">
+            <div class="flex justify-between items-start border-b pb-4 border-slate-100">
+                <div>
+                    <span class="bg-amber-100 text-amber-800 text-3xs font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                        🤝 Préstamo de Sustancia
+                    </span>
+                    <h3 class="text-xl font-bold text-slate-900 mt-1">Solicitar Préstamo de Sustancia</h3>
+                </div>
+                <button onclick="closeSubstanceLoanModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div id="substance-loan-modal-content" class="py-6 text-center text-slate-400">
+                <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto text-amber-500 mb-2"></i>
+                <span>Cargando información de la sustancia...</span>
+            </div>
+        </div>
+    `;
+
+    modalEl.classList.remove('hidden');
+    if (window.lucide) window.lucide.createIcons();
+
+    try {
+        const [subRes, usersRes] = await Promise.all([
+            fetch(`/api/substances/${substanceId}`).then(r => r.json()),
+            fetch('/api/loans/registered-users').then(r => r.json())
+        ]);
+
+        if (subRes.status === 'error') {
+            document.getElementById('substance-loan-modal-content').innerHTML = `
+                <div class="text-red-500 font-bold p-4">${subRes.message}</div>
+            `;
+            return;
+        }
+
+        const substance = subRes.data;
+        const users = usersRes.data || [];
+        const availableStockUnits = (substance.stock_units !== null && substance.stock_units !== undefined && substance.stock_units > 0) ? substance.stock_units : Math.floor(substance.quantity || 1);
+
+        const userOptions = users.map(u => {
+            const isSelected = (u.username === state.user) ? 'selected' : '';
+            return `<option value="${u.id}" data-name="${u.username}" data-role="${u.role}" ${isSelected}>${u.username} (${u.role})</option>`;
+        }).join('');
+
+        const contentDiv = document.getElementById('substance-loan-modal-content');
+        contentDiv.innerHTML = `
+            <form onsubmit="event.preventDefault(); submitSubstanceLoanRequest(${substance.id});" class="space-y-4 text-left">
+                <div class="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-4 space-y-1 text-xs">
+                    <div class="flex justify-between items-center">
+                        <span class="font-extrabold text-amber-900 text-sm">${substance.name}</span>
+                        <span class="text-3xs bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-md font-bold">Stock: ${availableStockUnits} unidades</span>
+                    </div>
+                    ${substance.chemical_formula ? `<p class="text-amber-800 font-medium">Fórmula: <strong>${substance.chemical_formula}</strong></p>` : ''}
+                    ${substance.location ? `<p class="text-amber-800 font-medium">Ubicación: <strong>${substance.location}</strong></p>` : ''}
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-2xs text-amber-800 font-medium flex items-center gap-2">
+                    <i data-lucide="clock" class="w-4 h-4 text-amber-600 shrink-0"></i>
+                    <span>La solicitud quedará en estado <strong>Pendiente de Aprobación por Administrador</strong>. El conteo de tiempo iniciará cuando el Administrador apruebe el préstamo.</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Unidades a Solicitar (Stock Disponible: ${availableStockUnits}) *</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="substance-loan-qty" min="1" max="${availableStockUnits}" value="1" step="1" required
+                            class="flex-1 bg-slate-50 border border-slate-300 px-3.5 py-2.5 rounded-xl text-sm font-bold text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition">
+                        <span class="bg-slate-100 border border-slate-300 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-600 flex items-center shrink-0">
+                            unidades
+                        </span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Responsable Solicitante *</label>
+                    <input type="hidden" id="substance-loan-user-name" value="${state.user || 'Responsable'}">
+                    <div class="px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="user-check" class="w-4 h-4 text-emerald-600 shrink-0"></i>
+                        <span>${state.user || 'Responsable'} (Sesión Iniciada)</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Tipo de Solicitante</label>
+                    <input type="hidden" id="substance-loan-user-type" value="Responsable">
+                    <div class="px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700">
+                        Responsable de Laboratorio
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Motivo / Observaciones del Préstamo</label>
+                    <textarea id="substance-loan-notes" rows="3" placeholder="Ej. Práctica #2 de Laboratorio de Química Orgánica..."
+                        class="w-full bg-slate-50 border border-slate-300 p-3 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeSubstanceLoanModal()"
+                        class="px-4 py-2.5 border border-slate-300 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-100 transition">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="btn-submit-substance-loan"
+                        class="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-lg transition">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                        <span>Enviar Solicitud</span>
+                    </button>
+                </div>
+            </form>
+        `;
+
+        if (window.lucide) window.lucide.createIcons();
+
+    } catch (err) {
+        document.getElementById('substance-loan-modal-content').innerHTML = `
+            <div class="text-red-500 font-bold p-4">Error al cargar la información: ${err.message}</div>
+        `;
+    }
+}
+
+function closeSubstanceLoanModal() {
+    const modalEl = document.getElementById('modal-request-substance-loan');
+    if (modalEl) modalEl.classList.add('hidden');
+}
+
+async function submitSubstanceLoanRequest(substanceId) {
+    const btn = document.getElementById('btn-submit-substance-loan');
+    if (btn) btn.disabled = true;
+
+    const qtyInput = document.getElementById('substance-loan-qty');
+    const notesInput = document.getElementById('substance-loan-notes');
+
+    const qty = parseInt(qtyInput?.value || '1', 10);
+    if (isNaN(qty) || qty <= 0) {
+        alert("Por favor ingrese un número entero de unidades mayor a 0.");
+        if (btn) btn.disabled = false;
+        return;
+    }
+
+    const borrowerName = state.user || 'Responsable';
+    const borrowerType = 'Responsable';
+    const notes = notesInput ? notesInput.value.trim() : '';
+
+    try {
+        const subRes = await fetch(`/api/substances/${substanceId}`).then(r => r.json());
+        const substance = subRes.data || {};
+        const availableStockUnits = (substance.stock_units !== null && substance.stock_units !== undefined && substance.stock_units > 0) ? substance.stock_units : Math.max(1, Math.floor(substance.quantity || 1));
+
+        if (qty > availableStockUnits) {
+            alert(`La cantidad solicitada (${qty} unidades) excede el stock disponible (${availableStockUnits} unidades).`);
+            if (btn) btn.disabled = false;
+            return;
+        }
+
+        const res = await fetch('/api/loans', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                borrower_name: borrowerName,
+                borrower_user_id: parseInt(borrowerUserId),
+                borrower_type: borrowerType,
+                items_list: [
+                    {
+                        id: substance.id || substanceId,
+                        name: substance.name || 'Sustancia',
+                        type: 'substance',
+                        quantity: qty,
+                        unit: substance.unit || 'g',
+                        location: substance.location || '',
+                        chemical_formula: substance.chemical_formula || ''
+                    }
+                ],
+                notes: notes
+            })
+        });
+
+        const data = await res.json();
+        if (data.status === 'success') {
+            closeSubstanceLoanModal();
+            alert("✅ Solicitud de préstamo registrada exitosamente. Se ha enviado una notificación por correo a los administradores.");
+            
+            if (window._triggerSubstancesFetch) window._triggerSubstancesFetch();
+            if (typeof loadLoansData === 'function') loadLoansData();
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch (e) {
+        alert("Error al enviar la solicitud de préstamo: " + e.message);
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }

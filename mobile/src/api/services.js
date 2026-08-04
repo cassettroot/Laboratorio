@@ -68,6 +68,16 @@ export const apiService = {
     return response.data;
   },
 
+  createLoan: async (data) => {
+    const response = await apiClient.post('/api/loans', data);
+    return response.data;
+  },
+
+  getRegisteredUsers: async () => {
+    const response = await apiClient.get('/api/loans/registered-users');
+    return response.data;
+  },
+
   // Escaneo de QR
   scanQR: async (qrContent) => {
     const response = await apiClient.post('/api/scan-qr', { qr_content: qrContent });

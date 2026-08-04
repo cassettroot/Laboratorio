@@ -76,6 +76,18 @@ async function renderWarehouseView(container) {
                     <p class="text-slate-400 text-sm mt-1 max-w-2xl">
                         Haz clic en cualquier nivel para ir directamente a la lista de sustancias que lo integran.
                     </p>
+                    
+                    <!-- BUSCADOR GLOBAL DE ALMACÉN -->
+                    <div class="mt-4 relative max-w-xl">
+                        <input 
+                            type="text" 
+                            id="search-warehouse-main" 
+                            oninput="onSearchWarehouseMain(this.value)"
+                            placeholder="🔍 Buscar sustancia por nombre, CAS, fórmula o Grupo SGA en el almacén..." 
+                            class="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-700/80 rounded-2xl text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition shadow-inner"
+                        />
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+                    </div>
                 </div>
 
                 <!-- CONTROLES: VISTAS Y INTERRUPTOR DE EDICIÓN -->
@@ -155,6 +167,38 @@ async function renderWarehouseView(container) {
                     </span>
                 </div>
 
+                <!-- FOTOGRAFÍA REAL DEL ESTANTE METÁLICO NEGRO -->
+                <div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-center gap-6">
+                    <div class="w-full md:w-56 h-72 rounded-xl overflow-hidden border border-slate-700 shrink-0 shadow-lg relative group bg-slate-900">
+                        <img src="/img/estante_negro_real.jpg" alt="Estante Metálico Negro Real" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                        <a href="/img/estante_negro_real.jpg" target="_blank" class="absolute bottom-2 right-2 bg-slate-900/90 text-white text-3xs font-bold px-2 py-1 rounded-lg border border-slate-700 hover:bg-brand-600 transition flex items-center gap-1">
+                            <i data-lucide="maximize-2" class="w-3 h-3"></i> Ampliar Foto
+                        </a>
+                    </div>
+                    <div class="space-y-2 text-xs text-slate-300 flex-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="bg-slate-800 text-amber-400 font-extrabold px-2.5 py-1 rounded-lg text-3xs border border-slate-700 uppercase">Estante Metálico Negro Doble</span>
+                            <span class="text-3xs text-emerald-400 font-bold">● Fotografiado e Inventariado</span>
+                        </div>
+                        <h4 class="font-extrabold text-sm text-white">Estructura Real de Almacenamiento (Estante Izquierdo A / Estante Derecho B)</h4>
+                        <p class="text-slate-400 leading-relaxed">
+                            Módulo de estantería doble en acabado metálico negro con 5 niveles por columna y altillo superior para cajas de embalaje largo.
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 text-3xs font-mono">
+                            <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 space-y-1">
+                                <span class="text-amber-400 font-bold block">Columna A (Izquierda):</span>
+                                <span class="text-slate-400 block">● Niveles 2 a 5: Líquidos, Corrosivos y Reactivos SGA</span>
+                                <span class="text-slate-300 block">● Base Nivel 1: Cajas Reactivos 2WAJ + Spill Kit</span>
+                            </div>
+                            <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800 space-y-1">
+                                <span class="text-purple-400 font-bold block">Columna B (Derecha):</span>
+                                <span class="text-slate-400 block">● Niveles 2 a 5: Sólidos, Indicadores, Metales y Orgánicos</span>
+                                <span class="text-purple-300 block">● Base Nivel 1: Soluciones Acuosas en Gran Volumen</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- RECREACIÓN GRÁFICA DE LA ESTANTERÍA CON NAVEGACIÓN DIRECTA -->
                 <div class="space-y-4 font-mono">
                     
@@ -201,30 +245,30 @@ async function renderWarehouseView(container) {
                             <div id="shelf-A3" class="shelf-box p-3 rounded-xl border transition cursor-pointer" onclick="selectAndNavigateZone('A3')">
                                 <div class="flex justify-between items-center text-2xs font-bold uppercase mb-1">
                                     <span class="text-slate-400">Nivel 3</span>
-                                    <span class="status-pill" id="pill-A3">1 Frasco</span>
+                                    <span class="status-pill text-slate-400" id="pill-A3">Vacío</span>
                                 </div>
                                 <div class="h-10 rounded-lg flex items-center justify-between px-2.5 text-xs font-sans" id="content-A3">
-                                    <span>🧪 Frasco pequeño</span>
+                                    <span class="text-slate-600 italic">Libre</span>
                                 </div>
                             </div>
 
                             <div id="shelf-A2" class="shelf-box p-3 rounded-xl border transition cursor-pointer" onclick="selectAndNavigateZone('A2')">
                                 <div class="flex justify-between items-center text-2xs font-bold uppercase mb-1">
-                                    <span class="text-amber-400">Nivel 2 (Central)</span>
-                                    <span class="status-pill bg-amber-500/20 text-amber-300 border border-amber-500/30" id="pill-A2">Reactivos Químicos</span>
+                                    <span class="text-slate-400">Nivel 2</span>
+                                    <span class="status-pill text-slate-400" id="pill-A2">Vacío</span>
                                 </div>
-                                <div class="h-12 rounded-lg flex items-center justify-between px-2.5 text-xs font-sans bg-slate-800/80 text-amber-200 border border-amber-500/30 gap-2" id="content-A2">
-                                    <span>🧪 🍾 Botellas Vidrio Ámbar</span>
+                                <div class="h-10 rounded-lg flex items-center justify-between px-2.5 text-xs font-sans" id="content-A2">
+                                    <span class="text-slate-600 italic">Libre</span>
                                 </div>
                             </div>
 
                             <div id="shelf-A1" class="shelf-box p-3 rounded-xl border transition cursor-pointer" onclick="selectAndNavigateZone('A1')">
                                 <div class="flex justify-between items-center text-2xs font-bold uppercase mb-1">
                                     <span class="text-slate-300">Nivel 1 (Piso Estante)</span>
-                                    <span class="status-pill" id="pill-A1">Equipos & Insumos</span>
+                                    <span class="status-pill" id="pill-A1">Equipos & Cajas</span>
                                 </div>
                                 <div class="h-12 rounded-lg flex items-center justify-between px-2.5 text-xs font-sans bg-slate-800/80 text-slate-300 gap-2" id="content-A1">
-                                    <span>📦 Caja Blanca + Maletín Negro</span>
+                                    <span>📦 Cajas Modelo 2WAJ + Mercado Libre IN</span>
                                 </div>
                             </div>
 
@@ -268,11 +312,11 @@ async function renderWarehouseView(container) {
 
                             <div id="shelf-B2" class="shelf-box p-3 rounded-xl border transition cursor-pointer" onclick="selectAndNavigateZone('B2')">
                                 <div class="flex justify-between items-center text-2xs font-bold uppercase mb-1">
-                                    <span class="text-slate-300">Nivel 2 (Central)</span>
-                                    <span class="status-pill" id="pill-B2">Embalaje</span>
+                                    <span class="text-slate-400">Nivel 2</span>
+                                    <span class="status-pill text-slate-400" id="pill-B2">Vacío</span>
                                 </div>
-                                <div class="h-12 rounded-lg flex items-center justify-between px-2.5 text-xs font-sans bg-slate-800/80 text-slate-300 gap-2" id="content-B2">
-                                    <span>📦 Caja Cartón Sellada</span>
+                                <div class="h-10 rounded-lg flex items-center justify-between px-2.5 text-xs font-sans" id="content-B2">
+                                    <span class="text-slate-600 italic">Libre</span>
                                 </div>
                             </div>
 
@@ -374,8 +418,18 @@ async function renderWarehouseView(container) {
     lucide.createIcons();
     await loadWarehouseData();
     applyWarehouseStyles();
-    switchWarehouseMode('photo');
+    switchWarehouseMode('opt');
     renderShelvesBreakdown();
+
+    // Si viene de ver/editar una sustancia desde el almacén, restaurar el nivel seleccionado y la posición del scroll
+    const fromWarehouse = sessionStorage.getItem('last_navigation_source') === 'warehouse';
+    const savedLevel = sessionStorage.getItem('warehouse_selected_level');
+
+    if (fromWarehouse && savedLevel) {
+        setTimeout(() => {
+            scrollToShelfBreakdown(savedLevel);
+        }, 150);
+    }
 }
 
 function toggleWarehouseEditMode() {
@@ -398,7 +452,15 @@ function toggleWarehouseEditMode() {
     lucide.createIcons();
 }
 
+function trackWarehouseNavigation(shelfId) {
+    sessionStorage.setItem('last_navigation_source', 'warehouse');
+    sessionStorage.setItem('warehouse_selected_level', shelfId);
+    sessionStorage.setItem('warehouse_scroll_y', window.scrollY.toString());
+}
+window.trackWarehouseNavigation = trackWarehouseNavigation;
+
 function selectAndNavigateZone(zoneId) {
+    sessionStorage.setItem('warehouse_selected_level', zoneId);
     if (isWarehouseEditMode) {
         // En modo edición abre el modal
         openEditShelfModal(zoneId);
@@ -476,43 +538,47 @@ function switchWarehouseMode(mode) {
 }
 
 function renderPhotoModeLayout() {
-    updateShelfUI('A5', 'Vacío', 'Libre', 'slate');
-    updateShelfUI('A4', 'Vacío', 'Libre', 'slate');
-    updateShelfUI('A3', '1 Frasco', '🧪 Frasco pequeño en esquina', 'slate');
-    updateShelfUI('A2', 'Reactivos', '🧪 🍾 Botellas Vidrio Ámbar', 'amber', '🔴 GRUPO 8 CORROSIVOS / 🟠 GRUPO 3 INFLAMABLES');
-    updateShelfUI('A1', 'Insumos', '📦 Caja Blanca + Maletín Negro', 'slate');
+    // ESTANTE IZQUIERDO (COLUMNA A)
+    updateShelfUI('A5', 'Óxidos & Comburentes', '🧪 Óxido MgO, Peróxido Manganeso, Naftalina', 'yellow', '🟡 G5/G6 COMBURENTES');
+    updateShelfUI('A4', 'Cloruros & Carbonatos', '🧪 Cloruro Bario, Litio, Magnesio, Cal Sodada', 'blue', '🟣 G6/G9 SALES');
+    updateShelfUI('A3', 'Solventes Orgánicos', '🍾 Etanol, Metanol, Acetona, Hexano, Éter', 'amber', '🟠 G3 INFLAMABLES');
+    updateShelfUI('A2', 'Líquidos Corrosivos', '🍾 Ácido Sulfúrico, Clorhídrico, Fórmico', 'amber', '🔴 G8 CORROSIVOS');
+    updateShelfUI('A1', 'Seguridad & Derrames', '📦 Cajas 2WAJ + Kit de Derrames Emergencia', 'yellow', '🚨 KIT DERRAMES');
 
-    updateShelfUI('B5', 'Vacío', 'Libre', 'slate');
-    updateShelfUI('B4', 'Vacío', 'Libre', 'slate');
-    updateShelfUI('B3', 'Vacío', 'Libre', 'slate');
-    updateShelfUI('B2', 'Embalaje', '📦 Caja de Cartón Sellada', 'slate');
-    updateShelfUI('B1', 'Kit PHYWE', '🧰 Caja de Madera PHYWE (Equipos)', 'purple', '🧰 CARGA PESADA');
+    // ESTANTE DERECHO (COLUMNA B)
+    updateShelfUI('B5', 'Indicadores & Colorantes', '🧪 Fenolftaleína, Azul Metileno, Naranja Metilo', 'purple', '🟣 G6/G9 COLORANTES');
+    updateShelfUI('B4', 'Metales & Virutas', '🧪 Magnesio virutas, Carburo Calcio, Aluminio', 'orange', '🟠 G4 SÓLIDOS REACTIVOS');
+    updateShelfUI('B3', 'Ácidos Orgánicos & Azúcares', '🧪 Ácido Cítrico, Tartárico, Sacarosa, Glucosa', 'emerald', '🟢 G9 ORGÁNICOS');
+    updateShelfUI('B2', 'Sulfatos & Fosfatos', '🧪 Sulfato Sodio, Aluminio, Magnesio, Fosfato', 'blue', '🔵 G9 SALES COMPUESTAS');
+    updateShelfUI('B1', 'Soluciones Acuosas & PHYWE', '🍾 Agua Destilada, Solución Amoniacal + Caja PHYWE', 'purple', '🧰 SOLUCIONES & EQUIPOS');
 
     const statSpill = document.getElementById('stat-spill-kit');
-    if (statSpill) statSpill.textContent = "Suelo (Obstaculizando)";
+    if (statSpill) statSpill.textContent = "Estante A Nivel 1 (G8/Spill)";
     const statFree = document.getElementById('stat-free-space');
-    if (statFree) statFree.textContent = "60% Desaprovechado";
+    if (statFree) statFree.textContent = "Columna A y B 100% Asignados";
 
     applyCustomStateOverrides();
 }
 
 function renderOptimizedModeLayout() {
-    updateShelfUI('A5', 'Inertes / Papelería', '📄 Archivos y Cajas Livianas Secundarias', 'emerald', '🔵 GRUPO 9 INERTES');
-    updateShelfUI('A4', 'Sólidos Inertes A-M', '🧪 Sólidos Inorgánicos (Almidón, Alúmina, Bórax)', 'blue', '🔵 GRUPO 9 SALES / 🔴 GRUPO 8 BASES');
-    updateShelfUI('A3', 'Sólidos Inertes N-Z', '🧪 Sales y Óxidos (Sulfato de Sodio, Óxido MgO)', 'blue', '🟣 GRUPO 6 TÓXICOS / 🟡 GRUPO 5 COMBURENTES');
-    updateShelfUI('A2', 'Charola Líquidos SGA', '🍾 Charola Antiderrames: Ácidos y Solventes', 'amber', '🔴 GRUPO 8 CORROSIVOS | 🟠 GRUPO 3 INFLAMABLES');
-    updateShelfUI('A1', 'Kit de Derrames', '🚨 Kit de Derrames (Spill Kit) Accesible a 30cm', 'yellow', '🚨 SEGURIDAD / EMERGENCIA');
+    // ESTANTE IZQUIERDO (COLUMNA A) - LÍQUIDOS, CORROSIVOS E INFLAMABLES SGA
+    updateShelfUI('A5', 'Comburentes y Óxidos (G5/G6)', '🧪 Peróxido de Manganeso, Agua Oxigenada, Nitrato de Sodio, Naftalina', 'yellow', '🟡 GRUPO 5 COMBURENTES | 🟣 GRUPO 6 TÓXICOS');
+    updateShelfUI('A4', 'Cloruros, Carbonatos y Fluoruros (G6/G9)', '🧪 Cloruro de Bario, Cloruro de Litio, Cloruro de Magnesio, Cal Sodada', 'blue', '🟣 GRUPO 6 TÓXICOS / 🔵 GRUPO 9 SALES');
+    updateShelfUI('A3', 'Solventes e Inflamables (G3)', '🍾 Etanol, Metanol, Acetona, Hexano, Éter de Petróleo, Isobutanol', 'amber', '🟠 GRUPO 3 LÍQUIDOS INFLAMABLES');
+    updateShelfUI('A2', 'Líquidos Corrosivos (G8)', '🍾 Ácido Sulfúrico, Ácido Clorhídrico, Ácido Fórmico, Ácido Fosfórico', 'amber', '🔴 GRUPO 8 CORROSIVOS (ÁCIDOS/BASES)');
+    updateShelfUI('A1', 'Reactivos Pesados + Spill Kit', '📦 Cajas 2WAJ de Reactivos + Kit de Derrames de Emergencia', 'yellow', '🚨 KIT DERRAMES / REACTIVOS PESADOS');
 
-    updateShelfUI('B5', 'Material Didáctico', '🎓 Cajas Didácticas y Modelos Moleculares', 'purple', '🎓 DIDÁCTICO');
-    updateShelfUI('B4', 'Cristalería Limpia', '🥛 Material de Vidrio Limpio Empacado', 'emerald', '🥛 VIDRIERÍA');
-    updateShelfUI('B3', 'Insumos de Seguridad', '🥽 Guantes, Lentes y Mascarillas', 'blue', '🥽 EPP SEGURIDAD');
-    updateShelfUI('B2', 'Material Químico', '📦 Reactivos en Cajas Secundarias Selladas', 'blue', '🔵 GRUPO 9 SALES COMPUESTAS');
-    updateShelfUI('B1', 'Carga Pesada PHYWE', '🧰 Caja de Madera PHYWE + Cajas Pesadas', 'purple', '🧰 CARGA PESADA');
+    // ESTANTE DERECHO (COLUMNA B) - SÓLIDOS REACTIVOS, ORGÁNICOS E INDICADORES SGA
+    updateShelfUI('B5', 'Indicadores y Colorantes (G6/G9)', '🧪 Fenolftaleína, Azul de Metileno, Tornasol, Naranja de Metilo, Lugol', 'purple', '🟣 INDICADORES / COLORANTES');
+    updateShelfUI('B4', 'Metales y Sólidos Reactivos (G4)', '🧪 Magnesio en virutas, Carburo de Calcio, Aluminio en Polvo, Hierro', 'orange', '🟠 GRUPO 4 SÓLIDOS REACTIVOS');
+    updateShelfUI('B3', 'Ácidos Orgánicos y Carbohidratos (G9)', '🧪 Ácido Cítrico, Ácido Tartárico, Sacarosa, Glucosa Anhidra, Urea, Bórax', 'emerald', '🟢 GRUPO 9 ORGÁNICOS / CARBOHIDRATOS');
+    updateShelfUI('B2', 'Sales Inorgánicas, Sulfatos y Fosfatos (G9)', '🧪 Sulfato de Sodio, Sulfato de Cobre, Sulfato de Magnesio, Fosfato', 'blue', '🔵 GRUPO 9 SALES INORGÁNICAS');
+    updateShelfUI('B1', 'Soluciones Acuosas Gran Volumen (G9)', '🍾 Agua Destilada, Solución Amoniacal, Solución de Cobre + Caja PHYWE', 'purple', '🔵 SOLUCIONES ACUOSAS BASE');
 
     const statSpill = document.getElementById('stat-spill-kit');
-    if (statSpill) statSpill.textContent = "Nivel 1 Estante A (Accesible)";
+    if (statSpill) statSpill.textContent = "Nivel 1 Estante A (Accesible en 10s)";
     const statFree = document.getElementById('stat-free-space');
-    if (statFree) statFree.textContent = "95% Optimizado";
+    if (statFree) statFree.textContent = "100% Clasificación Sustancias SGA (Col A & B)";
 
     const floorContent = document.getElementById('content-piso');
     if (floorContent) {
@@ -520,9 +586,9 @@ function renderOptimizedModeLayout() {
             <div class="col-span-2 bg-emerald-500/20 border border-emerald-500/40 p-3 rounded-xl text-emerald-200 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <span class="text-lg">✅</span>
-                    <span><strong>Suelo y Pasillo 100% Despejado:</strong> Cumple con normativa de evacuación e higiene ocupacional.</span>
+                    <span><strong>Suelo 100% Despejado:</strong> Organización exclusiva para sustancias químicas registradas. Equipos y cristalería ubicados en otra zona.</span>
                 </div>
-                <span class="text-xs font-bold bg-emerald-950 px-3 py-1 rounded-full border border-emerald-500/40 text-emerald-300">Norma Oficial</span>
+                <span class="text-xs font-bold bg-emerald-950 px-3 py-1 rounded-full border border-emerald-500/40 text-emerald-300">Norma Oficial SGA</span>
             </div>
         `;
     }
@@ -631,9 +697,148 @@ function saveCustomShelfState() {
     alert(`✅ Estado de ${selectedShelf} actualizado exitosamente.`);
 }
 
+function onSearchWarehouseMain(val) {
+    warehouseSearchQuery = val.toLowerCase().trim();
+    const shelfInput = document.getElementById('search-warehouse-shelf');
+    if (shelfInput && shelfInput.value !== val) {
+        shelfInput.value = val;
+    }
+    renderShelvesBreakdown();
+    highlightMatchingShelvesInLayout();
+}
+
 function onSearchWarehouseShelf(val) {
     warehouseSearchQuery = val.toLowerCase().trim();
+    const mainInput = document.getElementById('search-warehouse-main');
+    if (mainInput && mainInput.value !== val) {
+        mainInput.value = val;
+    }
     renderShelvesBreakdown();
+    highlightMatchingShelvesInLayout();
+}
+
+function highlightMatchingShelvesInLayout() {
+    const allShelves = ['A5', 'A4', 'A3', 'A2', 'A1', 'B5', 'B4', 'B3', 'B2', 'B1'];
+    if (!warehouseSearchQuery) {
+        if (currentViewMode === 'photo') renderPhotoModeLayout();
+        else renderOptimizedModeLayout();
+        return;
+    }
+
+    allShelves.forEach(shelfId => {
+        const shelfBox = document.getElementById(`shelf-${shelfId}`);
+        const pill = document.getElementById(`pill-${shelfId}`);
+        const content = document.getElementById(`content-${shelfId}`);
+        if (!shelfBox) return;
+
+        const config = getShelvesConfig().find(s => s.id === shelfId);
+        if (!config) return;
+
+        const matched = substancesListCache.filter(config.filterMatch).filter(s =>
+            s.name.toLowerCase().includes(warehouseSearchQuery) ||
+            (s.cas_number && s.cas_number.toLowerCase().includes(warehouseSearchQuery)) ||
+            (s.chemical_formula && s.chemical_formula.toLowerCase().includes(warehouseSearchQuery)) ||
+            getStorageGroup(s).code.toLowerCase().includes(warehouseSearchQuery)
+        );
+
+        if (matched.length > 0) {
+            shelfBox.className = "shelf-box p-3 rounded-xl border-2 border-emerald-400 bg-emerald-950/70 transition cursor-pointer shadow-lg ring-2 ring-emerald-400/50 scale-[1.02]";
+            if (pill) {
+                pill.textContent = `🎯 ${matched.length} coincidencia(s)`;
+                pill.className = "status-pill bg-emerald-500 text-slate-950 font-extrabold px-2 py-0.5 rounded shadow";
+            }
+            if (content) {
+                content.innerHTML = `<span class="font-bold text-emerald-200">${matched.map(m => m.name).slice(0, 2).join(', ')}${matched.length > 2 ? '...' : ''}</span>`;
+            }
+        } else {
+            shelfBox.className = "shelf-box p-3 rounded-xl border border-slate-800 bg-slate-950/40 opacity-30 transition cursor-pointer hover:opacity-100";
+        }
+    });
+}
+
+function getShelvesConfig() {
+    return [
+        {
+            id: 'A5',
+            title: '🧪 Estante Izquierdo (A) - Nivel 5 (Alto: Óxidos, Nitratos y Comburentes G5/G6)',
+            badge: '🟡 GRUPO 5 COMBURENTES | 🟣 GRUPO 6 TÓXICOS',
+            badgeBg: 'bg-yellow-100 text-yellow-900 border-yellow-300',
+            description: 'Compuestos oxidantes, nitratos y óxidos metálicos (Óxido de Magnesio, Peróxido de Manganeso, Nitrato de Sodio, Naftalina, Parafina).',
+            filterMatch: (s) => getStorageGroup(s).code === 'Grupo 5' || s.name.includes('Óxido') || s.name.includes('Nitrato') || s.name.includes('Peróxido') || s.name.includes('Naftalina') || s.name.includes('Parafina')
+        },
+        {
+            id: 'A4',
+            title: '🧪 Estante Izquierdo (A) - Nivel 4 (Cloruros, Carbonatos y Fluoruros G6/G9)',
+            badge: '🟣 GRUPO 6 TÓXICOS / 🔵 GRUPO 9 SALES',
+            badgeBg: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+            description: 'Sales inorgánicas puras (Cloruro de Bario, Cloruro de Litio, Cloruro de Magnesio, Carbonato de Calcio, Cal Sodada).',
+            filterMatch: (s) => s.name.includes('Cloruro') || s.name.includes('Carbonato') || s.name.includes('Fluoruro') || s.name.includes('Cal Sodada')
+        },
+        {
+            id: 'A3',
+            title: '🧪 Estante Izquierdo (A) - Nivel 3 (Solventes y Líquidos Inflamables G3)',
+            badge: '🟠 GRUPO 3 LÍQUIDOS INFLAMABLES',
+            badgeBg: 'bg-amber-100 text-amber-900 border-amber-300',
+            description: 'Frascos y garrafas de solventes orgánicos (Etanol, Metanol, Acetona, Hexano, Éter de Petróleo, Isobutanol, Propanol).',
+            filterMatch: (s) => getStorageGroup(s).code === 'Grupo 3' || ['Etanol', 'Metanol', 'Acetona', 'Hexano', 'Éter', 'Alcohol', 'Solvente', 'Isobutanol', 'Propanol'].some(k => s.name.includes(k))
+        },
+        {
+            id: 'A2',
+            title: '🧪 Estante Izquierdo (A) - Nivel 2 (Central: Líquidos Corrosivos G8)',
+            badge: '🔴 GRUPO 8 CORROSIVOS (ÁCIDOS/BASES)',
+            badgeBg: 'bg-red-100 text-red-900 border-red-300',
+            description: 'Envases de vidrio ámbar (Ácido Sulfúrico, Ácido Clorhídrico, Ácido Fórmico, Ácido Fosfórico, Ácido Acético, Hidróxidos).',
+            filterMatch: (s) => getStorageGroup(s).code === 'Grupo 8' || (s.physical_state === 'Líquido' && (s.name.includes('Ácido') || s.name.includes('Hidróxido')))
+        },
+        {
+            id: 'A1',
+            title: '🚨 Estante Izquierdo (A) - Nivel 1 (Seguridad & Kit de Derrames)',
+            badge: '🚨 SEGURIDAD / EMERGENCIA',
+            badgeBg: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+            description: 'Kit de contención de derrames químicos (Bolsa Amarilla) e insumos de protección y contención.',
+            filterMatch: (s) => s.name.includes('Derrame') || s.name.includes('Kit') || s.name.includes('Seguridad')
+        },
+        {
+            id: 'B5',
+            title: '🧪 Estante Derecho (B) - Nivel 5 (Alto: Indicadores y Colorantes G6/G9)',
+            badge: '🟣 INDICADORES / COLORANTES',
+            badgeBg: 'bg-purple-100 text-purple-900 border-purple-300',
+            description: 'Colorantes de laboratorio e indicadores de pH (Fenolftaleína, Azul de Metileno, Naranja de Metilo, Tornasol, Eosina, Lugol, Fehling).',
+            filterMatch: (s) => ['Fenolftaleína', 'Azul', 'Naranja', 'Tornasol', 'Eosina', 'Lugol', 'Fehling', 'Verde', 'Colorante', 'Indicador'].some(k => s.name.includes(k))
+        },
+        {
+            id: 'B4',
+            title: '🧪 Estante Derecho (B) - Nivel 4 (Metales y Sólidos Reactivos G4)',
+            badge: '🟠 GRUPO 4 SÓLIDOS REACTIVOS / METALES',
+            badgeBg: 'bg-orange-100 text-orange-900 border-orange-300',
+            description: 'Metales en virutas/polvo y sólidos reactivos (Magnesio en virutas, Carburo de Calcio, Aluminio en Polvo, Zinc, Hierro, Azufre).',
+            filterMatch: (s) => getStorageGroup(s).code === 'Grupo 4' || ['Magnesio', 'Carburo', 'Aluminio', 'Zinc', 'Hierro', 'Azufre', 'Cobre', 'Metal'].some(k => s.name.includes(k))
+        },
+        {
+            id: 'B3',
+            title: '🧪 Estante Derecho (B) - Nivel 3 (Ácidos Orgánicos Sólidos, Carbohidratos y Azúcares G9)',
+            badge: '🟢 GRUPO 9 ORGÁNICOS / CARBOHIDRATOS',
+            badgeBg: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+            description: 'Compuestos orgánicos biológicos y azúcares (Ácido Cítrico, Ácido Tartárico, Sacarosa, Glucosa Anhidra, Urea, Almidón, Fructosa, Bórax).',
+            filterMatch: (s) => ['Cítrico', 'Tartárico', 'Sacarosa', 'Glucosa', 'Urea', 'Almidón', 'Fructosa', 'Lactosa', 'Benzoico', 'Bórax'].some(k => s.name.includes(k))
+        },
+        {
+            id: 'B2',
+            title: '📦 Estante Derecho (B) - Nivel 2 (Sulfatos, Fosfatos y Sales Inorgánicas G9)',
+            badge: '🔵 GRUPO 9 SALES INORGÁNICAS',
+            badgeBg: 'bg-blue-100 text-blue-900 border-blue-300',
+            description: 'Sales compuestas, sulfatos y fosfatos (Sulfato de Sodio, Sulfato de Cobre, Sulfato de Magnesio, Sulfato de Aluminio, Fosfato, Tiosulfato).',
+            filterMatch: (s) => s.name.includes('Sulfato') || s.name.includes('Fosfato') || s.name.includes('Tartrato') || s.name.includes('Tiosulfato') || s.name.includes('Cianuro') || (!s.name.includes('Cloruro') && !s.name.includes('Carbonato') && s.physical_state === 'Sólido')
+        },
+        {
+            id: 'B1',
+            title: '🧰 Estante Derecho (B) - Nivel 1 (Soluciones Acuosas & Caja PHYWE)',
+            badge: '🧰 CARGA PESADA & SOLUCIONES ACUOSAS',
+            badgeBg: 'bg-purple-100 text-purple-900 border-purple-300',
+            description: 'Garrafas de Agua Destilada, Solución Amoniacal, Soluciones acuosas preparadas y Caja PHYWE con equipos.',
+            filterMatch: (s) => s.name.includes('Agua Destilada') || s.name.includes('Amoniacal') || s.name.includes('Solución') || s.name.includes('Yeso') || s.unit === 'kg' || s.unit === 'L'
+        }
+    ];
 }
 
 function scrollToShelfBreakdown(shelfId) {
@@ -654,65 +859,7 @@ function renderShelvesBreakdown() {
     const container = document.getElementById('shelves-inventory-breakdown');
     if (!container) return;
 
-    const shelvesConfig = [
-        {
-            id: 'A2',
-            title: '🧪 Estante Izquierdo (A) - Nivel 2 (Central: Reactivos Líquidos)',
-            badge: '🔴 GRUPO 8 CORROSIVOS | 🟠 GRUPO 3 INFLAMABLES',
-            badgeBg: 'bg-amber-100 text-amber-800 border-amber-300',
-            description: 'Envases de vidrio ámbar (Ácidos Sulfúrico, Clorhídrico, Fórmico, Propiónico, Solventes).',
-            filterMatch: (s) => s.physical_state === 'Líquido' || s.unit === 'ml' || s.unit === 'L' || ['Solución', 'Aceite', 'Agua', 'Ácido'].some(k => s.name.includes(k))
-        },
-        {
-            id: 'A3',
-            title: '🧪 Estante Izquierdo (A) - Nivel 3 (Sólidos Reactivos A-C)',
-            badge: '🔵 GRUPO 9 SALES / 🟠 GRUPO 4 SÓLIDOS',
-            badgeBg: 'bg-blue-100 text-blue-800 border-blue-300',
-            description: 'Compuestos sólidos en frascos plásticos y de vidrio (Almidón, Bórax, Ácidos orgánicos, Aluminio).',
-            filterMatch: (s) => s.physical_state === 'Sólido' && /^[a-c]/i.test(s.name) && s.name !== 'Agua Destilada'
-        },
-        {
-            id: 'A4',
-            title: '🧪 Estante Izquierdo (A) - Nivel 4 (Cloruros & Carbonatos C-M)',
-            badge: '🟣 GRUPO 6 TÓXICOS / 🔴 GRUPO 8 BASES',
-            badgeBg: 'bg-indigo-100 text-indigo-800 border-indigo-300',
-            description: 'Sales inorgánicas (Cloruro de Bario, Litio, Magnesio, Amonio, Cal Sodada granulada).',
-            filterMatch: (s) => s.physical_state === 'Sólido' && (s.name.startsWith('Cloruro') || s.name.startsWith('Carbonato') || s.name.includes('Cal Sodada'))
-        },
-        {
-            id: 'A5',
-            title: '🧪 Estante Izquierdo (A) - Nivel 5 (Alto: Óxidos & Orgánicos N-Z)',
-            badge: '🟡 GRUPO 5 COMBURENTES / 🟣 GRUPO 6 TÓXICOS',
-            badgeBg: 'bg-purple-100 text-purple-800 border-purple-300',
-            description: 'Compuestos sólidos inertes y óxidos metálicos (Óxido MgO, Alúmina, Peróxido de Manganeso, Naftalina).',
-            filterMatch: (s) => s.physical_state === 'Sólido' && (s.name.startsWith('Óxido') || s.name.startsWith('Naftalina') || s.name.startsWith('Parafina') || s.name.includes('Peróxido') || /^[n-z]/i.test(s.name))
-        },
-        {
-            id: 'B2',
-            title: '📦 Estante Derecho (B) - Nivel 2 (Sulfatos & Fosfatos)',
-            badge: '🔵 GRUPO 9 SALES COMPUESTAS',
-            badgeBg: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-            description: 'Sales compuestas, sulfatos y fosfatos (Sulfato de Sodio, Aluminio, Estroncio, Magnesio, Sacarosa).',
-            filterMatch: (s) => s.name.startsWith('Sulfato') || s.name.startsWith('Fosfato') || s.name.startsWith('Tartrato') || s.name.startsWith('Tiosulfato')
-        },
-        {
-            id: 'B1',
-            title: '🧰 Estante Derecho (B) - Nivel 1 (Piso Estante: Carga Pesada PHYWE)',
-            badge: '🧰 CARGA PESADA & INSUMOS',
-            badgeBg: 'bg-purple-100 text-purple-900 border-purple-300',
-            description: 'Caja de madera PHYWE con kits didácticos, garrafas grandes de Agua Destilada y sacos de Yeso.',
-            filterMatch: (s) => s.name === 'Agua Destilada' || s.name === 'Yeso' || s.unit === 'kg' || s.unit === 'L'
-        },
-        {
-            id: 'A1',
-            title: '🚨 Estante Izquierdo (A) - Nivel 1 (Seguridad & Kit de Derrames)',
-            badge: '🚨 SEGURIDAD / EMERGENCIA',
-            badgeBg: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-            description: 'Kit de contención de derrames químicos (Bolsa Amarilla) e insumos de protección.',
-            filterMatch: (s) => s.name.includes('Derrame') || s.name.includes('Kit')
-        }
-    ];
-
+    const shelvesConfig = getShelvesConfig();
     let html = '';
 
     shelvesConfig.forEach(shelf => {
@@ -766,7 +913,7 @@ function renderShelvesBreakdown() {
                                     </div>
                                     <div class="flex justify-between items-center text-xs border-t border-slate-100 pt-2 mt-2">
                                         <span class="font-bold text-slate-700">Stock: ${item.quantity} ${item.unit || 'g'}</span>
-                                        <a href="#/substances/${item.id}" class="text-brand-600 hover:text-brand-700 font-bold text-2xs flex items-center gap-1">
+                                        <a href="#/substances/${item.id}" onclick="trackWarehouseNavigation('${shelf.id}')" class="text-brand-600 hover:text-brand-700 font-bold text-2xs flex items-center gap-1">
                                             <span>Ver Ficha</span>
                                             <i data-lucide="chevron-right" class="w-3 h-3"></i>
                                         </a>
@@ -783,3 +930,5 @@ function renderShelvesBreakdown() {
     container.innerHTML = html;
     lucide.createIcons();
 }
+window.onSearchWarehouseMain = onSearchWarehouseMain;
+window.onSearchWarehouseShelf = onSearchWarehouseShelf;

@@ -74,8 +74,21 @@ async function renderHistoryView(container) {
                 let actionBadgeColor = 'bg-blue-50 text-blue-600 border-blue-150';
                 if (h.action === 'CREACION') actionBadgeColor = 'bg-emerald-50 text-emerald-600 border-emerald-150';
                 if (h.action === 'ELIMINACION') actionBadgeColor = 'bg-red-50 text-red-600 border-red-150';
+                if (h.action === 'DEVOLUCION_PRESTAMO') actionBadgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
 
-                const labelTable = h.table_name === 'substances' ? 'Sustancias' : (h.table_name === 'chemical_materials' ? 'Mat. Químico' : 'Mat. Didáctico');
+                const labelTable = h.table_name === 'substances' ? 'Sustancias' : (h.table_name === 'chemical_materials' ? 'Mat. Químico' : (h.table_name === 'loans' ? 'Préstamos' : h.table_name));
+
+                let valHtml = h.new_value || '-';
+                if (h.new_value && h.new_value.startsWith('/static/uploads/photos/')) {
+                    valHtml = `
+                        <div class="flex items-center gap-2">
+                            <a href="${h.new_value}" target="_blank" class="block w-10 h-10 rounded-lg overflow-hidden border border-slate-300 hover:opacity-80 transition shrink-0" title="Ver Evidencia de Devolución">
+                                <img src="${h.new_value}" class="w-full h-full object-cover" />
+                            </a>
+                            <span class="text-3xs text-emerald-700 font-bold">📸 Evidencia de Entrega</span>
+                        </div>
+                    `;
+                }
 
                 return `
                     <tr class="hover:bg-slate-50/50 transition">
@@ -88,11 +101,11 @@ async function renderHistoryView(container) {
                         </td>
                         <td class="py-3.5 px-6">
                             <div class="font-bold text-slate-800">${labelTable}</div>
-                            <div class="text-3xs text-slate-400 font-bold uppercase">ID del Registro: ${h.record_id}</div>
+                            <div class="text-3xs text-slate-400 font-bold uppercase">Folio: #PR-${h.record_id}</div>
                         </td>
                         <td class="py-3.5 px-6 text-brand-700 font-bold">${h.field_name || '-'}</td>
-                        <td class="py-3.5 px-6 text-slate-500 font-medium max-w-[150px] truncate" title="${h.old_value || ''}">${h.old_value || '-'}</td>
-                        <td class="py-3.5 px-6 text-slate-950 font-semibold max-w-[150px] truncate" title="${h.new_value || ''}">${h.new_value || '-'}</td>
+                        <td class="py-3.5 px-6 text-slate-600 font-medium max-w-[200px]" title="${h.old_value || ''}">${h.old_value || '-'}</td>
+                        <td class="py-3.5 px-6 text-slate-950 font-semibold">${valHtml}</td>
                     </tr>
                 `;
             }).join('');

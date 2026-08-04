@@ -9,10 +9,11 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { apiService } from '../api/services';
+import { normalizeText } from '../utils/textUtils';
 
 export default function WarehouseScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('visual'); // 'visual' | 'shelf_list'
-  const [mode, setMode] = useState('photo'); // 'photo' | 'optimized'
+  const [mode, setMode] = useState('optimized'); // 'photo' | 'optimized'
   const [substances, setSubstances] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -41,21 +42,23 @@ export default function WarehouseScreen({ navigation }) {
   };
 
   const getStorageGroupCode = (item) => {
-    const name = (item.name || '').toLowerCase();
-    const risks = (item.risks_warnings || '').toLowerCase();
-    if (name.includes('sulfúrico') || name.includes('clorhídrico') || name.includes('fórmico') || name.includes('fosfórico') || name.includes('propiónico') || name.includes('butírico') || name.includes('hidróxido') || name.includes('cal sodada') || risks.includes('corrosivo') || risks.includes('ghs05')) {
+    const nameNorm = normalizeText(item.name || '');
+    const risksNorm = normalizeText(item.risks_warnings || '');
+    const groupNorm = normalizeText(item.substance_group || '');
+
+    if (groupNorm.includes('grupo 8') || nameNorm.includes('sulfurico') || nameNorm.includes('clorhidrico') || nameNorm.includes('formico') || nameNorm.includes('fosforico') || nameNorm.includes('hidroxido') || risksNorm.includes('corrosivo') || risksNorm.includes('ghs05')) {
       return 'Grupo 8 (Corrosivos)';
     }
-    if (risks.includes('inflamable') || risks.includes('ghs02') || name.includes('naftalina')) {
+    if (groupNorm.includes('grupo 3') || risksNorm.includes('inflamable') || risksNorm.includes('ghs02') || nameNorm.includes('naftalina') || nameNorm.includes('etanol') || nameNorm.includes('metanol')) {
       return 'Grupo 3 (Inflamables)';
     }
-    if (name.includes('aluminio en polvo') || name.includes('carburo de calcio')) {
+    if (groupNorm.includes('grupo 4') || nameNorm.includes('aluminio') || nameNorm.includes('carburo') || nameNorm.includes('magnesio')) {
       return 'Grupo 4 (Sólidos Reactivos)';
     }
-    if (name.includes('peróxido') || name.includes('agua oxigenada')) {
+    if (groupNorm.includes('grupo 5') || nameNorm.includes('peroxido') || nameNorm.includes('agua oxigenada') || nameNorm.includes('nitrato')) {
       return 'Grupo 5 (Comburentes)';
     }
-    if (name.includes('bario') || risks.includes('tóxico') || risks.includes('ghs06')) {
+    if (groupNorm.includes('grupo 6') || nameNorm.includes('bario') || risksNorm.includes('toxico') || risksNorm.includes('ghs06')) {
       return 'Grupo 6 (Tóxicos)';
     }
     return 'Grupo 9 (Sales e Inertes)';
@@ -63,66 +66,195 @@ export default function WarehouseScreen({ navigation }) {
 
   const shelvesConfig = [
     {
-      id: 'A2',
-      title: '🧪 Estante Izquierdo (A) - Nivel 2 (Central)',
-      subtitle: '🔴 GRUPO 8 CORROSIVOS | 🟠 GRUPO 3 INFLAMABLES',
-      color: '#f59e0b',
-      filterMatch: (s) => s.physical_state === 'Líquido' || s.unit === 'ml' || s.unit === 'L' || ['Solución', 'Aceite', 'Agua', 'Ácido'].some(k => s.name.includes(k))
-    },
-    {
-      id: 'A3',
-      title: '🧪 Estante Izquierdo (A) - Nivel 3',
-      subtitle: '🔵 GRUPO 9 SALES / 🟠 GRUPO 4 SÓLIDOS',
-      color: '#0284c7',
-      filterMatch: (s) => s.physical_state === 'Sólido' && /^[a-c]/i.test(s.name) && s.name !== 'Agua Destilada'
+      id: 'A5',
+      col: 'A',
+      level: 5,
+      title: '🧪 Estante A - Nivel 5 (Alto)',
+      subtitle: '🔵 GRUPO 9 SALES E INERTES A-M',
+      color: '#38bdf8',
+      descOpt: 'Sólidos Inertes A-M (NaCl, Almidón, Sacarosa)',
+      descPhoto: '⚪ Estado Actual: Muestras y Frascos Livianos'
     },
     {
       id: 'A4',
-      title: '🧪 Estante Izquierdo (A) - Nivel 4',
-      subtitle: '🟣 GRUPO 6 TÓXICOS / 🔴 GRUPO 8 BASES',
-      color: '#6366f1',
-      filterMatch: (s) => s.physical_state === 'Sólido' && (s.name.startsWith('Cloruro') || s.name.startsWith('Carbonato') || s.name.includes('Cal Sodada'))
-    },
-    {
-      id: 'A5',
-      title: '🧪 Estante Izquierdo (A) - Nivel 5 (Alto)',
-      subtitle: '🟡 GRUPO 5 COMBURENTES / 🟣 GRUPO 6 TÓXICOS',
+      col: 'A',
+      level: 4,
+      title: '🧪 Estante A - Nivel 4',
+      subtitle: '🟡 GRUPO 5 COMBURENTES | 🟣 GRUPO 6 TÓXICOS',
       color: '#a855f7',
-      filterMatch: (s) => s.physical_state === 'Sólido' && (s.name.startsWith('Óxido') || s.name.startsWith('Naftalina') || s.name.startsWith('Parafina') || s.name.includes('Peróxido') || /^[n-z]/i.test(s.name))
+      descOpt: 'Comburentes y Tóxicos (Peróxidos, Bario, Nitratos)',
+      descPhoto: '⚪ Estado Actual: Insumos Plásticos Libres'
     },
     {
-      id: 'B2',
-      title: '📦 Estante Derecho (B) - Nivel 2',
-      subtitle: '🔵 GRUPO 9 SALES COMPUESTAS',
-      color: '#10b981',
-      filterMatch: (s) => s.name.startsWith('Sulfato') || s.name.startsWith('Fosfato') || s.name.startsWith('Tartrato') || s.name.startsWith('Tiosulfato')
+      id: 'A3',
+      col: 'A',
+      level: 3,
+      title: '🧪 Estante A - Nivel 3',
+      subtitle: '🟠 GRUPO 3 LÍQUIDOS INFLAMABLES / SOLVENTES',
+      color: '#fbbf24',
+      descOpt: 'Solventes e Inflamables (Etanol, Metanol, Acetona)',
+      descPhoto: '🧪 Estado Actual: Frascos Pequeños de Solvente'
     },
     {
-      id: 'B1',
-      title: '🧰 Estante Derecho (B) - Nivel 1 (Piso Estante)',
-      subtitle: '🧰 CARGA PESADA & PHYWE',
-      color: '#ec4899',
-      filterMatch: (s) => s.name === 'Agua Destilada' || s.name === 'Yeso' || s.unit === 'kg' || s.unit === 'L'
+      id: 'A2',
+      col: 'A',
+      level: 2,
+      title: '🧪 Estante A - Nivel 2 (Central)',
+      subtitle: '🔴 GRUPO 8 CORROSIVOS (ÁCIDOS Y BASES)',
+      color: '#f87171',
+      descOpt: 'Líquidos Corrosivos (Ácido Sulfúrico, Clorhídrico, NaOH)',
+      descPhoto: '🧪 Botellas Ámbar + Garrafas Plásticas'
     },
     {
       id: 'A1',
-      title: '🚨 Estante Izquierdo (A) - Nivel 1 (Piso Estante)',
-      subtitle: '🚨 SEGURIDAD / KIT DERRAMES',
+      col: 'A',
+      level: 1,
+      title: '🚨 Estante A - Nivel 1 (Piso Estante)',
+      subtitle: '🚨 SEGURIDAD / KIT DERRAMES & CAJAS 2WAJ',
       color: '#eab308',
-      filterMatch: (s) => s.name.includes('Derrame') || s.name.includes('Kit')
+      descOpt: 'Cajas 2WAJ + Kit de Absorción de Derrames',
+      descPhoto: '📦 Caja Blanca + Maletín Negro'
+    },
+    {
+      id: 'B5',
+      col: 'B',
+      level: 5,
+      title: '📦 Estante B - Nivel 5 (Alto)',
+      subtitle: '🟣 GRUPO 6/9 INDICADORES Y COLORANTES',
+      color: '#c084fc',
+      descOpt: 'Indicadores y Colorantes (Fenolftaleína, Azul Metileno)',
+      descPhoto: '⚪ Libre / Almacenamiento Alto'
+    },
+    {
+      id: 'B4',
+      col: 'B',
+      level: 4,
+      title: '📦 Estante B - Nivel 4',
+      subtitle: '🟠 GRUPO 4 METALES Y SÓLIDOS REACTIVOS',
+      color: '#fbbf24',
+      descOpt: 'Metales y Sólidos Reactivos (Magnesio, Carburo, Zinc)',
+      descPhoto: '⚪ Libre / Envasado Especial'
+    },
+    {
+      id: 'B3',
+      col: 'B',
+      level: 3,
+      title: '📦 Estante B - Nivel 3',
+      subtitle: '🟢 GRUPO 9 ÁCIDOS ORGÁNICOS Y CARBOHIDRATOS',
+      color: '#34d399',
+      descOpt: 'Ácidos Orgánicos y Carbohidratos (Cítrico, Sacarosa)',
+      descPhoto: '⚪ Libre / Envasado Liviano'
+    },
+    {
+      id: 'B2',
+      col: 'B',
+      level: 2,
+      title: '📦 Estante B - Nivel 2 (Central)',
+      subtitle: '🔵 GRUPO 9 SALES INORGÁNICAS N-Z',
+      color: '#38bdf8',
+      descOpt: 'Sales Inorgánicas N-Z (Sulfatos, Fosfatos, Ferrocianuros)',
+      descPhoto: '📦 Caja Cartón Sellada'
+    },
+    {
+      id: 'B1',
+      col: 'B',
+      level: 1,
+      title: '🧰 Estante B - Nivel 1 (Inferior)',
+      subtitle: '🔵 SOLUCIONES ACUOSAS GRAN VOLUMEN & PHYWE',
+      color: '#e9d5ff',
+      descOpt: 'Soluciones Acuosas de Gran Volumen + Material PHYWE',
+      descPhoto: '🧰 Caja de Madera PHYWE + Bidones'
     }
   ];
 
+  const getSubstancesForShelf = (shelfId) => {
+    return substances.filter(s => {
+      const locNorm = normalizeText(s.location || '');
+      if (locNorm.includes(normalizeText(shelfId))) return true;
+
+      const normName = normalizeText(s.name);
+      const normGroup = normalizeText(s.substance_group);
+      const normRisks = normalizeText(s.risks_warnings);
+      const normState = normalizeText(s.physical_state);
+
+      switch (shelfId) {
+        case 'A1':
+          return normName.includes('derrame') || normName.includes('kit') || locNorm.includes('a1');
+        case 'A2':
+          return normGroup.includes('grupo 8') || normGroup.includes('corrosivo') || normRisks.includes('corrosivo') || normRisks.includes('ghs05') || normName.includes('sulfurico') || normName.includes('clorhidrico') || normName.includes('formico') || normName.includes('fosforico') || normName.includes('hidroxido');
+        case 'A3':
+          return normGroup.includes('grupo 3') || normGroup.includes('inflamable') || normRisks.includes('inflamable') || normRisks.includes('ghs02') || normName.includes('etanol') || normName.includes('metanol') || normName.includes('acetona');
+        case 'A4':
+          return normGroup.includes('grupo 5') || normGroup.includes('grupo 6') || normName.includes('nitrato') || normName.includes('peroxido') || normName.includes('clorato') || normName.includes('bario');
+        case 'A5':
+          return (normState.includes('solido') && /^[a-m]/i.test(s.name) && !normName.includes('sulfato') && !normName.includes('fosfato')) || locNorm.includes('a5');
+        case 'B1':
+          return normName.includes('agua destilada') || normName.includes('phywe') || (s.unit || '').toLowerCase() === 'l' || (s.unit || '').toLowerCase() === 'kg' || locNorm.includes('b1');
+        case 'B2':
+          return normName.includes('sulfato') || normName.includes('fosfato') || normName.includes('ferrocianuro') || (normGroup.includes('grupo 9') && /^[n-z]/i.test(s.name)) || locNorm.includes('b2');
+        case 'B3':
+          return normName.includes('citrico') || normName.includes('oxalico') || normName.includes('sacarosa') || normName.includes('glucosa') || normName.includes('tartarico') || locNorm.includes('b3');
+        case 'B4':
+          return normGroup.includes('grupo 4') || normName.includes('magnesio') || normName.includes('carburo') || normName.includes('aluminio') || normName.includes('zinc') || locNorm.includes('b4');
+        case 'B5':
+          return normName.includes('fenolftaleina') || normName.includes('azul') || normName.includes('naranja') || normName.includes('verde') || normName.includes('rojo') || normName.includes('indicador') || locNorm.includes('b5');
+        default:
+          return false;
+      }
+    });
+  };
+
+  const getFilteredSubstancesForShelf = (shelfId, searchStr) => {
+    const shelfItems = getSubstancesForShelf(shelfId);
+    if (!searchStr.trim()) return shelfItems;
+    
+    const qNorm = normalizeText(searchStr);
+    if (shelfId.toLowerCase().includes(qNorm) || qNorm.includes(shelfId.toLowerCase())) {
+      return shelfItems;
+    }
+
+    return shelfItems.filter(s =>
+      normalizeText(s.name).includes(qNorm) ||
+      normalizeText(s.cas_number).includes(qNorm) ||
+      normalizeText(s.chemical_formula).includes(qNorm) ||
+      normalizeText(s.substance_group).includes(qNorm) ||
+      normalizeText(s.location).includes(qNorm) ||
+      normalizeText(s.responsible).includes(qNorm)
+    );
+  };
+
+  const searchNorm = normalizeText(search);
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 50 }}>
-      {/* HEADER CON PESTAÑAS PRINCIPALES */}
-      <View style={styles.header}>
-        <Text style={styles.badge}>🏢 Infraestructura & Estantería</Text>
-        <Text style={styles.title}>Almacén de Reactivos</Text>
-        <Text style={styles.subtitle}>
-          Toca cualquier nivel para consultar directamente las sustancias que lo integran.
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 60 }}>
+      {/* HEADER DE ALMACÉN CON BUSCADOR GLOBAL */}
+      <View style={styles.headerCard}>
+        <Text style={styles.badgeText}>🏢 Infraestructura & Estantería Metálica</Text>
+        <Text style={styles.mainTitle}>Almacén de Reactivos</Text>
+        <Text style={styles.subtitleText}>
+          Organización SGA por estantes y niveles. Escribe para buscar cualquier sustancia por nombre, CAS o fórmula sin importar acentos o mayúsculas.
         </Text>
 
+        {/* BARRA DE BÚSQUEDA GLOBAL DEL ALMACÉN */}
+        <View style={styles.searchBarBox}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchBarInput}
+            placeholder="Buscar por sustancia, CAS, fórmula o nivel (ej. A2, Cloruro)..."
+            placeholderTextColor="#94a3b8"
+            value={search}
+            onChangeText={setSearch}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {search ? (
+            <TouchableOpacity onPress={() => setSearch('')} style={styles.clearBtn}>
+              <Text style={styles.clearBtnText}>✕</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {/* PESTAÑAS DE VISTA */}
         <View style={styles.sectionTabs}>
           <TouchableOpacity
             style={[styles.sectionBtn, activeTab === 'visual' ? styles.sectionBtnActive : {}]}
@@ -137,7 +269,7 @@ export default function WarehouseScreen({ navigation }) {
             onPress={() => setActiveTab('shelf_list')}
           >
             <Text style={[styles.sectionBtnText, activeTab === 'shelf_list' ? styles.sectionBtnTextActive : {}]}>
-              📋 Ver por Niveles
+              📋 Listado por Niveles
             </Text>
           </TouchableOpacity>
         </View>
@@ -151,7 +283,7 @@ export default function WarehouseScreen({ navigation }) {
               onPress={() => setMode('photo')}
             >
               <Text style={[styles.modeBtnText, mode === 'photo' ? styles.modeBtnTextActive : {}]}>
-                📸 Vista Actual (Foto)
+                📸 Vista Actual (Fotos)
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -164,132 +296,98 @@ export default function WarehouseScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* ALTILLO */}
+          {/* ALTILLO SUPERIOR */}
           <View style={styles.cardSection}>
             <Text style={styles.sectionLabel}>📦 ALTILLO SUPERIOR (LOTE 12)</Text>
             <TouchableOpacity style={styles.altilloBox} onPress={() => handleSelectZoneDirectly('Altillo')}>
               <Text style={styles.altilloText}>
                 {mode === 'photo'
                   ? '📦 Cajas alargadas de cartón de almacenamiento superior'
-                  : '📦 Almacenamiento secundario ligero (Cajas livianas)'}
+                  : '📦 Almacenamiento secundario ligero (Cajas livianas y envases secos)'}
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* ESTANTERÍA DOBLE */}
+          {/* MAPA DE ESTANTERÍA DOBLE (COLUMNA A Y COLUMNA B) */}
           <Text style={styles.shelfTitle}>
             {mode === 'photo' ? '📸 Mapa de Distribución Actual (Toca un nivel)' : '✨ Zonificación Recomendada SGA'}
           </Text>
 
-          <View style={styles.shelvingGrid}>
-            {/* ESTANTE A (IZQUIERDO) */}
-            <View style={styles.column}>
-              <Text style={styles.columnHeader}>Estante Izquierdo (Col. A)</Text>
+          {loading ? (
+            <ActivityIndicator size="large" color="#0284c7" style={{ marginVertical: 30 }} />
+          ) : (
+            <View style={styles.shelvingGrid}>
+              {/* ESTANTE A (IZQUIERDO) */}
+              <View style={styles.column}>
+                <Text style={styles.columnHeader}>Estante Izquierdo (Col. A)</Text>
 
-              <TouchableOpacity style={styles.shelfItem} onPress={() => handleSelectZoneDirectly('A5')}>
-                <View style={styles.shelfItemHeader}>
-                  <Text style={styles.shelfLevel}>Nivel 5 (Alto)</Text>
-                  <Text style={styles.pictogramBadge}>🔵 GRUPO 9</Text>
-                </View>
-                <Text style={styles.shelfDesc}>
-                  {mode === 'photo' ? '⚪ Libre / Vacío' : '📄 Archivo & Cajas Livianas'}
-                </Text>
-              </TouchableOpacity>
+                {shelvesConfig.filter(s => s.col === 'A').map(shelf => {
+                  const matchedItems = getFilteredSubstancesForShelf(shelf.id, search);
+                  const totalItemsOnShelf = getSubstancesForShelf(shelf.id).length;
+                  const isMatchingSearch = searchNorm && matchedItems.length > 0;
 
-              <TouchableOpacity style={styles.shelfItem} onPress={() => handleSelectZoneDirectly('A4')}>
-                <View style={styles.shelfItemHeader}>
-                  <Text style={styles.shelfLevel}>Nivel 4</Text>
-                  <Text style={styles.pictogramBadge}>🟣 GRUPO 6</Text>
-                </View>
-                <Text style={styles.shelfDesc}>
-                  {mode === 'photo' ? '⚪ Libre / Vacío' : '🧪 Sólidos Inertes A-M'}
-                </Text>
-              </TouchableOpacity>
+                  return (
+                    <TouchableOpacity
+                      key={shelf.id}
+                      style={[
+                        styles.shelfCard,
+                        isMatchingSearch && styles.shelfCardHighlight
+                      ]}
+                      onPress={() => handleSelectZoneDirectly(shelf.id)}
+                    >
+                      <View style={styles.shelfCardHeader}>
+                        <Text style={[styles.shelfLevelText, isMatchingSearch && { color: '#34d399' }]}>
+                          Nivel {shelf.level} ({shelf.id})
+                        </Text>
+                        <Text style={[styles.badgePill, { backgroundColor: isMatchingSearch ? '#10b981' : shelf.color }]}>
+                          {isMatchingSearch ? `🎯 ${matchedItems.length}` : `${totalItemsOnShelf} reactivos`}
+                        </Text>
+                      </View>
+                      <Text style={styles.shelfSubtitleTag}>{shelf.subtitle}</Text>
+                      <Text style={styles.shelfDescText}>
+                        {mode === 'photo' ? shelf.descPhoto : shelf.descOpt}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
-              <TouchableOpacity style={styles.shelfItem} onPress={() => handleSelectZoneDirectly('A3')}>
-                <View style={styles.shelfItemHeader}>
-                  <Text style={styles.shelfLevel}>Nivel 3</Text>
-                  <Text style={styles.pictogramBadge}>🔵 GRUPO 9</Text>
-                </View>
-                <Text style={styles.shelfDesc}>
-                  {mode === 'photo' ? '🧪 1 Frasco pequeño' : '🧪 Sales y Óxidos N-Z'}
-                </Text>
-              </TouchableOpacity>
+              {/* ESTANTE B (DERECHO) */}
+              <View style={styles.column}>
+                <Text style={styles.columnHeader}>Estante Derecho (Col. B)</Text>
 
-              <TouchableOpacity style={[styles.shelfItem, styles.shelfAmber]} onPress={() => handleSelectZoneDirectly('A2')}>
-                <View style={styles.shelfItemHeader}>
-                  <Text style={styles.shelfLevelAmber}>Nivel 2 (Central)</Text>
-                  <Text style={styles.pictogramBadgeAmber}>🔴 G-8 | 🟠 G-3</Text>
-                </View>
-                <Text style={styles.shelfDescAmber}>
-                  {mode === 'photo' ? '🧪 🍾 Botellas Ámbar + Plásticos' : '🍾 Charola Antiderrames SGA'}
-                </Text>
-              </TouchableOpacity>
+                {shelvesConfig.filter(s => s.col === 'B').map(shelf => {
+                  const matchedItems = getFilteredSubstancesForShelf(shelf.id, search);
+                  const totalItemsOnShelf = getSubstancesForShelf(shelf.id).length;
+                  const isMatchingSearch = searchNorm && matchedItems.length > 0;
 
-              <TouchableOpacity style={[styles.shelfItem, mode === 'optimized' ? styles.shelfYellow : {}]} onPress={() => handleSelectZoneDirectly('A1')}>
-                <View style={styles.shelfItemHeader}>
-                  <Text style={styles.shelfLevel}>Nivel 1 (Piso Estante)</Text>
-                  <Text style={styles.pictogramBadge}>🚨 SEGURIDAD</Text>
-                </View>
-                <Text style={styles.shelfDesc}>
-                  {mode === 'photo' ? '📦 Caja Blanca + Maletín Negro' : '🚨 Kit de Derrames Accesible'}
-                </Text>
-              </TouchableOpacity>
+                  return (
+                    <TouchableOpacity
+                      key={shelf.id}
+                      style={[
+                        styles.shelfCard,
+                        isMatchingSearch && styles.shelfCardHighlight
+                      ]}
+                      onPress={() => handleSelectZoneDirectly(shelf.id)}
+                    >
+                      <View style={styles.shelfCardHeader}>
+                        <Text style={[styles.shelfLevelText, isMatchingSearch && { color: '#34d399' }]}>
+                          Nivel {shelf.level} ({shelf.id})
+                        </Text>
+                        <Text style={[styles.badgePill, { backgroundColor: isMatchingSearch ? '#10b981' : shelf.color }]}>
+                          {isMatchingSearch ? `🎯 ${matchedItems.length}` : `${totalItemsOnShelf} reactivos`}
+                        </Text>
+                      </View>
+                      <Text style={styles.shelfSubtitleTag}>{shelf.subtitle}</Text>
+                      <Text style={styles.shelfDescText}>
+                        {mode === 'photo' ? shelf.descPhoto : shelf.descOpt}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
-
-            {/* ESTANTE B (DERECHO) */}
-            <View style={styles.column}>
-              <Text style={styles.columnHeader}>Estante Derecho (Col. B)</Text>
-
-              <TouchableOpacity style={styles.shelfItem} onPress={() => handleSelectZoneDirectly('B5')}>
-                <View style={styles.shelfItemHeader}>
-                  <Text style={styles.shelfLevel}>Nivel 5 (Alto)</Text>
-                  <Text style={styles.pictogramBadge}>🎓 DIDÁCTICO</Text>
-                </View>
-                <Text style={styles.shelfDesc}>
-                  {mode === 'photo' ? '⚪ Libre / Vacío' : '🎓 Materiales Didácticos'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.shelfItem} onPress={() => handleSelectZoneDirectly('B4')}>
-                <View style={styles.shelfItemHeader}>
-                  <Text style={styles.shelfLevel}>Nivel 4</Text>
-                  <Text style={styles.pictogramBadge}>🥛 VIDRIO</Text>
-                </View>
-                <Text style={styles.shelfDesc}>
-                  {mode === 'photo' ? '⚪ Libre / Vacío' : '🥛 Cristalería Limpia'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.shelfItem} onPress={() => handleSelectZoneDirectly('B3')}>
-                <View style={styles.shelfItemHeader}>
-                  <Text style={styles.shelfLevel}>Nivel 3</Text>
-                  <Text style={styles.pictogramBadge}>🥽 EPP</Text>
-                </View>
-                <Text style={styles.shelfDesc}>
-                  {mode === 'photo' ? '⚪ Libre / Vacío' : '🥽 Equipos de Protección (EPP)'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.shelfItem} onPress={() => handleSelectZoneDirectly('B2')}>
-                <View style={styles.shelfItemHeader}>
-                  <Text style={styles.shelfLevel}>Nivel 2 (Central)</Text>
-                  <Text style={styles.pictogramBadge}>🔵 GRUPO 9</Text>
-                </View>
-                <Text style={styles.shelfDesc}>
-                  {mode === 'photo' ? '📦 Caja Cartón Sellada' : '📦 Reactivos Secundarios'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.shelfItem, styles.shelfPurple]} onPress={() => handleSelectZoneDirectly('B1')}>
-                <View style={styles.shelfItemHeader}>
-                  <Text style={styles.shelfLevelPurple}>Nivel 1 (Inferior)</Text>
-                  <Text style={styles.pictogramBadgePurple}>🧰 PESADO</Text>
-                </View>
-                <Text style={styles.shelfDescPurple}>🧰 Caja de Madera PHYWE</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          )}
 
           {/* ÁREA DE PISO */}
           <TouchableOpacity style={[styles.floorBox, mode === 'optimized' ? styles.floorBoxOpt : {}]} onPress={() => handleSelectZoneDirectly('A1')}>
@@ -298,43 +396,21 @@ export default function WarehouseScreen({ navigation }) {
             </Text>
             <Text style={styles.floorText}>
               {mode === 'photo'
-                ? '⚠️ Bolsa amarilla de Kit de Derrame y caja de insumos en el suelo obstaculizando la evacuación.'
-                : '✅ Suelo 100% libre de obstáculos para garantizar la libre evacuación y tránsito seguro.'}
+                ? '⚠️ Bolsa amarilla de Kit de Derrame y cajas en el suelo obstaculizando paso.'
+                : '✅ Suelo 100% libre de obstáculos. Organización exclusiva para reactivos en estantería.'}
             </Text>
           </TouchableOpacity>
         </View>
       ) : (
-        /* VISTA DE LISTA POR NIVELES CON FILTRO DIRECTO */
+        /* VISTA DE LISTADO DETALLADO POR NIVELES */
         <View style={{ gap: 16 }}>
-          <View style={styles.searchBox}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Filtrar por nivel o compuesto (ej. A2, Cloruro)..."
-              placeholderTextColor="#64748b"
-              value={search}
-              onChangeText={setSearch}
-            />
-          </View>
-
           {loading ? (
             <ActivityIndicator size="large" color="#0284c7" style={{ marginTop: 20 }} />
           ) : (
             shelvesConfig.map(shelf => {
-              let matched = substances.filter(shelf.filterMatch);
-              if (search.trim()) {
-                const q = search.toLowerCase();
-                const isShelfIdMatch = shelf.id.toLowerCase().includes(q) || shelf.title.toLowerCase().includes(q);
-                if (!isShelfIdMatch) {
-                  matched = matched.filter(s =>
-                    s.name.toLowerCase().includes(q) ||
-                    (s.cas_number && s.cas_number.toLowerCase().includes(q)) ||
-                    (s.chemical_formula && s.chemical_formula.toLowerCase().includes(q)) ||
-                    getStorageGroupCode(s).toLowerCase().includes(q)
-                  );
-                }
-              }
+              const matched = getFilteredSubstancesForShelf(shelf.id, search);
 
-              if (search.trim() && matched.length === 0) return null;
+              if (searchNorm && matched.length === 0) return null;
 
               return (
                 <View key={shelf.id} style={styles.shelfGroupCard}>
@@ -349,27 +425,35 @@ export default function WarehouseScreen({ navigation }) {
                   </View>
 
                   <View style={styles.itemsList}>
-                    {matched.map(item => (
-                      <TouchableOpacity
-                        key={item.id}
-                        style={styles.itemRow}
-                        onPress={() => navigation.navigate('Detail', { type: 'substance', item })}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={styles.itemName}>{item.name}</Text>
-                            <Text style={styles.groupBadge}>{getStorageGroupCode(item)}</Text>
+                    {matched.length > 0 ? (
+                      matched.map(item => (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={styles.itemRow}
+                          onPress={() => navigation.navigate('Detail', { type: 'substance', item })}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <Text style={styles.itemName}>{item.name}</Text>
+                              <View style={styles.groupChip}>
+                                <Text style={styles.groupChipText}>{getStorageGroupCode(item)}</Text>
+                              </View>
+                            </View>
+                            <Text style={styles.itemMeta}>
+                              {item.chemical_formula ? `Fórmula: ${item.chemical_formula} ` : ''}{item.cas_number ? `| CAS: ${item.cas_number}` : ''}
+                            </Text>
                           </View>
-                          <Text style={styles.itemMeta}>
-                            {item.chemical_formula ? `Fórmula: ${item.chemical_formula}` : ''} {item.cas_number ? `| CAS: ${item.cas_number}` : ''}
-                          </Text>
-                        </View>
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <Text style={styles.itemQuantity}>{item.quantity} {item.unit || 'g'}</Text>
-                          <Text style={styles.itemDetailBtn}>Ver Ficha ➔</Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
+                          <View style={{ alignItems: 'flex-end', marginLeft: 8 }}>
+                            <Text style={styles.itemQuantity}>{item.quantity} {item.unit || 'g'}</Text>
+                            <Text style={styles.itemDetailBtn}>Ver Ficha ➔</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))
+                    ) : (
+                      <Text style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic', padding: 8 }}>
+                        No hay sustancias asignadas aún a este nivel.
+                      </Text>
+                    )}
                   </View>
                 </View>
               );
@@ -385,9 +469,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0f172a',
-    padding: 16,
+    paddingHorizontal: 14,
+    paddingTop: 12,
   },
-  header: {
+  headerCard: {
     backgroundColor: '#1e293b',
     borderRadius: 20,
     padding: 16,
@@ -395,24 +480,53 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     marginBottom: 16,
   },
-  badge: {
+  badgeText: {
     color: '#38bdf8',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase',
     marginBottom: 4,
   },
-  title: {
-    fontSize: 20,
+  mainTitle: {
+    fontSize: 22,
     fontWeight: '800',
     color: '#ffffff',
     marginBottom: 4,
   },
-  subtitle: {
+  subtitleText: {
     fontSize: 12,
     color: '#94a3b8',
-    lineHeight: 16,
+    lineHeight: 17,
     marginBottom: 14,
+  },
+  searchBarBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0f172a',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#38bdf8',
+    marginBottom: 14,
+  },
+  searchIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  searchBarInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#ffffff',
+    paddingVertical: 2,
+  },
+  clearBtn: {
+    padding: 4,
+  },
+  clearBtnText: {
+    color: '#94a3b8',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   sectionTabs: {
     flexDirection: 'row',
@@ -444,7 +558,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 4,
     gap: 6,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   modeBtn: {
     flex: 1,
@@ -453,41 +567,40 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   modeBtnActive: {
-    backgroundColor: '#0284c7',
+    backgroundColor: '#334155',
   },
   modeBtnActiveOpt: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#0369a1',
   },
   modeBtnText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748b',
+    color: '#94a3b8',
   },
   modeBtnTextActive: {
     color: '#ffffff',
   },
   cardSection: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#f59e0b',
-    textTransform: 'uppercase',
+    color: '#fbbf24',
     marginBottom: 6,
+    textTransform: 'uppercase',
   },
   altilloBox: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    backgroundColor: '#1e293b',
+    padding: 14,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.4)',
-    borderRadius: 12,
-    padding: 12,
+    borderColor: '#b45309',
   },
   altilloText: {
-    color: '#fbbf24',
     fontSize: 12,
+    color: '#fef08a',
     fontWeight: '600',
-    textAlign: 'center',
   },
   shelfTitle: {
     fontSize: 14,
@@ -502,111 +615,73 @@ const styles = StyleSheet.create({
   },
   column: {
     flex: 1,
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#334155',
     gap: 8,
   },
   columnHeader: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
-    color: '#cbd5e1',
+    color: '#38bdf8',
     textAlign: 'center',
     marginBottom: 4,
-  },
-  shelfItem: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#1e293b',
+    paddingVertical: 6,
     borderRadius: 10,
-    padding: 8,
     borderWidth: 1,
     borderColor: '#334155',
   },
-  shelfItemHeader: {
+  shelfCard: {
+    backgroundColor: '#1e293b',
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  shelfCardHighlight: {
+    borderColor: '#10b981',
+    borderWidth: 2,
+    backgroundColor: '#022c22',
+  },
+  shelfCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  shelfLevel: {
-    fontSize: 10,
+  shelfLevelText: {
+    fontSize: 12,
     fontWeight: '800',
+    color: '#f8fafc',
+  },
+  badgePill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  badgePillText: {
+    fontSize: 10,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  shelfSubtitleTag: {
+    fontSize: 9,
+    fontWeight: '700',
     color: '#94a3b8',
+    marginBottom: 4,
   },
-  pictogramBadge: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: '#38bdf8',
-    backgroundColor: '#1e293b',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  shelfDesc: {
-    fontSize: 11,
-    color: '#e2e8f0',
-  },
-  shelfAmber: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    borderColor: '#f59e0b',
-  },
-  shelfLevelAmber: {
+  shelfDescText: {
     fontSize: 10,
-    fontWeight: '800',
-    color: '#fbbf24',
-  },
-  pictogramBadgeAmber: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: '#f59e0b',
-    backgroundColor: '#451a03',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  shelfDescAmber: {
-    fontSize: 11,
-    color: '#fef3c7',
-    fontWeight: '700',
-  },
-  shelfPurple: {
-    backgroundColor: 'rgba(168, 85, 247, 0.15)',
-    borderColor: '#a855f7',
-  },
-  shelfLevelPurple: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#c084fc',
-  },
-  pictogramBadgePurple: {
-    fontSize: 8,
-    fontWeight: '800',
-    color: '#c084fc',
-    backgroundColor: '#3b0764',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  shelfDescPurple: {
-    fontSize: 11,
-    color: '#f3e8ff',
-    fontWeight: '700',
-  },
-  shelfYellow: {
-    backgroundColor: 'rgba(234, 179, 8, 0.2)',
-    borderColor: '#eab308',
+    color: '#cbd5e1',
+    lineHeight: 14,
   },
   floorBox: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: '#1e293b',
     borderRadius: 14,
-    padding: 12,
+    padding: 14,
     borderWidth: 1,
     borderColor: '#ef4444',
     marginBottom: 16,
   },
   floorBoxOpt: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
     borderColor: '#10b981',
   },
   floorTitle: {
@@ -618,20 +693,7 @@ const styles = StyleSheet.create({
   floorText: {
     fontSize: 11,
     color: '#cbd5e1',
-    lineHeight: 16,
-  },
-  searchBox: {
-    marginBottom: 8,
-  },
-  searchInput: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 13,
-    color: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#334155',
+    lineHeight: 15,
   },
   shelfGroupCard: {
     backgroundColor: '#1e293b',
@@ -650,51 +712,57 @@ const styles = StyleSheet.create({
     borderBottomColor: '#334155',
   },
   shelfGroupTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
   },
   shelfGroupSubtitle: {
     fontSize: 10,
     color: '#94a3b8',
+    fontWeight: '700',
   },
   countBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   countBadgeText: {
+    color: '#ffffff',
     fontSize: 10,
-    fontWeight: '800',
-    color: '#0f172a',
+    fontWeight: 'bold',
   },
   itemsList: {
     gap: 8,
   },
   itemRow: {
-    backgroundColor: '#0f172a',
-    borderRadius: 10,
-    padding: 10,
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: '#0f172a',
+    padding: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#334155',
   },
   itemName: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#f8fafc',
   },
-  groupBadge: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#38bdf8',
+  groupChip: {
     backgroundColor: '#1e293b',
-    paddingHorizontal: 5,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  groupChipText: {
+    color: '#f59e0b',
+    fontSize: 9,
+    fontWeight: '700',
   },
   itemMeta: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#94a3b8',
     marginTop: 2,
   },
@@ -705,8 +773,8 @@ const styles = StyleSheet.create({
   },
   itemDetailBtn: {
     fontSize: 10,
-    color: '#0284c7',
     fontWeight: '700',
+    color: '#10b981',
     marginTop: 2,
-  },
+  }
 });

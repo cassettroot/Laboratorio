@@ -72,6 +72,7 @@ def init_db():
             substance_group TEXT,
             stock_units INTEGER DEFAULT 1,
             container_content TEXT,
+            presentation_images TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
@@ -232,6 +233,29 @@ def init_db():
         cursor.execute("ALTER TABLE substances ADD COLUMN container_content TEXT")
     except sqlite3.OperationalError:
         pass
+
+    try:
+        cursor.execute("ALTER TABLE substances ADD COLUMN presentation_images TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    # Migraciones para la tabla loans
+    loans_cols = [
+        "ALTER TABLE loans ADD COLUMN items_json TEXT",
+        "ALTER TABLE loans ADD COLUMN borrower_user_id INTEGER DEFAULT 0",
+        "ALTER TABLE loans ADD COLUMN return_photo_path TEXT",
+        "ALTER TABLE loans ADD COLUMN return_notes TEXT",
+        "ALTER TABLE loans ADD COLUMN verification_status TEXT DEFAULT 'Pendiente Aprobación Admin'",
+        "ALTER TABLE loans ADD COLUMN approved_by TEXT DEFAULT ''",
+        "ALTER TABLE loans ADD COLUMN verified_by_admin TEXT",
+        "ALTER TABLE loans ADD COLUMN verified_at TEXT",
+        "ALTER TABLE loans ADD COLUMN quantity_borrowed REAL DEFAULT 1.0"
+    ]
+    for stmt in loans_cols:
+        try:
+            cursor.execute(stmt)
+        except sqlite3.OperationalError:
+            pass
 
     # Crear usuario admin por defecto si la tabla está vacía
     cursor.execute("SELECT COUNT(*) FROM users")

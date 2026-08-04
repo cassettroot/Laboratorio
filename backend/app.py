@@ -58,7 +58,7 @@ def create_app():
                         request.path.startswith('/api/didactic-materials') or
                         request.path.startswith('/api/loans')
                     )) or
-                    (request.method == 'POST' and request.path == '/api/scan-qr')
+                    (request.method == 'POST' and request.path in ['/api/scan-qr', '/api/loans'])
                 )
                 if not allowed_logged_out:
                     return jsonify({"status": "error", "message": "No autorizado. Inicie sesión para realizar esta acción."}), 401

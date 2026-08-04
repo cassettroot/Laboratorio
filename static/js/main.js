@@ -58,8 +58,12 @@ function router() {
         titleEl.textContent = "Reactivos y Sustancias Químicas";
         const parts = state.activeRoute.split('/');
         if (parts.length === 3) {
+            if (window.scrollY > 0) {
+                sessionStorage.setItem('substances_scroll_y', window.scrollY.toString());
+            }
             renderItemDetail(mainEl, 'substances', parts[2]);
         } else {
+            sessionStorage.removeItem('last_navigation_source');
             renderSubstancesList(mainEl);
         }
     }

@@ -90,17 +90,20 @@ async function renderLoansView(container) {
 
             <!-- FILTROS Y BÚSQUEDA -->
             <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex bg-slate-100 p-1 rounded-xl w-full md:w-auto">
-                    <button onclick="setLoansFilter('all')" id="btn-filter-all" class="px-4 py-2 rounded-lg font-bold text-xs transition bg-white text-slate-900 shadow-xs">
+                <div class="flex flex-wrap bg-slate-100 p-1 rounded-xl w-full md:w-auto gap-1">
+                    <button onclick="setLoansFilter('all')" id="btn-filter-all" class="px-3.5 py-2 rounded-lg font-bold text-xs transition bg-white text-slate-900 shadow-xs">
                         Todos
                     </button>
-                    <button onclick="setLoansFilter('Prestado')" id="btn-filter-active" class="px-4 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900">
+                    <button onclick="setLoansFilter('Pendiente Aprobación Admin')" id="btn-filter-req-pending" class="px-3.5 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900">
+                        ⏳ Solicitudes Pendientes
+                    </button>
+                    <button onclick="setLoansFilter('Prestado')" id="btn-filter-active" class="px-3.5 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900">
                         🟡 En Préstamo
                     </button>
-                    <button onclick="setLoansFilter('Pendiente Verificación Admin')" id="btn-filter-pending" class="px-4 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900">
-                        🟠 Pendientes Verificación
+                    <button onclick="setLoansFilter('Pendiente Verificación Admin')" id="btn-filter-pending" class="px-3.5 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900">
+                        📷 Pendientes Verificación
                     </button>
-                    <button onclick="setLoansFilter('Devuelto')" id="btn-filter-returned" class="px-4 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900">
+                    <button onclick="setLoansFilter('Devuelto')" id="btn-filter-returned" class="px-3.5 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900">
                         🟢 Devueltos
                     </button>
                 </div>
@@ -257,6 +260,11 @@ async function renderLoansView(container) {
                     <div>
                         <label class="block font-bold text-slate-700 uppercase tracking-wider mb-2">Fotografía del Reactivo en Estante *</label>
                         <input type="file" id="return-photo-file" accept="image/*" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-900 file:text-white hover:file:bg-slate-800" />
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase tracking-wider mb-1">Descripción / Estado de Entrega *</label>
+                        <textarea id="return-notes-input" rows="2" placeholder="Ej. Envase sellado y devuelto a charola A-2 sin derrames..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium"></textarea>
                     </div>
                 </div>
 
@@ -505,23 +513,44 @@ function renderAdminPendingAlert() {
     if (!container) return;
 
     const isAdmin = state.userRole === 'admin';
-    const pending = loansListCache.filter(l => l.status === 'Pendiente Verificación Admin');
+    const pendingApproval = loansListCache.filter(l => l.status === 'Pendiente Aprobación Admin');
+    const pendingReturn = loansListCache.filter(l => l.status === 'Pendiente Verificación Admin');
 
-    if (isAdmin && pending.length > 0) {
-        container.innerHTML = `
-            <div class="bg-orange-500/10 border-2 border-orange-500/40 p-5 rounded-3xl text-orange-950 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-md animate-pulse">
-                <div class="flex items-center gap-3">
-                    <span class="text-2xl">⚠️</span>
-                    <div>
-                        <h4 class="font-extrabold text-sm text-orange-900">Tienes ${pending.length} devolución(es) pendiente(s) de verificación en estante</h4>
-                        <p class="text-xs text-orange-800">El responsable subió la fotografía del envase guardado. Por favor verifica su posición y aprueba.</p>
+    if (isAdmin && (pendingApproval.length > 0 || pendingReturn.length > 0)) {
+        let alertHtml = '';
+        if (pendingApproval.length > 0) {
+            alertHtml += `
+                <div class="bg-amber-500/10 border-2 border-amber-500/40 p-4 rounded-3xl text-amber-950 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-md">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">⏳</span>
+                        <div>
+                            <h4 class="font-extrabold text-sm text-amber-900">Tienes ${pendingApproval.length} solicitud(es) de préstamo pendiente(s) de aprobación</h4>
+                            <p class="text-xs text-amber-800">El responsable solicitó el préstamo. Al aprobarlo, iniciará a contar el tiempo.</p>
+                        </div>
                     </div>
+                    <button onclick="setLoansFilter('Pendiente Aprobación Admin')" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-2 rounded-xl shrink-0 shadow-sm">
+                        Revisar Solicitudes
+                    </button>
                 </div>
-                <button onclick="setLoansFilter('Pendiente Verificación Admin')" class="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-4 py-2 rounded-xl shrink-0 shadow-sm">
-                    Ver Devoluciones Pendientes
-                </button>
-            </div>
-        `;
+            `;
+        }
+        if (pendingReturn.length > 0) {
+            alertHtml += `
+                <div class="bg-orange-500/10 border-2 border-orange-500/40 p-4 rounded-3xl text-orange-950 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-md">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">📷</span>
+                        <div>
+                            <h4 class="font-extrabold text-sm text-orange-900">Tienes ${pendingReturn.length} devolución(es) pendiente(s) de verificación en estante</h4>
+                            <p class="text-xs text-orange-800">El responsable subió la foto y descripción de entrega. Verifica y aprueba la conclusión.</p>
+                        </div>
+                    </div>
+                    <button onclick="setLoansFilter('Pendiente Verificación Admin')" class="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-4 py-2 rounded-xl shrink-0 shadow-sm">
+                        Ver Devoluciones
+                    </button>
+                </div>
+            `;
+        }
+        container.innerHTML = `<div class="space-y-3">${alertHtml}</div>`;
     } else {
         container.innerHTML = '';
     }
@@ -529,15 +558,16 @@ function renderAdminPendingAlert() {
 
 function setLoansFilter(filter) {
     currentLoanFilter = filter;
-    ['btn-filter-all', 'btn-filter-active', 'btn-filter-pending', 'btn-filter-returned'].forEach(id => {
+    ['btn-filter-all', 'btn-filter-req-pending', 'btn-filter-active', 'btn-filter-pending', 'btn-filter-returned'].forEach(id => {
         const btn = document.getElementById(id);
-        if (btn) btn.className = "px-4 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900";
+        if (btn) btn.className = "px-3.5 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900";
     });
 
-    if (filter === 'all') document.getElementById('btn-filter-all').className = "px-4 py-2 rounded-lg font-bold text-xs transition bg-white text-slate-900 shadow-xs";
-    else if (filter === 'Prestado') document.getElementById('btn-filter-active').className = "px-4 py-2 rounded-lg font-bold text-xs transition bg-amber-500 text-slate-950 font-extrabold shadow-xs";
-    else if (filter === 'Pendiente Verificación Admin') document.getElementById('btn-filter-pending').className = "px-4 py-2 rounded-lg font-bold text-xs transition bg-orange-500 text-white font-extrabold shadow-xs";
-    else if (filter === 'Devuelto') document.getElementById('btn-filter-returned').className = "px-4 py-2 rounded-lg font-bold text-xs transition bg-emerald-500 text-slate-950 font-extrabold shadow-xs";
+    if (filter === 'all') document.getElementById('btn-filter-all').className = "px-3.5 py-2 rounded-lg font-bold text-xs transition bg-white text-slate-900 shadow-xs";
+    else if (filter === 'Pendiente Aprobación Admin') document.getElementById('btn-filter-req-pending').className = "px-3.5 py-2 rounded-lg font-bold text-xs transition bg-amber-500 text-slate-950 font-extrabold shadow-xs";
+    else if (filter === 'Prestado') document.getElementById('btn-filter-active').className = "px-3.5 py-2 rounded-lg font-bold text-xs transition bg-amber-600 text-white font-extrabold shadow-xs";
+    else if (filter === 'Pendiente Verificación Admin') document.getElementById('btn-filter-pending').className = "px-3.5 py-2 rounded-lg font-bold text-xs transition bg-orange-500 text-white font-extrabold shadow-xs";
+    else if (filter === 'Devuelto') document.getElementById('btn-filter-returned').className = "px-3.5 py-2 rounded-lg font-bold text-xs transition bg-emerald-500 text-slate-950 font-extrabold shadow-xs";
 
     renderLoansTable();
 }
@@ -581,39 +611,50 @@ function renderLoansTable() {
     let html = '';
     items.forEach(loan => {
         let badgeStatus = '';
-        if (loan.status === 'Prestado') {
+        if (loan.status === 'Pendiente Aprobación Admin') {
+            badgeStatus = '<span class="bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2.5 py-1 rounded-full text-3xs uppercase tracking-wider flex items-center gap-1 w-fit">⏳ Pendiente Aprobación</span>';
+        } else if (loan.status === 'Prestado') {
             badgeStatus = '<span class="bg-amber-100 text-amber-800 border border-amber-300 font-bold px-2.5 py-1 rounded-full text-3xs uppercase tracking-wider flex items-center gap-1 w-fit"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span> 🟡 En Préstamo</span>';
         } else if (loan.status === 'Pendiente Verificación Admin') {
-            badgeStatus = '<span class="bg-orange-100 text-orange-800 border border-orange-300 font-bold px-2.5 py-1 rounded-full text-3xs uppercase tracking-wider flex items-center gap-1 w-fit">🟠 Pendiente Verificación</span>';
+            badgeStatus = '<span class="bg-orange-100 text-orange-800 border border-orange-300 font-bold px-2.5 py-1 rounded-full text-3xs uppercase tracking-wider flex items-center gap-1 w-fit">📷 Pendiente Verificación</span>';
         } else {
             badgeStatus = '<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-2.5 py-1 rounded-full text-3xs uppercase tracking-wider w-fit">🟢 Devuelto & Aprobado</span>';
         }
 
         const photoHtml = loan.return_photo_path ? `
-            <a href="${loan.return_photo_path}" target="_blank" class="block w-10 h-10 rounded-lg overflow-hidden border border-slate-300 hover:opacity-80 transition" title="Ver evidencia de entrega">
-                <img src="${loan.return_photo_path}" class="w-full h-full object-cover" />
-            </a>
-        ` : '<span class="text-3xs text-slate-400 italic">Sin foto</span>';
+            <div class="space-y-1">
+                <a href="${loan.return_photo_path}" target="_blank" class="block w-12 h-12 rounded-lg overflow-hidden border border-slate-300 hover:opacity-80 transition shadow-xs" title="Ver evidencia fotográfica">
+                    <img src="${loan.return_photo_path}" class="w-full h-full object-cover" />
+                </a>
+                ${loan.return_notes ? `<div class="text-3xs text-slate-600 font-medium max-w-xs italic">"${loan.return_notes}"</div>` : ''}
+            </div>
+        ` : (loan.return_notes ? `<div class="text-3xs text-slate-600 italic">"${loan.return_notes}"</div>` : '<span class="text-3xs text-slate-400 italic">Sin foto</span>');
 
         html += `
             <tr class="hover:bg-slate-50/80 transition">
                 <td class="py-3.5 px-6 font-mono font-bold text-slate-900">#PR-${loan.id}</td>
                 <td class="py-3.5 px-6">
                     <div class="font-bold text-slate-900">${loan.item_name}</div>
-                    ${loan.notes ? `<div class="text-3xs text-slate-500">Notas: ${loan.notes}</div>` : ''}
+                    ${loan.notes ? `<div class="text-3xs text-slate-500">Motivo: ${loan.notes}</div>` : ''}
                 </td>
                 <td class="py-3.5 px-6">
                     <div class="font-bold text-slate-900">${loan.borrower_name}</div>
-                    <div class="text-3xs text-slate-500 uppercase">${loan.borrower_type || 'Docente / Responsable'}</div>
+                    <div class="text-3xs text-slate-500 uppercase">${loan.borrower_type || 'Responsable'}</div>
                 </td>
                 <td class="py-3.5 px-6">
                     <div class="font-mono text-slate-700">${loan.loan_date}</div>
-                    <div class="font-bold text-amber-700 text-3xs">⏱️ ${loan.elapsed_time}</div>
+                    <div class="font-bold text-amber-700 text-3xs">${loan.elapsed_time}</div>
                 </td>
                 <td class="py-3.5 px-6">${photoHtml}</td>
                 <td class="py-3.5 px-6">${badgeStatus}</td>
                 <td class="py-3.5 px-6 text-right">
                     <div class="flex items-center justify-end gap-2">
+                        ${isAdmin && loan.status === 'Pendiente Aprobación Admin' ? `
+                            <button onclick="approveLoanRequest(${loan.id})" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3 py-1.5 rounded-lg text-2xs transition shadow-2xs">
+                                👑 Aprobar Préstamo
+                            </button>
+                        ` : ''}
+
                         ${loan.status === 'Prestado' ? `
                             <button onclick="openReturnLoanModal(${loan.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-2xs transition shadow-2xs">
                                 📸 Devolver con Foto
@@ -621,8 +662,8 @@ function renderLoansTable() {
                         ` : ''}
 
                         ${isAdmin && loan.status === 'Pendiente Verificación Admin' ? `
-                            <button onclick="approveReturnLoan(${loan.id})" class="bg-orange-600 hover:bg-orange-700 text-white font-extrabold px-3 py-1.5 rounded-lg text-2xs transition shadow-2xs animate-bounce">
-                                🟢 Aprobar en Estante
+                            <button onclick="approveReturnLoan(${loan.id})" class="bg-orange-600 hover:bg-orange-700 text-white font-extrabold px-3 py-1.5 rounded-lg text-2xs transition shadow-2xs">
+                                🟢 Aprobar Devolución
                             </button>
                         ` : ''}
 
@@ -714,13 +755,18 @@ async function submitReturnWithPhoto() {
     if (!activeReturnLoanId) return;
 
     const fileInput = document.getElementById('return-photo-file');
+    const notesInput = document.getElementById('return-notes-input');
+    
     if (!fileInput.files || fileInput.files.length === 0) {
-        alert("Por favor sube una fotografía del envase colocado en su estante de almacenamiento.");
+        alert("Por favor sube una fotografía del compuesto colocado en su estante de almacenamiento.");
         return;
     }
 
+    const returnNotes = (notesInput ? notesInput.value : '').trim();
+
     const formData = new FormData();
     formData.append('photo', fileInput.files[0]);
+    formData.append('notes', returnNotes);
 
     try {
         const res = await fetch(`/api/loans/${activeReturnLoanId}/request-return`, {
@@ -732,7 +778,7 @@ async function submitReturnWithPhoto() {
         if (data.status === 'success') {
             closeReturnLoanModal();
             await loadLoansData();
-            alert("✅ Evidencia fotográfica registrada. Queda pendiente de verificación por el Administrador.");
+            alert("✅ Evidencia fotográfica y descripción registradas. Queda pendiente de verificación final por el Administrador.");
         } else {
             alert("Error: " + data.message);
         }
@@ -741,15 +787,32 @@ async function submitReturnWithPhoto() {
     }
 }
 
+async function approveLoanRequest(loanId) {
+    if (!confirm(`👑 ¿Confirmas aprobar la solicitud de préstamo #PR-${loanId}? A partir de este momento comenzará a contar el tiempo.`)) return;
+
+    try {
+        const res = await fetch(`/api/loans/${loanId}/approve-loan`, { method: 'PUT' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            await loadLoansData();
+            alert("🟢 Solicitud de préstamo aprobada exitosamente. El tiempo de préstamo ha comenzado a correr.");
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch (e) {
+        alert("Error al aprobar la solicitud de préstamo.");
+    }
+}
+
 async function approveReturnLoan(loanId) {
-    if (!confirm(`👑 ¿Confirmas que verificaste físicamente en el estante el compuesto del préstamo #PR-${loanId}?`)) return;
+    if (!confirm(`👑 ¿Confirmas que verificaste físicamente en el estante la sustancia del préstamo #PR-${loanId}?`)) return;
 
     try {
         const res = await fetch(`/api/loans/${loanId}/approve-return`, { method: 'PUT' });
         const data = await res.json();
         if (data.status === 'success') {
             await loadLoansData();
-            alert("🟢 Devolución aprobada y verificada en estante por el Administrador.");
+            alert("🟢 Devolución aprobada y verificada en estante por el Administrador. Registro actualizado en Historial.");
         } else {
             alert("Error: " + data.message);
         }
@@ -759,7 +822,7 @@ async function approveReturnLoan(loanId) {
 }
 
 async function deleteLoanRecord(loanId) {
-    if (!confirm(`⚠️ ¿Estás seguro de eliminar el registro de préstamo #PR-${loanId}?`)) return;
+    if (!confirm(`⚠️ ¿Estás seguro de eliminar el registro de préstamo #PR-${loanId}? Esta acción no se puede deshacer.`)) return;
 
     try {
         const res = await fetch(`/api/loans/${loanId}`, { method: 'DELETE' });
@@ -771,6 +834,6 @@ async function deleteLoanRecord(loanId) {
             alert("Error: " + data.message);
         }
     } catch (e) {
-        alert("Error al eliminar registro.");
+        alert("Error al eliminar préstamo.");
     }
 }

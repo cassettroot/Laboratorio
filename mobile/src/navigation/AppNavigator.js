@@ -45,7 +45,9 @@ function MainTabs() {
       <Tab.Screen name="Inicio" component={HomeScreen} options={{ title: 'Inicio' }} />
       <Tab.Screen name="Sustancias" component={SubstancesScreen} options={{ title: 'Sustancias' }} />
       <Tab.Screen name="Materiales" component={MaterialsScreen} options={{ title: 'Materiales' }} />
-      <Tab.Screen name="Almacen" component={WarehouseScreen} options={{ title: 'Almacén' }} />
+      {role !== 'estudiante' ? (
+        <Tab.Screen name="Almacen" component={WarehouseScreen} options={{ title: 'Almacén' }} />
+      ) : null}
       {role !== 'estudiante' ? (
         <Tab.Screen name="Prestamos" component={LoansScreen} options={{ title: 'Préstamos' }} />
       ) : null}

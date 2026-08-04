@@ -19,19 +19,45 @@ async function renderItemDetail(container, typePath, itemId) {
         }
 
         const item = itemRes.data;
+        const relatedPresentations = itemRes.related_presentations || [];
+
+        let presentationImagesList = [];
+        if (item.presentation_images) {
+            try {
+                presentationImagesList = typeof item.presentation_images === 'string' ? JSON.parse(item.presentation_images) : item.presentation_images;
+                if (!Array.isArray(presentationImagesList)) presentationImagesList = [];
+            } catch (e) {
+                presentationImagesList = [];
+            }
+        }
 
         const simRes = await fetch(`/api/${apiPath}?similar_to=${item.id}`).then(r => r.json());
         const similars = simRes.data || [];
 
-        const backPath = typePath === 'substances' ? '#/substances' : (typePath === 'chemical-materials' ? '#/chemical-materials' : '#/didactic-materials');
+        const fromWarehouse = sessionStorage.getItem('last_navigation_source') === 'warehouse';
+        const savedLevel = sessionStorage.getItem('warehouse_selected_level');
+
+        let backPath = typePath === 'substances' ? '#/substances' : (typePath === 'chemical-materials' ? '#/chemical-materials' : '#/didactic-materials');
+        let backText = 'Volver al listado';
+
+        if (typePath === 'substances' && fromWarehouse) {
+            backPath = '#/warehouse';
+            backText = savedLevel ? `Volver al Almacén (Nivel ${savedLevel})` : 'Volver al Almacén de Reactivos';
+        }
 
         container.innerHTML = `
             <div class="space-y-8 animate-fade-in print-card bg-white p-8 rounded-3xl border border-slate-200 shadow-xl relative">
-                <div class="no-print flex items-center gap-3 mb-2">
+                <div class="no-print flex items-center justify-between gap-3 mb-2">
                     <a href="${backPath}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-600 transition">
                         <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                        <span>Volver al listado</span>
+                        <span>${backText}</span>
                     </a>
+                    ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
+                        <button onclick="openEditModal('${typePath}', ${item.id})" class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-md transition">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            <span>✏️ Editar ${typePath === 'substances' ? 'Sustancia' : 'Elemento'}</span>
+                        </button>
+                    ` : ''}
                 </div>
                 <div class="flex flex-col md:flex-row justify-between items-start gap-6">
                     <div class="flex-1 space-y-4">
@@ -69,7 +95,18 @@ async function renderItemDetail(container, typePath, itemId) {
                                     <div class="text-2xs text-slate-400 font-bold mt-0.5">Contenido por envase: ${item.container_content}</div>
                                 ` : ''}
                             </div>
-                            <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Ubicación Física</span><span class="font-semibold text-slate-700">${item.location || '-'}</span></div>
+                            <div>
+                                <span class="text-slate-400 block text-xs uppercase font-bold tracking-wider mb-1">Ubicación Física</span>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-slate-800 text-sm bg-slate-100 px-3 py-1 rounded-xl border border-slate-200">${item.location || 'Sin asignar'}</span>
+                                    ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
+                                        <button type="button" onclick="openShelfSelectorModalForSubstance(${item.id}, '${item.location || ''}')" class="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-2xs font-extrabold flex items-center gap-1.5 transition shadow-sm no-print">
+                                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-600"></i>
+                                            <span>📍 Asignar en Estante</span>
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
                             <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Responsable Custodia</span><span>${item.responsible || '-'}</span></div>
                             <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Última Modificación</span><span class="text-xs text-slate-500">${item.updated_at}</span></div>
                         </div>
@@ -122,9 +159,13 @@ async function renderItemDetail(container, typePath, itemId) {
                     </div>
 
                     <div class="w-full md:w-56 shrink-0 flex flex-col gap-5 items-center bg-slate-50/50 p-5 rounded-3xl border border-slate-100">
-                        <div class="w-full aspect-square rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm flex items-center justify-center text-slate-300 relative">
+                        <div class="w-full aspect-square rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm flex items-center justify-center text-slate-300 relative group/dethead ${item.image_path ? 'cursor-pointer' : ''}" ${item.image_path ? `onclick="openImageViewer('${item.image_path}', '${(item.name || '').replace(/'/g, "\\'")}')" title="Haz clic para ver la foto completa"` : ''}>
                             ${item.image_path ? `
-                                <img src="${item.image_path}" class="w-full h-full object-cover">
+                                <img src="${item.image_path}" class="w-full h-full object-cover group-hover/dethead:scale-105 transition duration-300">
+                                <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/dethead:opacity-100 transition flex items-center justify-center text-white text-3xs font-bold gap-1 backdrop-blur-[1px]">
+                                    <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-brand-400"></i>
+                                    <span>Ampliar Foto</span>
+                                </div>
                             ` : `
                                 <div class="flex flex-col items-center gap-2">
                                     <i data-lucide="image" class="w-10 h-10 text-slate-300"></i>
@@ -133,7 +174,7 @@ async function renderItemDetail(container, typePath, itemId) {
                             `}
 
                             ${typePath === 'substances' ? `
-                            <div class="absolute bottom-2 left-2 right-2 bg-slate-900/60 backdrop-blur-md text-white text-3xs rounded-xl p-2.5 flex justify-center items-center shadow border border-white/10">
+                            <div class="absolute bottom-2 left-2 right-2 bg-slate-900/60 backdrop-blur-md text-white text-3xs rounded-xl p-2.5 flex justify-center items-center shadow border border-white/10 z-10">
                                 <span class="font-bold flex items-center gap-1">
                                     <i data-lucide="scale" class="w-3.5 h-3.5 text-brand-400"></i>
                                     <span>${item.container_content || item.unit || ''}</span>
@@ -157,8 +198,116 @@ async function renderItemDetail(container, typePath, itemId) {
                             <i data-lucide="printer" class="w-4 h-4"></i>
                             <span>Imprimir Ficha / Etiqueta</span>
                         </button>
+
+                        ${(typePath === 'substances' && state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
+                            <button onclick="openSubstanceLoanModal(${item.id})" class="w-full no-print bg-amber-500 hover:bg-amber-400 font-extrabold py-2.5 rounded-xl text-xs text-slate-950 flex items-center justify-center gap-2 transition shadow-md">
+                                <i data-lucide="handshake" class="w-4 h-4"></i>
+                                <span>Solicitar Préstamo de Sustancia</span>
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
+
+                ${typePath === 'substances' ? `
+                    <!-- GALERÍA DE PRESENTACIONES E IMÁGENES DE ENVASE -->
+                    <div class="border-t border-slate-100 pt-8 no-print space-y-6">
+                        <div>
+                            <div class="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                                <h3 class="font-bold text-slate-900 flex items-center gap-2 text-base">
+                                    <i data-lucide="package-open" class="text-brand-500 w-5 h-5"></i>
+                                    <span>📷 Presentaciones e Imágenes del Envase / Sustancia</span>
+                                </h3>
+                                ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
+                                    <label class="px-3.5 py-2 bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 rounded-xl text-xs font-extrabold transition flex items-center gap-2 cursor-pointer shadow-sm">
+                                        <i data-lucide="upload" class="w-4 h-4"></i>
+                                        <span>+ Agregar Foto de Presentación</span>
+                                        <input type="file" accept="image/*" class="hidden" onchange="uploadPresentationImageForSubstance(${item.id}, this)">
+                                    </label>
+                                ` : ''}
+                            </div>
+
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                <!-- Foto Principal -->
+                                <div class="bg-slate-50 border-2 border-brand-300 rounded-2xl p-2.5 flex flex-col items-center justify-between relative group/presmain shadow-2xs ${item.image_path ? 'cursor-pointer' : ''}" ${item.image_path ? `onclick="openImageViewer('${item.image_path}', '${(item.name || '').replace(/'/g, "\\'")}')"` : ''}>
+                                    <span class="absolute top-2 left-2 bg-brand-600 text-white text-3xs font-extrabold uppercase px-2 py-0.5 rounded-md z-10 shadow-sm">Principal</span>
+                                    <div class="w-full aspect-square rounded-xl overflow-hidden bg-white mb-2 border border-slate-200/80 relative">
+                                        ${item.image_path ? `
+                                            <img src="${item.image_path}" class="w-full h-full object-cover group-hover/presmain:scale-105 transition duration-300">
+                                            <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/presmain:opacity-100 transition flex items-center justify-center text-white text-3xs font-bold gap-1 backdrop-blur-[1px]">
+                                                <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-brand-400"></i>
+                                                <span>Ver Foto</span>
+                                            </div>
+                                        ` : `
+                                            <div class="w-full h-full flex items-center justify-center text-slate-300">
+                                                <i data-lucide="flask-conical" class="w-8 h-8"></i>
+                                            </div>
+                                        `}
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-800 text-center truncate max-w-full" title="Foto de portada">${item.container_content || 'Foto Principal'}</span>
+                                </div>
+
+                                <!-- Presentaciones adicionales -->
+                                ${presentationImagesList.map((img, idx) => `
+                                    <div class="bg-slate-50 border border-slate-200 hover:border-brand-300 rounded-2xl p-2.5 flex flex-col items-center justify-between relative group/presimg transition shadow-2xs cursor-pointer" onclick="openImageViewer('${img.image_path}', '${(img.label || 'Presentación ' + (idx + 1)).replace(/'/g, "\\'")}')">
+                                        ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
+                                            <button onclick="event.stopPropagation(); deletePresentationImageDirectly(${item.id}, ${idx})" class="absolute top-2 right-2 bg-red-600 text-white rounded-lg p-1 opacity-0 group-hover/presimg:opacity-100 transition shadow z-20" title="Eliminar foto de presentación">
+                                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                            </button>
+                                        ` : ''}
+                                        <div class="w-full aspect-square rounded-xl overflow-hidden bg-white mb-2 border border-slate-200/80 relative">
+                                            <img src="${img.image_path}" class="w-full h-full object-cover group-hover/presimg:scale-105 transition duration-300">
+                                            <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/presimg:opacity-100 transition flex items-center justify-center text-white text-3xs font-bold gap-1 backdrop-blur-[1px]">
+                                                <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-brand-400"></i>
+                                                <span>Ver Foto</span>
+                                            </div>
+                                        </div>
+                                        <span class="text-xs font-bold text-slate-800 text-center truncate max-w-full" title="${img.label}">${img.label || 'Presentación ' + (idx + 1)}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- OTRAS PRESENTACIONES REGISTRADAS EN INVENTARIO (MISMO PRODUCTO / CAS) -->
+                        ${relatedPresentations.length > 0 ? `
+                            <div class="pt-6 border-t border-slate-100">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="font-bold text-slate-900 flex items-center gap-2 text-base">
+                                        <i data-lucide="layers" class="text-amber-500 w-5 h-5"></i>
+                                        <span>📦 Otros Envases / Presentaciones Registrados de esta Sustancia (${relatedPresentations.length})</span>
+                                    </h3>
+                                    ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
+                                        <button onclick="openDuplicateSubstanceModal('substances', ${item.id})" class="text-xs text-brand-600 hover:text-brand-800 font-extrabold flex items-center gap-1 hover:underline">
+                                            <i data-lucide="plus-circle" class="w-4 h-4"></i> Registrar Nueva Presentación
+                                        </button>
+                                    ` : ''}
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    ${relatedPresentations.map(rp => `
+                                        <div class="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between gap-4 shadow-2xs">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-14 h-14 rounded-xl bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
+                                                    ${rp.image_path ? `<img src="${rp.image_path}" class="w-full h-full object-cover">` : `<i data-lucide="flask-conical" class="w-6 h-6 text-slate-300"></i>`}
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-bold text-slate-900 text-sm">${rp.name}</h4>
+                                                    <span class="text-3xs text-slate-400 font-mono font-bold block">LAB-SUB-${rp.id}</span>
+                                                    <div class="text-2xs text-slate-600 mt-1 flex flex-wrap gap-2 font-medium">
+                                                        <span>Contenido: <strong class="text-slate-800">${rp.container_content || rp.unit}</strong></span>
+                                                        <span>Stock: <strong class="text-brand-700">${rp.quantity} ${rp.unit}</strong></span>
+                                                        <span>Ubicación: <strong class="text-amber-700">${rp.location || 'N/D'}</strong></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <a href="#/substances/${rp.id}" class="px-3.5 py-2 bg-white hover:bg-brand-50 border border-slate-200 hover:border-brand-200 rounded-xl text-xs font-bold text-slate-700 hover:text-brand-700 transition shrink-0 shadow-2xs">
+                                                Ver Envase
+                                            </a>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ''}
 
                 <div class="border-t border-slate-100 pt-8 no-print">
                     <h3 class="font-bold text-slate-900 flex items-center gap-2 mb-4 text-base">
@@ -193,3 +342,58 @@ async function renderItemDetail(container, typePath, itemId) {
         container.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Error de red: ${err.message}</div>`;
     }
 }
+
+async function uploadPresentationImageForSubstance(substanceId, fileInput) {
+    if (!fileInput.files || fileInput.files.length === 0) return;
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    try {
+        const uploadRes = await fetch('/api/upload-photo', {
+            method: 'POST',
+            body: formData
+        }).then(r => r.json());
+
+        if (uploadRes.status === 'success') {
+            const label = prompt("Nombre o descripción de esta presentación (ej. Frasco 500 mL, Garrafa 5 L):", "Presentación de Envase") || "Presentación de Envase";
+            const addRes = await fetch(`/api/substances/${substanceId}/presentation-images`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image_path: uploadRes.image_path, label: label })
+            }).then(r => r.json());
+
+            if (addRes.status === 'success') {
+                const container = document.getElementById('view-container') || document.querySelector('main');
+                renderItemDetail(container, 'substances', substanceId);
+            } else {
+                alert(addRes.message);
+            }
+        } else {
+            alert(uploadRes.message);
+        }
+    } catch(err) {
+        alert("Error al guardar imagen de presentación: " + err.message);
+    }
+}
+
+async function deletePresentationImageDirectly(substanceId, imgIdx) {
+    if (!confirm("¿Deseas eliminar esta foto de presentación?")) return;
+    try {
+        const res = await fetch(`/api/substances/${substanceId}/presentation-images/${imgIdx}`, {
+            method: 'DELETE'
+        }).then(r => r.json());
+
+        if (res.status === 'success') {
+            const container = document.getElementById('view-container') || document.querySelector('main');
+            renderItemDetail(container, 'substances', substanceId);
+        } else {
+            alert(res.message);
+        }
+    } catch(err) {
+        alert("Error al eliminar foto de presentación: " + err.message);
+    }
+}
+
+window.uploadPresentationImageForSubstance = uploadPresentationImageForSubstance;
+window.deletePresentationImageDirectly = deletePresentationImageDirectly;

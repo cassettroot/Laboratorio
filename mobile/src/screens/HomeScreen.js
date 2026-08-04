@@ -120,13 +120,15 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.cardLabel}>Materiales Didácticos</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.card, {borderLeftColor: '#8b5cf6'}]}
-            onPress={() => navigation.navigate('Solicitudes')}
-          >
-            <Text style={styles.cardNum}>{stats.pendingRequests}</Text>
-            <Text style={styles.cardLabel}>Solicitudes Pendientes</Text>
-          </TouchableOpacity>
+          {role !== 'estudiante' ? (
+            <TouchableOpacity 
+              style={[styles.card, {borderLeftColor: '#8b5cf6'}]}
+              onPress={() => navigation.navigate('Solicitudes')}
+            >
+              <Text style={styles.cardNum}>{stats.pendingRequests}</Text>
+              <Text style={styles.cardLabel}>Solicitudes Pendientes</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       )}
     </ScrollView>

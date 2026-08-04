@@ -171,3 +171,57 @@ def notify_user_request_status(requester_username, request_data, new_status, fee
     </div>
     """
     send_email_async(user_email, subject, html)
+
+def notify_admins_loan_request(loan_data):
+    """Notifica a todos los administradores cuando se registra o solicita un préstamo de sustancia/material."""
+    admin_emails = get_admin_emails()
+    if not admin_emails:
+        print("[EMAIL] No hay administradores con correo registrado para notificar el préstamo.")
+        return
+
+    subject = f"[SOLICITUD DE PRÉSTAMO DE SUSTANCIA] Folio #PR-{loan_data.get('id', 'N/A')} - {loan_data.get('item_name')}"
+    
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 12px; padding: 24px; background-color: #ffffff;">
+        <h2 style="color: #d97706; margin-top: 0;">🧪 Nueva Solicitud de Préstamo de Sustancia</h2>
+        <p style="color: #334155; font-size: 14px;">Se ha registrado una nueva solicitud de préstamo en el Sistema de Inventario de Laboratorio:</p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14px;">
+            <tr style="background-color: #f8fafc;">
+                <td style="padding: 10px 14px; font-weight: bold; width: 38%; border-bottom: 1px solid #e2e8f0; color: #475569;">Folio de Préstamo:</td>
+                <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; color: #0f172a; font-weight: bold;">#PR-{loan_data.get('id', 'N/A')}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 14px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #475569;">Sustancia / Elementos:</td>
+                <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; color: #0f172a; font-weight: bold;">{loan_data.get('item_name', 'N/A')}</td>
+            </tr>
+            <tr style="background-color: #f8fafc;">
+                <td style="padding: 10px 14px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #475569;">Solicitante / Prestatario:</td>
+                <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; color: #0f172a;">{loan_data.get('borrower_name', 'N/A')} ({loan_data.get('borrower_type', 'Docente')})</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 14px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #475569;">Solicitado por:</td>
+                <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; color: #0f172a;">{loan_data.get('approved_by', 'Usuario')}</td>
+            </tr>
+            <tr style="background-color: #f8fafc;">
+                <td style="padding: 10px 14px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #475569;">Fecha y Hora:</td>
+                <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; color: #0f172a;">{loan_data.get('loan_date', 'N/A')}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 14px; font-weight: bold; border-bottom: 1px solid #e2e8f0; color: #475569;">Motivo / Observaciones:</td>
+                <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; color: #334155;">{loan_data.get('notes', 'Sin observaciones')}</td>
+            </tr>
+        </table>
+        
+        <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 18px 0; border-radius: 6px;">
+            <p style="margin: 0; font-size: 13px; color: #92400e;">
+                <strong>Nota:</strong> Puede consultar y dar seguimiento a este préstamo en la sección de <strong>Control de Préstamos</strong> dentro del sistema.
+            </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #94a3b8; margin: 0;">Este es un mensaje automático del Sistema de Inventario de Laboratorio TecNM.</p>
+    </div>
+    """
+    send_email_async(admin_emails, subject, html)
+
