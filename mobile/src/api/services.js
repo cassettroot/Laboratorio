@@ -45,7 +45,16 @@ export const apiService = {
 
   uploadPhoto: async (formData) => {
     const response = await apiClient.post('/api/upload-photo', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: {
+        'Accept': 'application/json',
+      },
+      transformRequest: (data, headers) => {
+        if (headers) {
+          delete headers['Content-Type'];
+          delete headers['content-type'];
+        }
+        return data;
+      },
     });
     return response.data;
   },

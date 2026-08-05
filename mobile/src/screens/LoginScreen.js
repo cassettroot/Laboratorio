@@ -15,7 +15,7 @@ import {
 import { AuthContext } from '../context/AuthContext';
 import { DEFAULT_API_BASE } from '../api/client';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const { login, loginAsStudent, serverUrl, updateServerUrl } = useContext(AuthContext);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -34,13 +34,24 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const res = await login(username.trim(), password.trim());
-      if (!res.success) {
+      if (res.success) {
+        if (navigation) {
+          navigation.navigate('Main', { screen: 'Inicio' });
+        }
+      } else {
         Alert.alert('Error de Autenticación', res.message);
       }
     } catch (err) {
       Alert.alert('Error de Conexión', 'No se pudo conectar con el servidor. Verifique la dirección IP configurada.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStudentAccess = () => {
+    loginAsStudent();
+    if (navigation) {
+      navigation.navigate('Main', { screen: 'Inicio' });
     }
   };
 
@@ -104,7 +115,7 @@ export default function LoginScreen() {
           {/* Botón de Acceso Directo para Estudiantes */}
           <TouchableOpacity 
             style={styles.studentButton} 
-            onPress={loginAsStudent}
+            onPress={handleStudentAccess}
           >
             <Text style={styles.studentButtonText}>🎓 Modo Estudiantes / Consultar Sustancias</Text>
           </TouchableOpacity>

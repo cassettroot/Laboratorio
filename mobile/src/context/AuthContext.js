@@ -20,13 +20,13 @@ export const AuthProvider = ({ children }) => {
         setUser(res.user);
         setRole(res.role);
       } else {
-        setUser(null);
-        setRole(null);
+        setUser('Estudiante');
+        setRole('estudiante');
       }
     } catch (error) {
       console.log('Error de verificación de sesión:', error.message);
-      setUser(null);
-      setRole(null);
+      setUser('Estudiante');
+      setRole('estudiante');
     } finally {
       setLoading(false);
     }
@@ -51,8 +51,8 @@ export const AuthProvider = ({ children }) => {
     } catch (e) {
       console.warn("Logout error:", e);
     } finally {
-      setUser(null);
-      setRole(null);
+      setUser('Estudiante');
+      setRole('estudiante');
     }
   };
 

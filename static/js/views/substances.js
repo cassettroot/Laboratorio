@@ -28,6 +28,19 @@ function getMissingSubstanceFields(s) {
     return missing;
 }
 
+function toggleSubstancesFilterActiveMode() {
+    if (!state.substancesFilters) state.substancesFilters = {};
+    state.substancesFilters.areFiltersActive = !state.substancesFilters.areFiltersActive;
+    if (state.substancesFilters.areFiltersActive) {
+        state.substancesFilters.isPanelOpen = true;
+    } else {
+        state.substancesFilters.isPanelOpen = false;
+        state.substancesFilters.completeness = '';
+    }
+    if (window._triggerSubstancesFetch) window._triggerSubstancesFetch();
+}
+window.toggleSubstancesFilterActiveMode = toggleSubstancesFilterActiveMode;
+
 function toggleSubstancesFiltersPanel() {
     const panel = document.getElementById('substances-filters-panel');
     if (panel) {
@@ -45,7 +58,8 @@ function resetSubstancesFilters() {
         physical_state: '',
         completeness: '',
         location: '',
-        isPanelOpen: false
+        isPanelOpen: false,
+        areFiltersActive: false
     };
 
     const search = document.getElementById('search-substances');
@@ -80,7 +94,8 @@ async function renderSubstancesList(container) {
             physical_state: '',
             completeness: '',
             location: '',
-            isPanelOpen: false
+            isPanelOpen: false,
+            areFiltersActive: false
         };
     }
 
@@ -91,15 +106,20 @@ async function renderSubstancesList(container) {
             <div class="sticky -top-8 z-20 bg-slate-50/95 backdrop-blur-md py-3 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b border-slate-200/80 space-y-3 no-print shadow-xs">
                 <!-- Fila Principal: Búsqueda y Botones -->
                 <div class="flex flex-col md:flex-row gap-3 items-center justify-between">
-                    <div class="flex items-center gap-3 w-full md:w-auto flex-1 max-w-xl">
+                    <div class="flex items-center gap-3 w-full md:w-auto flex-1 max-w-2xl">
                         <div class="relative w-full">
                             <input id="search-substances" type="text" value="${f.search || ''}" placeholder="Buscar por CAS, nombre, grupo o ubicación..." class="w-full bg-white border border-slate-300 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:border-brand-500 outline-none transition shadow-sm font-medium text-slate-800 placeholder:text-slate-400">
                             <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
                         </div>
                         
+                        <button type="button" id="btn-toggle-filter-mode" onclick="toggleSubstancesFilterActiveMode()" class="px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition border shadow-sm shrink-0 ${f.areFiltersActive ? 'bg-brand-600 text-white border-brand-700 hover:bg-brand-700' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}">
+                            <i data-lucide="${f.areFiltersActive ? 'filter-check' : 'filter'}" class="w-4 h-4 text-brand-500"></i>
+                            <span>${f.areFiltersActive ? '⚡ Activar Filtros: SÍ' : '⚡ Activar Filtros'}</span>
+                        </button>
+
                         <button type="button" id="btn-toggle-filters" onclick="toggleSubstancesFiltersPanel()" class="bg-white hover:bg-slate-100 border border-slate-300 font-semibold px-3.5 py-2.5 rounded-xl text-sm flex items-center gap-2 transition text-slate-700 shadow-sm shrink-0">
                             <i data-lucide="sliders-horizontal" class="w-4 h-4 text-brand-600"></i>
-                            <span>Filtros y Orden</span>
+                            <span>Opciones</span>
                             <span id="active-filters-badge" class="hidden bg-brand-500 text-slate-900 text-3xs font-extrabold px-2 py-0.5 rounded-full">0</span>
                         </button>
                     </div>
@@ -210,13 +230,14 @@ async function renderSubstancesList(container) {
 
     const fetchAndRender = async () => {
         window._triggerSubstancesFetch = fetchAndRender;
+        const f = state.substancesFilters || {};
 
-        const search = document.getElementById('search-substances').value;
-        const physical_state = document.getElementById('filter-state').value;
-        const location = document.getElementById('filter-location').value;
-        const sortVal = document.getElementById('sort-substances')?.value;
-        const groupVal = document.getElementById('group-substances')?.value;
-        const completenessVal = document.getElementById('filter-completeness')?.value;
+        const search = document.getElementById('search-substances')?.value || '';
+        const physical_state = document.getElementById('filter-state')?.value || '';
+        const location = document.getElementById('filter-location')?.value || '';
+        const sortVal = document.getElementById('sort-substances')?.value || 'name_asc';
+        const groupVal = document.getElementById('group-substances')?.value || '';
+        const completenessVal = f.areFiltersActive ? (document.getElementById('filter-completeness')?.value || '') : '';
 
         // Persistir en objeto de estado global
         if (!state.substancesFilters) state.substancesFilters = {};
@@ -246,6 +267,7 @@ async function renderSubstancesList(container) {
         }
 
         const dataContainer = document.getElementById('substances-data-container');
+        if (!dataContainer) return;
 
         const btnList = document.getElementById('btn-view-list');
         const btnGrid = document.getElementById('btn-view-grid');
@@ -268,7 +290,7 @@ async function renderSubstancesList(container) {
             const res = await fetch(url).then(r => r.json());
             let substancesList = res.data || [];
 
-            const completeness = document.getElementById('filter-completeness').value;
+            const completeness = f.areFiltersActive ? (document.getElementById('filter-completeness')?.value || '') : '';
             if (completeness === 'incomplete') {
                 substancesList = substancesList.filter(s => getMissingSubstanceFields(s).length > 0);
             } else if (completeness === 'missing_location') {
@@ -285,7 +307,7 @@ async function renderSubstancesList(container) {
                 substancesList = substancesList.filter(s => !s.external_links || !s.external_links.trim());
             }
 
-            const sortBy = document.getElementById('sort-substances').value;
+            const sortBy = document.getElementById('sort-substances')?.value || 'name_asc';
             substancesList.sort((a, b) => {
                 if (sortBy === 'name_asc') return (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' });
                 if (sortBy === 'name_desc') return (b.name || '').localeCompare(a.name || '', 'es', { sensitivity: 'base' });
@@ -305,7 +327,7 @@ async function renderSubstancesList(container) {
                 return;
             }
 
-            const groupBy = document.getElementById('group-substances').value;
+            const groupBy = document.getElementById('group-substances')?.value || '';
 
             if (groupBy) {
                 const groups = {};
@@ -346,21 +368,36 @@ async function renderSubstancesList(container) {
                 }, 60);
             }
         } catch (err) {
-            dataContainer.innerHTML = `<div class="bg-white border rounded-3xl p-12 text-center text-red-500 font-bold">Error al cargar datos.</div>`;
+            console.error("Error al cargar sustancias:", err);
+            dataContainer.innerHTML = `<div class="bg-white border rounded-3xl p-12 text-center text-red-500 font-bold">Error al cargar datos: ${err.message}</div>`;
         }
     };
 
-    document.getElementById('search-substances').addEventListener('input', fetchAndRender);
-    document.getElementById('sort-substances').addEventListener('change', fetchAndRender);
-    document.getElementById('group-substances').addEventListener('change', fetchAndRender);
-    document.getElementById('filter-state').addEventListener('change', fetchAndRender);
-    document.getElementById('filter-completeness').addEventListener('change', fetchAndRender);
-    document.getElementById('filter-location').addEventListener('input', fetchAndRender);
+    document.getElementById('search-substances')?.addEventListener('input', fetchAndRender);
+    document.getElementById('sort-substances')?.addEventListener('change', fetchAndRender);
+    document.getElementById('group-substances')?.addEventListener('change', fetchAndRender);
+    document.getElementById('filter-state')?.addEventListener('change', fetchAndRender);
+    document.getElementById('filter-completeness')?.addEventListener('change', fetchAndRender);
+    document.getElementById('filter-location')?.addEventListener('input', fetchAndRender);
 
     fetchAndRender();
 }
 
+function getSubstanceMainImage(s) {
+    if (s.image_path && s.image_path.trim()) return s.image_path.trim();
+    if (s.presentation_images) {
+        try {
+            const imgs = typeof s.presentation_images === 'string' ? JSON.parse(s.presentation_images) : s.presentation_images;
+            if (Array.isArray(imgs) && imgs.length > 0 && imgs[0].image_path) {
+                return imgs[0].image_path.trim();
+            }
+        } catch(e) {}
+    }
+    return '';
+}
+
 function renderSubstancesBlock(items, mode) {
+    const f = state.substancesFilters || {};
     if (mode === 'list') {
         return `
             <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
@@ -382,6 +419,7 @@ function renderSubstancesBlock(items, mode) {
                         <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
                             ${items.map((s, idx) => {
                                 const today = new Date();
+                                const cardImage = getSubstanceMainImage(s);
                                 let expBadge = `<span class="text-slate-600">${s.expiration_date || 'N/D'}</span>`;
                                 if (s.expiration_date === 'Sin caducidad' || s.expiration_date === 'No aplica') {
                                     expBadge = `<span class="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-lg text-2xs font-bold uppercase shrink-0">Sin Caducidad</span>`;
@@ -397,29 +435,26 @@ function renderSubstancesBlock(items, mode) {
                                     }
                                 }
 
-                                let stateColor = 'bg-slate-100 text-slate-700';
-                                if (s.physical_state === 'Líquido') stateColor = 'bg-blue-50 text-blue-700';
-                                if (s.physical_state === 'Sólido') stateColor = 'bg-amber-50 text-amber-700';
-                                if (s.physical_state === 'Gaseoso') stateColor = 'bg-purple-50 text-purple-700';
-
-                                const missing = getMissingSubstanceFields(s);
-                                const missingBadge = missing.length > 0 ? `
-                                    <div class="mt-1 flex items-center gap-1">
-                                        <span class="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md text-3xs font-bold" title="Faltan datos: ${missing.join(', ')}">
-                                            ⚠️ Falta: ${missing.join(', ')}
+                                const missingFields = getMissingSubstanceFields(s);
+                                const missingBadge = (missingFields.length > 0 && f.areFiltersActive) ? `
+                                    <div class="mt-1 flex flex-wrap gap-1">
+                                        <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-3xs font-extrabold flex items-center gap-1">
+                                            <span>⚠️ Falta: ${missingFields.join(', ')}</span>
                                         </span>
                                     </div>
                                 ` : '';
 
+                                const stateColor = s.physical_state === 'Líquido' ? 'bg-cyan-100 text-cyan-800 border border-cyan-200' : (s.physical_state === 'Sólido' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-purple-100 text-purple-800 border border-purple-200');
+
                                 return `
-                                    <tr class="hover:bg-slate-50/80 transition duration-150 border-b border-slate-100">
+                                    <tr class="hover:bg-slate-50/80 transition">
                                         <td class="py-4 px-4 text-center">
                                             <span class="inline-flex items-center justify-center w-7 h-7 bg-slate-100 text-slate-700 font-extrabold text-xs font-mono rounded-full border border-slate-200 shadow-2xs">${idx + 1}</span>
                                         </td>
                                         <td class="py-4 px-6">
                                             <div class="flex items-center gap-3">
-                                                <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden border border-slate-200/60 shrink-0 shadow-2xs ${s.image_path ? 'cursor-pointer hover:ring-2 hover:ring-brand-500 transition' : ''}" ${s.image_path ? `onclick="openImageViewer('${s.image_path}', '${(s.name || '').replace(/'/g, "\\'")}')" title="Haz clic para ver foto en tamaño completo"` : ''}>
-                                                    ${s.image_path ? `<img src="${s.image_path}" class="w-full h-full object-cover">` : `<i data-lucide="flask-conical" class="w-5 h-5 text-slate-400"></i>`}
+                                                <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden border border-slate-200/60 shrink-0 shadow-2xs ${cardImage ? 'cursor-pointer hover:ring-2 hover:ring-brand-500 transition' : ''}" ${cardImage ? `onclick="openImageViewer('${cardImage}', '${(s.name || '').replace(/'/g, "\\'")}')" title="Haz clic para ver foto en tamaño completo"` : ''}>
+                                                    ${cardImage ? `<img src="${cardImage}" class="w-full h-full object-cover">` : `<i data-lucide="flask-conical" class="w-5 h-5 text-slate-400"></i>`}
                                                 </div>
                                                 <div>
                                                     <a href="#/substances/${s.id}" class="text-sm font-bold text-slate-900 hover:text-brand-600 transition block">${s.name}</a>
@@ -440,11 +475,6 @@ function renderSubstancesBlock(items, mode) {
                                                 <span class="text-2xs font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg inline-block max-w-[180px] truncate" title="${s.location || 'No asignada'}">
                                                     📍 ${s.location || 'No asignada'}
                                                 </span>
-                                                ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
-                                                    <button type="button" onclick="openShelfSelectorModalForSubstance(${s.id}, '${(s.location || '').replace(/'/g, "\\'")}')" class="text-3xs text-brand-600 hover:text-brand-800 font-bold hover:underline flex items-center gap-1">
-                                                        <i data-lucide="map-pin" class="w-3 h-3"></i> Cambiar Estante
-                                                    </button>
-                                                ` : ''}
                                             </div>
                                         </td>
                                         <td class="py-4 px-6">
@@ -503,6 +533,7 @@ function renderSubstancesBlock(items, mode) {
                         }
                     }
 
+                    const cardImage = getSubstanceMainImage(s);
                     let groupBadgeHtml = buildGroupBadgesHtml(s.substance_group);
                     let presBadge = '';
                     if (s.presentation_images) {
@@ -516,11 +547,11 @@ function renderSubstancesBlock(items, mode) {
 
                     return `
                         <div class="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 flex flex-col group relative">
-                            <div class="relative w-full aspect-square bg-slate-50 border-b flex items-center justify-center text-slate-300 overflow-hidden shrink-0 group/img ${s.image_path ? 'cursor-pointer' : ''}" ${s.image_path ? `onclick="openImageViewer('${s.image_path}', '${(s.name || '').replace(/'/g, "\\'")}')"` : ''}>
+                            <div class="relative w-full aspect-square bg-slate-50 border-b flex items-center justify-center text-slate-300 overflow-hidden shrink-0 group/img ${cardImage ? 'cursor-pointer' : ''}" ${cardImage ? `onclick="openImageViewer('${cardImage}', '${(s.name || '').replace(/'/g, "\\'")}')"` : ''}>
                                 ${expBadge}
                                 ${presBadge}
-                                ${s.image_path ? `
-                                    <img src="${s.image_path}" class="w-full h-full object-cover group-hover/img:scale-105 transition duration-500">
+                                ${cardImage ? `
+                                    <img src="${cardImage}" class="w-full h-full object-cover group-hover/img:scale-105 transition duration-500">
                                     <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/img:opacity-100 transition flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px]">
                                         <i data-lucide="maximize-2" class="w-4 h-4 text-brand-400"></i>
                                         <span>Ver Foto Completa</span>
@@ -551,6 +582,7 @@ function renderSubstancesBlock(items, mode) {
                                         <div class="flex justify-between items-center"><span class="font-medium text-slate-400">Ubicación:</span><span class="font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-3xs truncate max-w-[130px]" title="${s.location || 'No asignada'}">📍 ${s.location || 'No asignada'}</span></div>
                                         <div class="flex justify-between"><span class="font-medium text-slate-400">Total Stock:</span><span class="font-bold text-slate-900">${s.quantity} ${s.unit}</span></div>
                                         ${(() => {
+                                            if (!f.areFiltersActive) return '';
                                             const missing = getMissingSubstanceFields(s);
                                             return missing.length > 0 ? `
                                                 <div class="pt-1.5 border-t border-slate-100">
@@ -569,9 +601,6 @@ function renderSubstancesBlock(items, mode) {
                                         <span>Ver Detalle</span>
                                     </a>
                                     ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
-                                        <button onclick="openShelfSelectorModalForSubstance(${s.id}, '${(s.location || '').replace(/'/g, "\\'")}')" class="p-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl transition" title="Cambiar Ubicación en Estante">
-                                            <i data-lucide="map-pin" class="w-4 h-4"></i>
-                                        </button>
                                         <button onclick="deleteItem('substances', ${s.id})" class="p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-xl transition" title="Eliminar">
                                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                                         </button>

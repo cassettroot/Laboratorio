@@ -89,7 +89,6 @@ export default function MaterialsScreen({ route, navigation }) {
             ) : null}
 
             <View style={styles.cardFooter}>
-              <Text style={styles.meta}>📍 {item.location || 'Sin ubicación'}</Text>
               {item.status ? (
                 <Text style={[
                   styles.status, 

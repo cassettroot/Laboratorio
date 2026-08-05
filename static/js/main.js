@@ -93,9 +93,7 @@ function router() {
         renderScanQrView(mainEl);
     }
     else if (state.activeRoute === '#/warehouse') {
-        setActiveTab('nav-warehouse');
-        titleEl.textContent = "Almacén y Estantería de Laboratorio";
-        renderWarehouseView(mainEl);
+        window.location.hash = '#/substances';
     }
     else if (state.activeRoute === '#/loans') {
         setActiveTab('nav-loans');

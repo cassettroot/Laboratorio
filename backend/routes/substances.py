@@ -413,36 +413,45 @@ def add_presentation_image(item_id):
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT presentation_images FROM substances WHERE id = ?', (item_id,))
-    row = cursor.fetchone()
-    if not row:
+    try:
+        cursor.execute('SELECT presentation_images, image_path FROM substances WHERE id = ?', (item_id,))
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return jsonify({"status": "error", "message": "Sustancia no encontrada"}), 404
+
+        current_imgs = []
+        if row['presentation_images']:
+            try:
+                current_imgs = json.loads(row['presentation_images'])
+            except Exception:
+                current_imgs = []
+
+        new_entry = {
+            "id": int(time.time() * 1000),
+            "image_path": image_path,
+            "label": label,
+            "created_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        current_imgs.append(new_entry)
+
+        # Si no tiene imagen principal, asignar la primera foto de presentación cargada como principal
+        if not row['image_path'] or not str(row['image_path']).strip():
+            cursor.execute('UPDATE substances SET image_path = ? WHERE id = ?', (image_path, item_id))
+
+        cursor.execute('UPDATE substances SET presentation_images = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+                       (json.dumps(current_imgs, ensure_ascii=False), item_id))
+        conn.commit()
+
+        cursor.execute('SELECT * FROM substances WHERE id = ?', (item_id,))
+        updated_row = cursor.fetchone()
         conn.close()
-        return jsonify({"status": "error", "message": "Sustancia no encontrada"}), 404
 
-    current_imgs = []
-    if row['presentation_images']:
-        try:
-            current_imgs = json.loads(row['presentation_images'])
-        except Exception:
-            current_imgs = []
-
-    new_entry = {
-        "id": int(time.time() * 1000),
-        "image_path": image_path,
-        "label": label,
-        "created_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    }
-    current_imgs.append(new_entry)
-
-    cursor.execute('UPDATE substances SET presentation_images = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-                   (json.dumps(current_imgs, ensure_ascii=False), item_id))
-    conn.commit()
-
-    cursor.execute('SELECT * FROM substances WHERE id = ?', (item_id,))
-    updated_row = cursor.fetchone()
-    conn.close()
-
-    return jsonify({"status": "success", "data": dict(updated_row), "message": "Imagen de presentación agregada correctamente"})
+        return jsonify({"status": "success", "data": dict(updated_row), "message": "Imagen de presentación agregada correctamente"})
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @substances_bp.route('/api/substances/<int:item_id>/presentation-images/<int:img_idx>', methods=['DELETE'])

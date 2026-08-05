@@ -31,6 +31,22 @@ async function renderItemDetail(container, typePath, itemId) {
             }
         }
 
+        let allWebImages = [];
+        let mainPhotoPath = item.image_path;
+        if (!mainPhotoPath && presentationImagesList.length > 0 && presentationImagesList[0].image_path) {
+            mainPhotoPath = presentationImagesList[0].image_path;
+        }
+
+        if (mainPhotoPath) {
+            allWebImages.push({ src: mainPhotoPath, label: 'Fotografía Principal' });
+        }
+
+        presentationImagesList.forEach((pImg, pIdx) => {
+            if (pImg.image_path && pImg.image_path !== mainPhotoPath) {
+                allWebImages.push({ src: pImg.image_path, label: pImg.label || `Presentación ${pIdx + 1}` });
+            }
+        });
+
         const simRes = await fetch(`/api/${apiPath}?similar_to=${item.id}`).then(r => r.json());
         const similars = simRes.data || [];
 
@@ -99,12 +115,6 @@ async function renderItemDetail(container, typePath, itemId) {
                                 <span class="text-slate-400 block text-xs uppercase font-bold tracking-wider mb-1">Ubicación Física</span>
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <span class="font-bold text-slate-800 text-sm bg-slate-100 px-3 py-1 rounded-xl border border-slate-200">${item.location || 'Sin asignar'}</span>
-                                    ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
-                                        <button type="button" onclick="openShelfSelectorModalForSubstance(${item.id}, '${item.location || ''}')" class="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-2xs font-extrabold flex items-center gap-1.5 transition shadow-sm no-print">
-                                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-600"></i>
-                                            <span>📍 Asignar en Estante</span>
-                                        </button>
-                                    ` : ''}
                                 </div>
                             </div>
                             <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Responsable Custodia</span><span>${item.responsible || '-'}</span></div>
@@ -158,13 +168,16 @@ async function renderItemDetail(container, typePath, itemId) {
                         ` : ''}
                     </div>
 
-                    <div class="w-full md:w-56 shrink-0 flex flex-col gap-5 items-center bg-slate-50/50 p-5 rounded-3xl border border-slate-100">
-                        <div class="w-full aspect-square rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm flex items-center justify-center text-slate-300 relative group/dethead ${item.image_path ? 'cursor-pointer' : ''}" ${item.image_path ? `onclick="openImageViewer('${item.image_path}', '${(item.name || '').replace(/'/g, "\\'")}')" title="Haz clic para ver la foto completa"` : ''}>
-                            ${item.image_path ? `
-                                <img src="${item.image_path}" class="w-full h-full object-cover group-hover/dethead:scale-105 transition duration-300">
+                    <div class="w-full md:w-64 shrink-0 flex flex-col gap-5 items-center bg-slate-50/50 p-5 rounded-3xl border border-slate-100">
+                        <div class="w-full aspect-square rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm flex items-center justify-center text-slate-300 relative group/dethead cursor-pointer" onclick="openImageViewer(document.getElementById('web-main-img')?.src || '${mainPhotoPath || ''}', '${(item.name || '').replace(/'/g, "\\'")}')" title="Haz clic para ver la foto completa">
+                            ${allWebImages.length > 0 ? `
+                                <img id="web-main-img" src="${allWebImages[0].src}" class="w-full h-full object-cover group-hover/dethead:scale-105 transition duration-300">
                                 <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/dethead:opacity-100 transition flex items-center justify-center text-white text-3xs font-bold gap-1 backdrop-blur-[1px]">
                                     <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-brand-400"></i>
                                     <span>Ampliar Foto</span>
+                                </div>
+                                <div id="web-img-label-badge" class="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-md text-white text-3xs rounded-lg px-2 py-1 border border-white/20 font-bold">
+                                    📷 ${allWebImages[0].label}
                                 </div>
                             ` : `
                                 <div class="flex flex-col items-center gap-2">
@@ -172,16 +185,17 @@ async function renderItemDetail(container, typePath, itemId) {
                                     <span class="text-3xs text-slate-400">Sin foto cargada</span>
                                 </div>
                             `}
-
-                            ${typePath === 'substances' ? `
-                            <div class="absolute bottom-2 left-2 right-2 bg-slate-900/60 backdrop-blur-md text-white text-3xs rounded-xl p-2.5 flex justify-center items-center shadow border border-white/10 z-10">
-                                <span class="font-bold flex items-center gap-1">
-                                    <i data-lucide="scale" class="w-3.5 h-3.5 text-brand-400"></i>
-                                    <span>${item.container_content || item.unit || ''}</span>
-                                </span>
-                            </div>
-                            ` : ''}
                         </div>
+
+                        ${allWebImages.length > 1 ? `
+                            <div class="w-full flex items-center gap-2 overflow-x-auto pb-1">
+                                ${allWebImages.map((img, iIdx) => `
+                                    <button type="button" onclick="changeWebDetailPhoto('${img.src}', '${img.label.replace(/'/g, "\\'")}', this)" class="w-12 h-12 rounded-xl border-2 ${iIdx === 0 ? 'border-brand-500 ring-2 ring-brand-200' : 'border-slate-200 opacity-60 hover:opacity-100'} overflow-hidden shrink-0 transition web-thumb-btn">
+                                        <img src="${img.src}" class="w-full h-full object-cover">
+                                    </button>
+                                `).join('')}
+                            </div>
+                        ` : ''}
 
                         <div class="flex flex-col items-center border border-slate-200 p-3 rounded-2xl bg-white w-full text-center">
                             <span class="text-3xs font-semibold uppercase text-slate-400 tracking-wider mb-2">Código QR único</span>
@@ -397,3 +411,14 @@ async function deletePresentationImageDirectly(substanceId, imgIdx) {
 
 window.uploadPresentationImageForSubstance = uploadPresentationImageForSubstance;
 window.deletePresentationImageDirectly = deletePresentationImageDirectly;
+
+window.changeWebDetailPhoto = function(src, label, btn) {
+    const mainImg = document.getElementById('web-main-img');
+    const badge = document.getElementById('web-img-label-badge');
+    if (mainImg) mainImg.src = src;
+    if (badge) badge.innerHTML = `📷 ${label}`;
+    document.querySelectorAll('.web-thumb-btn').forEach(b => {
+        b.className = 'w-12 h-12 rounded-xl border-2 border-slate-200 opacity-60 hover:opacity-100 overflow-hidden shrink-0 transition web-thumb-btn';
+    });
+    if (btn) btn.className = 'w-12 h-12 rounded-xl border-2 border-brand-500 ring-2 ring-brand-200 overflow-hidden shrink-0 transition web-thumb-btn';
+};
