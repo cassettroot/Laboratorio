@@ -135,6 +135,11 @@ async function renderSubstancesList(container) {
                         </div>
 
                         ${(state.isLoggedIn && state.userRole === 'admin') ? `
+                        <button onclick="openQRBatchModal()" class="bg-indigo-600 hover:bg-indigo-700 font-extrabold px-3.5 py-2.5 rounded-xl text-sm text-white flex items-center gap-2 transition shadow-md shrink-0" title="Imprimir o Descargar Códigos QR de Sustancias (Solo Admin)">
+                            <i data-lucide="qr-code" class="w-4 h-4 text-amber-300"></i>
+                            <span class="hidden sm:inline">🖨️ Códigos QR</span>
+                            <span class="sm:hidden">QR</span>
+                        </button>
                         <button onclick="exportTableToExcel('substances')" class="bg-white hover:bg-slate-50 border border-slate-300 font-semibold px-3.5 py-2.5 rounded-xl text-sm flex items-center gap-2 transition text-slate-700 shadow-sm shrink-0">
                             <i data-lucide="download" class="w-4 h-4"></i>
                             <span class="hidden sm:inline">Exportar</span>
@@ -821,3 +826,353 @@ async function submitSubstanceLoanRequest(substanceId) {
         if (btn) btn.disabled = false;
     }
 }
+
+// --- MÓDULO DE IMPRESIÓN Y DESCARGA MASIVA DE CÓDIGOS QR (SOLO ADMINISTRADOR) ---
+let qrBatchModalState = {
+    filterType: 'all', // 'all' | 'liquid' | 'solid' | 'gas'
+    searchTerm: '',
+    selectedIds: new Set()
+};
+
+window.openQRBatchModal = function() {
+    if (!state.isLoggedIn || state.userRole !== 'admin') {
+        alert('Esta función de impresión masiva de códigos QR está reservada exclusivamente para Administradores.');
+        return;
+    }
+
+    const substances = state.substances || [];
+    qrBatchModalState.selectedIds = new Set(substances.map(s => s.id));
+    qrBatchModalState.searchTerm = '';
+    qrBatchModalState.filterType = 'all';
+
+    renderQRBatchModalDOM();
+};
+
+window.closeQRBatchModal = function() {
+    const modalEl = document.getElementById('qr-batch-modal');
+    if (modalEl) modalEl.remove();
+};
+
+window.setQRFilter = function(filterType) {
+    qrBatchModalState.filterType = filterType;
+    const substances = state.substances || [];
+    let filtered = substances;
+    if (filterType === 'liquid') {
+        filtered = substances.filter(s => s.physical_state === 'Líquido');
+    } else if (filterType === 'solid') {
+        filtered = substances.filter(s => s.physical_state === 'Sólido');
+    } else if (filterType === 'gas') {
+        filtered = substances.filter(s => s.physical_state === 'Gaseoso');
+    }
+    qrBatchModalState.selectedIds = new Set(filtered.map(s => s.id));
+    renderQRBatchModalDOM();
+};
+
+window.handleQRSearchInput = function(val) {
+    qrBatchModalState.searchTerm = val || '';
+    renderQRBatchModalDOM();
+};
+
+window.selectAllQRItems = function(selectVal) {
+    const substances = getFilteredQRSubstances();
+    if (selectVal) {
+        substances.forEach(s => qrBatchModalState.selectedIds.add(s.id));
+    } else {
+        substances.forEach(s => qrBatchModalState.selectedIds.delete(s.id));
+    }
+    renderQRBatchModalDOM();
+};
+
+window.toggleQRItemSelection = function(id) {
+    if (qrBatchModalState.selectedIds.has(id)) {
+        qrBatchModalState.selectedIds.delete(id);
+    } else {
+        qrBatchModalState.selectedIds.add(id);
+    }
+    renderQRBatchModalDOM();
+};
+
+function getFilteredQRSubstances() {
+    const substances = state.substances || [];
+    const term = (qrBatchModalState.searchTerm || '').toLowerCase().trim();
+    const type = qrBatchModalState.filterType;
+
+    return substances.filter(s => {
+        if (type === 'liquid' && s.physical_state !== 'Líquido') return false;
+        if (type === 'solid' && s.physical_state !== 'Sólido') return false;
+        if (type === 'gas' && s.physical_state !== 'Gaseoso') return false;
+
+        if (term) {
+            const matchName = (s.name || '').toLowerCase().includes(term);
+            const matchCas = (s.cas_number || '').toLowerCase().includes(term);
+            const matchFormula = (s.chemical_formula || '').toLowerCase().includes(term);
+            const matchId = `LAB-SUB-${s.id}`.toLowerCase().includes(term);
+            return matchName || matchCas || matchFormula || matchId;
+        }
+        return true;
+    });
+}
+
+function renderQRBatchModalDOM() {
+    let existingModal = document.getElementById('qr-batch-modal');
+    if (!existingModal) {
+        existingModal = document.createElement('div');
+        existingModal.id = 'qr-batch-modal';
+        document.body.appendChild(existingModal);
+    }
+
+    const allSubstances = state.substances || [];
+    const liquidsCount = allSubstances.filter(s => s.physical_state === 'Líquido').length;
+    const solidsCount = allSubstances.filter(s => s.physical_state === 'Sólido').length;
+
+    const items = getFilteredQRSubstances();
+    const selectedCount = qrBatchModalState.selectedIds.size;
+
+    existingModal.className = 'fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in no-print';
+    existingModal.innerHTML = `
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+            <!-- Header Modal -->
+            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-400 font-bold text-lg">
+                        🖨️
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-extrabold text-white">Impresión y Descarga Masiva de Códigos QR</h3>
+                        <p class="text-xs text-slate-300">Exclusivo Administrador: Filtra líquidos, todos los reactivos o selecciona uno específico</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeQRBatchModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition font-bold text-sm">✕</button>
+            </div>
+
+            <!-- Toolbar Filtros Rápidos -->
+            <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500 mr-1">Filtro rápido:</span>
+                    <button type="button" onclick="setQRFilter('liquid')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'liquid' ? 'bg-cyan-600 text-white border-cyan-700 shadow-sm' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'}">
+                        💧 Solo Líquidos (${liquidsCount})
+                    </button>
+                    <button type="button" onclick="setQRFilter('solid')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'solid' ? 'bg-amber-600 text-white border-amber-700 shadow-sm' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'}">
+                        📦 Solo Sólidos (${solidsCount})
+                    </button>
+                    <button type="button" onclick="setQRFilter('all')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'all' ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'}">
+                        🧪 Todos (${allSubstances.length})
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                    <input id="qr-modal-search" type="text" value="${qrBatchModalState.searchTerm}" oninput="handleQRSearchInput(this.value)" placeholder="Buscar por nombre, CAS o ID..." class="bg-white border border-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold outline-none focus:border-indigo-500 w-full md:w-52">
+                    <button type="button" onclick="selectAllQRItems(true)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition shrink-0">☑️ Marcar Visibles</button>
+                    <button type="button" onclick="selectAllQRItems(false)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition shrink-0">🎯 Desmarcar</button>
+                </div>
+            </div>
+
+            <!-- Lista de Sustancias Seleccionables -->
+            <div class="p-4 overflow-y-auto flex-1 space-y-2 max-h-[52vh] divide-y divide-slate-100">
+                ${items.length === 0 ? `
+                    <div class="py-12 text-center text-slate-400 font-semibold">No se encontraron reactivos con el filtro o búsqueda actual.</div>
+                ` : items.map(s => {
+                    const isChecked = qrBatchModalState.selectedIds.has(s.id);
+                    const stateColor = s.physical_state === 'Líquido' ? 'bg-cyan-100 text-cyan-800' : (s.physical_state === 'Sólido' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800');
+                    return `
+                        <div class="pt-2.5 pb-2 flex items-center justify-between gap-4 hover:bg-slate-50 p-2 rounded-2xl transition">
+                            <label class="flex items-center gap-3.5 cursor-pointer flex-1 min-w-0">
+                                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleQRItemSelection(${s.id})" class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 shrink-0">
+                                ${s.qr_path ? `
+                                    <img src="${s.qr_path}" class="w-12 h-12 rounded-lg border border-slate-200 bg-white object-contain p-0.5 shrink-0">
+                                ` : `
+                                    <div class="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 text-xs font-bold shrink-0">QR</div>
+                                `}
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-extrabold text-slate-900 text-sm truncate">${s.name}</span>
+                                        <span class="text-3xs font-mono px-2 py-0.5 rounded ${stateColor} font-bold">${s.physical_state || 'Genérico'}</span>
+                                        ${s.substance_group ? `<span class="text-3xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">🏷️ ${s.substance_group}</span>` : ''}
+                                    </div>
+                                    <div class="text-xs text-slate-500 flex items-center gap-3 mt-0.5 flex-wrap">
+                                        <span>Fórmula: <strong class="text-slate-800">${s.chemical_formula || '-'}</strong></span>
+                                        <span>CAS: <strong class="text-slate-800">${s.cas_number || '-'}</strong></span>
+                                        <span>Stock: <strong class="text-indigo-600">${s.container_content || `${s.quantity} ${s.unit}`}</strong></span>
+                                        <span class="text-3xs font-mono text-slate-400">LAB-SUB-${s.id}</span>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <div class="flex items-center gap-2 shrink-0">
+                                ${s.qr_path ? `
+                                    <a href="${s.qr_path}" download="qr_${s.name.replace(/ /g, '_')}_LAB-SUB-${s.id}.png" class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 hover:border-indigo-300 font-bold rounded-xl text-xs transition flex items-center gap-1.5" title="Descargar código QR individual de este elemento">
+                                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                        <span>QR Solo 1</span>
+                                    </a>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+
+            <!-- Footer con Acciones de Impresión y Descargar -->
+            <div class="p-4 bg-slate-100 border-t border-slate-200 flex flex-col sm:flex-row gap-3 items-center justify-between shrink-0">
+                <div class="text-xs font-bold text-slate-600">
+                    Incluidos en este ÚNICO PDF: <span class="text-indigo-600 font-extrabold text-sm">${selectedCount}</span> de ${allSubstances.length} reactivo(s)
+                </div>
+
+                <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                    <button type="button" onclick="downloadSelectedQRPDF()" class="px-4.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs shadow-md transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
+                        <i data-lucide="file-text" class="w-4 h-4 text-emerald-200"></i>
+                        <span>📄 Descargar TODO en 1 Solo PDF (${selectedCount})</span>
+                    </button>
+                    <button type="button" onclick="printSelectedQRLabels()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-indigo-600/20 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
+                        <i data-lucide="printer" class="w-4 h-4 text-amber-300"></i>
+                        <span>🖨️ Imprimir Planilla en 1 Documento (${selectedCount})</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    if (window.lucide) window.lucide.createIcons();
+}
+
+window.downloadSelectedQRPDF = async function() {
+    const allSubstances = state.substances || [];
+    const selectedSubstances = allSubstances.filter(s => qrBatchModalState.selectedIds.has(s.id));
+
+    if (selectedSubstances.length === 0) {
+        alert('No has seleccionado ninguna sustancia para incluir en el documento PDF.');
+        return;
+    }
+
+    const fileSuffix = qrBatchModalState.filterType === 'liquid' ? 'liquidos' : (qrBatchModalState.filterType === 'solid' ? 'solidos' : 'todos');
+    const fileName = `planilla_unica_etiquetas_qr_${fileSuffix}_${new Date().toISOString().slice(0,10)}.pdf`;
+
+    // Crear contenedor HTML unificado para el documento PDF único con fondo 100% blanco
+    const pdfContainer = document.createElement('div');
+    pdfContainer.style.padding = '12px';
+    pdfContainer.style.backgroundColor = '#ffffff';
+    pdfContainer.style.background = '#ffffff';
+    pdfContainer.style.color = '#0f172a';
+    pdfContainer.style.fontFamily = 'sans-serif';
+    pdfContainer.style.width = '100%';
+    pdfContainer.style.boxSizing = 'border-box';
+
+    const headerHtml = `
+        <div style="text-align: center; margin-bottom: 12px; border-bottom: 2px solid #0f172a; padding-bottom: 6px; background-color: #ffffff;">
+            <h2 style="font-size: 15pt; font-weight: bold; margin: 0; color: #0f172a;">LABORATORIO DE QUÍMICA - PLANILLA UNIFICADA DE ETIQUETAS QR</h2>
+            <p style="font-size: 8.5pt; margin: 3px 0 0 0; color: #475569;">Documento Único | Reactivos incluidos: ${selectedSubstances.length} | Filtro: ${qrBatchModalState.filterType.toUpperCase()} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
+        </div>
+    `;
+
+    const labelGridHtml = `
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; box-sizing: border-box; background-color: #ffffff;">
+            ${selectedSubstances.map(s => `
+                <div style="border: 1.5px dashed #475569; border-radius: 8px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; box-sizing: border-box;">
+                    <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
+                    
+                    <!-- Nombre obligatorio de la sustancia -->
+                    <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>
+                    
+                    <div style="font-size: 8pt; font-weight: 700; color: #0284c7; margin-bottom: 3px;">${s.chemical_formula || ''} ${s.cas_number ? `| CAS: ${s.cas_number}` : ''}</div>
+                    
+                    ${s.qr_path ? `
+                        <img src="${s.qr_path}" style="width: 100px; height: 100px; margin: 0 auto; display: block; object-fit: contain; background-color: #ffffff;">
+                    ` : `
+                        <div style="width: 100px; height: 100px; margin: 0 auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; color: #999; background-color: #ffffff;">Sin QR</div>
+                    `}
+                    
+                    <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
+                    <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">Stock: ${s.container_content || `${s.quantity} ${s.unit}`}</div>
+                    ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    pdfContainer.innerHTML = headerHtml + labelGridHtml;
+
+    // Generar UN SOLO documento PDF con todas las páginas necesarias
+    if (window.html2pdf) {
+        const opt = {
+            margin:       [8, 8, 8, 8],
+            filename:     fileName,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+            jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+        try {
+            await window.html2pdf().set(opt).from(pdfContainer).save();
+            return;
+        } catch(e) {
+            console.warn("Fallo con html2pdf, recurriendo a impresión PDF nativa:", e);
+        }
+    }
+
+    // Fallback nativo: Abre la ventana de impresión unificada para guardar como 1 archivo PDF
+    printSelectedQRLabels();
+};
+
+window.printSelectedQRLabels = function() {
+    const allSubstances = state.substances || [];
+    const selectedSubstances = allSubstances.filter(s => qrBatchModalState.selectedIds.has(s.id));
+
+    if (selectedSubstances.length === 0) {
+        alert('No has seleccionado ninguna sustancia para imprimir su código QR.');
+        return;
+    }
+
+    let printArea = document.getElementById('qr-print-area');
+    if (!printArea) {
+        printArea = document.createElement('div');
+        printArea.id = 'qr-print-area';
+        document.body.appendChild(printArea);
+    }
+
+    const printHeaderHtml = `
+        <div style="text-align: center; margin-bottom: 12px; border-bottom: 2px solid #0f172a; padding-bottom: 6px; background-color: #ffffff;" class="no-print">
+            <h2 style="font-size: 16pt; font-weight: bold; margin: 0; color: #0f172a;">LABORATORIO - PLANILLA DE ETIQUETAS QR PARA RECORTAR</h2>
+            <p style="font-size: 9pt; margin: 2px 0 0 0; color: #475569;">Total de etiquetas juntas en esta planilla: ${selectedSubstances.length} | Impreso el ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
+        </div>
+    `;
+
+    // Grilla compacta de 4 columnas para recortar y pegar fácilmente (quepan de 12 a 16 por hoja)
+    const labelGridHtml = `
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff;">
+            ${selectedSubstances.map(s => `
+                <div style="border: 1.5px dashed #475569; border-radius: 10px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; position: relative; box-sizing: border-box;">
+                    <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
+                    
+                    <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>
+                    
+                    <div style="font-size: 8pt; font-weight: 700; color: #0284c7; margin-bottom: 4px;">${s.chemical_formula || ''} ${s.cas_number ? `| CAS: ${s.cas_number}` : ''}</div>
+                    
+                    ${s.qr_path ? `
+                        <img src="${s.qr_path}" style="width: 95px; height: 95px; margin: 0 auto; display: block; object-fit: contain; background-color: #ffffff;">
+                    ` : `
+                        <div style="width: 95px; height: 95px; margin: 0 auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 9pt; color: #999; background-color: #ffffff;">Sin QR</div>
+                    `}
+                    
+                    <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
+                    <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">${s.container_content || `${s.quantity} ${s.unit}`}</div>
+                    ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    printArea.innerHTML = `
+        <div style="padding: 10px; background-color: #ffffff; background: #ffffff;">
+            ${printHeaderHtml}
+            ${labelGridHtml}
+        </div>
+    `;
+
+    document.body.classList.add('printing-qr-sheet');
+
+    setTimeout(() => {
+        window.print();
+        setTimeout(() => {
+            document.body.classList.remove('printing-qr-sheet');
+        }, 1000);
+    }, 250);
+};

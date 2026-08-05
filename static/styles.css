@@ -113,4 +113,21 @@ body {
         width: 150px !important;
         height: 150px !important;
     }
+
+    /* Impresión de Planilla de Etiquetas QR Juntas para Recortar (Fondo 100% Blanco) */
+    body.printing-qr-sheet, body.printing-qr-sheet * {
+        background-color: #ffffff !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+    }
+    body.printing-qr-sheet > *:not(#qr-print-area) {
+        display: none !important;
+    }
+    body.printing-qr-sheet #qr-print-area {
+        display: block !important;
+        width: 100% !important;
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
 }
