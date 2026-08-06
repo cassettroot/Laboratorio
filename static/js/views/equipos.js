@@ -1,14 +1,22 @@
 async function renderEquiposList(container) {
     container.innerHTML = `
         <div class="flex flex-col gap-6 h-full">
-            <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100 shrink-0">
-                <div class="flex-1 flex gap-4 items-center">
-                    <div class="relative w-96">
-                        <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
-                        <input type="text" id="search-input" placeholder="Buscar bien o equipo..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:bg-white font-medium text-slate-700">
+            <div class="flex flex-wrap justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100 shrink-0 gap-4">
+                <div class="flex-1 flex flex-wrap gap-3 items-center min-w-[280px]">
+                    <div class="relative flex-1 min-w-[240px]">
+                        <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                        <input type="text" id="search-input" placeholder="🔍 Buscar por ID, Nombre, Inventario, Serie..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm outline-none transition focus:border-brand-500 focus:bg-white font-medium text-slate-700">
                     </div>
+                    <select id="sort-equipos" class="bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl text-sm outline-none transition focus:border-brand-500 font-semibold text-slate-700">
+                        <option value="id_asc">🆔 Orden: ID (Menor a Mayor)</option>
+                        <option value="id_desc">🆔 Orden: ID (Mayor a Menor)</option>
+                        <option value="name_asc">🔤 Orden: Nombre (A - Z)</option>
+                        <option value="name_desc">🔤 Orden: Nombre (Z - A)</option>
+                        <option value="inventory_asc">🏷️ Orden: No. Inventario</option>
+                        <option value="serial_asc">🔢 Orden: No. Serie</option>
+                    </select>
                 </div>
-                ${state.userRole !== 'estudiante' ? `
+                ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'jefe' || state.userRole === 'responsable')) ? `
                     <button onclick="openEquipoModal()" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-brand-500/30">
                         <i data-lucide="plus" class="w-5 h-5"></i>
                         <span>Registrar Bien/Equipo</span>
@@ -21,17 +29,19 @@ async function renderEquiposList(container) {
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="border-b border-slate-100 text-xs text-slate-400 uppercase tracking-wider bg-slate-50/50">
-                                <th class="p-4 font-bold rounded-tl-3xl">ID / Nombre</th>
+                                <th class="p-4 font-bold rounded-tl-3xl text-center">ID Lab</th>
+                                <th class="p-4 font-bold text-center">ID Excel</th>
+                                <th class="p-4 font-bold">Nombre / Ubicación</th>
                                 <th class="p-4 font-bold">No. Inventario</th>
-                                <th class="p-4 font-bold">Marca / Modelo</th>
+                                <th class="p-4 font-bold">Marca / Categoría</th>
                                 <th class="p-4 font-bold">Serie</th>
-                                <th class="p-4 font-bold">Valor</th>
+                                <th class="p-4 font-bold">Observaciones</th>
                                 <th class="p-4 font-bold text-center rounded-tr-3xl">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="equipos-table-body" class="divide-y divide-slate-50">
                             <tr>
-                                <td colspan="6" class="p-8 text-center text-slate-500">
+                                <td colspan="8" class="p-8 text-center text-slate-500">
                                     <div class="flex justify-center mb-2"><div class="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div></div>
                                     Cargando inventario...
                                 </td>
@@ -50,24 +60,23 @@ async function renderEquiposList(container) {
     if (window.lucide) window.lucide.createIcons();
     await loadEquiposData();
     
-    document.getElementById('search-input')?.addEventListener('input', (e) => {
-        filterEquiposTable(e.target.value);
-    });
+    document.getElementById('search-input')?.addEventListener('input', applyEquiposFilters);
+    document.getElementById('sort-equipos')?.addEventListener('change', applyEquiposFilters);
 }
 
 async function loadEquiposData() {
     try {
-        const res = await fetch('/api/equipos');
+        const res = await fetch('/api/chemical-materials');
         const data = await res.json();
         if (data.status === 'success') {
             state.equipos = data.data;
-            renderEquiposTable(state.equipos);
+            applyEquiposFilters();
         } else {
-            document.getElementById('equipos-table-body').innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-bold">Error al cargar datos.</td></tr>`;
+            document.getElementById('equipos-table-body').innerHTML = `<tr><td colspan="8" class="p-8 text-center text-red-500 font-bold">Error al cargar datos.</td></tr>`;
         }
     } catch (error) {
         console.error("Error:", error);
-        document.getElementById('equipos-table-body').innerHTML = `<tr><td colspan="6" class="p-8 text-center text-red-500 font-bold">Error de conexión.</td></tr>`;
+        document.getElementById('equipos-table-body').innerHTML = `<tr><td colspan="8" class="p-8 text-center text-red-500 font-bold">Error de conexión.</td></tr>`;
     }
 }
 
@@ -78,15 +87,17 @@ function renderEquiposTable(items) {
     if (!tbody) return;
 
     if (items.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 font-medium">No se encontraron bienes o equipos registrados.</td></tr>`;
-        countEl.textContent = 'Mostrando 0 bienes';
+        tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-medium">No se encontraron bienes o equipos registrados.</td></tr>`;
+        if (countEl) countEl.textContent = 'Mostrando 0 bienes';
         return;
     }
 
-    countEl.textContent = `Mostrando ${items.length} bienes`;
+    if (countEl) countEl.textContent = `Mostrando ${items.length} bienes / equipos`;
 
     tbody.innerHTML = items.map(item => `
         <tr class="hover:bg-slate-50/80 transition group">
+            <td class="p-4 align-top text-center font-mono font-bold text-slate-500 text-xs">${item.id}</td>
+            <td class="p-4 align-top text-center font-mono font-extrabold text-amber-700 text-xs">${item.original_id ? '#' + item.original_id : '-'}</td>
             <td class="p-4 align-top">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
@@ -96,40 +107,38 @@ function renderEquiposTable(items) {
                         }
                     </div>
                     <div>
-                        <div class="font-bold text-slate-800 text-sm mb-0.5">${item.nombre}</div>
-                        <div class="text-xs text-slate-500 line-clamp-1 max-w-[200px]" title="${item.caracteristicas_bien || 'Sin características'}">${item.caracteristicas_bien || 'N/A'}</div>
+                        <div class="font-bold text-slate-800 text-sm mb-0.5">${item.name || item.nombre || 'Sin nombre'}</div>
+                        <div class="text-xs text-slate-500 line-clamp-1 max-w-[200px]" title="${item.location || item.caracteristicas_bien || ''}">${item.location || item.caracteristicas_bien || 'N/A'}</div>
                     </div>
                 </div>
             </td>
             <td class="p-4 align-top">
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 font-mono">
-                    ${item.no_inventario || 'N/A'}
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 font-mono">
+                    ${item.inventory_number || item.no_inventario || '-'}
                 </span>
             </td>
             <td class="p-4 align-top">
-                <div class="text-sm font-semibold text-slate-700">${item.marca || 'N/A'}</div>
-                <div class="text-xs text-slate-400">${item.modelo || 'N/A'}</div>
+                <div class="text-sm font-semibold text-slate-700">${item.category || item.marca || 'Sistemas'}</div>
+                <div class="text-xs text-slate-400">${item.status || item.modelo || 'Buenas Condiciones'}</div>
             </td>
             <td class="p-4 align-top">
-                <div class="text-sm text-slate-600 font-mono">${item.serie || 'N/A'}</div>
+                <div class="text-sm text-blue-800 font-mono font-semibold">${item.serial_number || item.serie || '-'}</div>
             </td>
             <td class="p-4 align-top">
-                <div class="text-sm font-bold text-emerald-600">${item.valor ? '$' + item.valor : 'N/A'}</div>
+                <div class="text-xs font-semibold text-slate-600">${item.observations || item.valor || '-'}</div>
             </td>
             <td class="p-4 align-top text-center">
                 <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition">
-                    <a href="#/equipos/${item.id}" class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition" title="Ver Detalles">
+                    <a href="#/chemical-materials/${item.id}" class="p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition" title="Ver Detalles">
                         <i data-lucide="eye" class="w-4 h-4"></i>
                     </a>
-                    ${state.userRole !== 'estudiante' ? `
+                    ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'jefe' || state.userRole === 'responsable')) ? `
                         <button onclick="openEquipoModal(${item.id})" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Editar">
                             <i data-lucide="edit-2" class="w-4 h-4"></i>
                         </button>
-                        ${state.userRole === 'admin' ? `
-                            <button onclick="confirmDelete(${item.id}, 'equipos')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        ` : ''}
+                        <button onclick="deleteItem('chemical_materials', ${item.id})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
                     ` : ''}
                 </div>
             </td>
@@ -139,112 +148,44 @@ function renderEquiposTable(items) {
     if (window.lucide) window.lucide.createIcons();
 }
 
-function filterEquiposTable(query) {
-    const term = query.toLowerCase().trim();
-    if (!term) {
-        renderEquiposTable(state.equipos || []);
-        return;
+function applyEquiposFilters() {
+    const searchEl = document.getElementById('search-input');
+    const sortEl = document.getElementById('sort-equipos');
+    
+    const query = searchEl ? searchEl.value.toLowerCase().trim() : '';
+    const sortBy = sortEl ? sortEl.value : 'id_asc';
+    
+    let items = [...(state.equipos || [])];
+    
+    if (query) {
+        items = items.filter(item => {
+            const name = (item.name || item.nombre || '').toLowerCase();
+            const inv = (item.inventory_number || item.no_inventario || '').toLowerCase();
+            const serial = (item.serial_number || item.serie || '').toLowerCase();
+            const sep = (item.no_sep || '').toLowerCase();
+            const idStr = String(item.id);
+            const obs = (item.observations || item.caracteristicas_bien || '').toLowerCase();
+            return name.includes(query) || inv.includes(query) || serial.includes(query) || sep.includes(query) || idStr.includes(query) || obs.includes(query);
+        });
     }
-    const filtered = (state.equipos || []).filter(item => 
-        item.nombre?.toLowerCase().includes(term) ||
-        item.no_inventario?.toLowerCase().includes(term) ||
-        item.marca?.toLowerCase().includes(term) ||
-        item.modelo?.toLowerCase().includes(term) ||
-        item.serie?.toLowerCase().includes(term) ||
-        item.caracteristicas_bien?.toLowerCase().includes(term)
-    );
-    renderEquiposTable(filtered);
+
+    items.sort((a, b) => {
+        if (sortBy === 'id_asc') return a.id - b.id;
+        if (sortBy === 'id_desc') return b.id - a.id;
+        if (sortBy === 'name_asc') return (a.name || a.nombre || '').localeCompare(b.name || b.nombre || '', 'es');
+        if (sortBy === 'name_desc') return (b.name || b.nombre || '').localeCompare(a.name || a.nombre || '', 'es');
+        if (sortBy === 'inventory_asc') return (a.inventory_number || a.no_inventario || '').localeCompare(b.inventory_number || b.no_inventario || '', 'es');
+        if (sortBy === 'serial_asc') return (a.serial_number || a.serie || '').localeCompare(b.serial_number || b.serie || '', 'es');
+        return a.id - b.id;
+    });
+
+    renderEquiposTable(items);
 }
 
 function openEquipoModal(id = null) {
-    const isEdit = id !== null;
-    let item = null;
-    if (isEdit) {
-        item = (state.equipos || []).find(e => e.id === id);
+    if (id !== null) {
+        openEditModal('chemical_materials', id);
+    } else {
+        openAddModal('chemical_materials');
     }
-    
-    const formHtml = `
-        <form id="equipo-form" class="space-y-6">
-            <input type="hidden" id="equipo-id" value="${item ? item.id : ''}">
-            
-            <div class="grid grid-cols-2 gap-6">
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nombre del Bien *</label>
-                    <input type="text" id="eq-nombre" required value="${item ? item.nombre : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:bg-white font-medium text-slate-800">
-                </div>
-                
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Características</label>
-                    <textarea id="eq-caracteristicas" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:bg-white font-medium text-slate-800">${item ? (item.caracteristicas_bien || '') : ''}</textarea>
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">No. Inventario</label>
-                    <input type="text" id="eq-no-inventario" value="${item ? (item.no_inventario || '') : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:bg-white font-medium text-slate-800">
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Valor ($)</label>
-                    <input type="number" step="0.01" id="eq-valor" value="${item ? (item.valor || '') : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:bg-white font-medium text-slate-800">
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Marca</label>
-                    <input type="text" id="eq-marca" value="${item ? (item.marca || '') : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:bg-white font-medium text-slate-800">
-                </div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Modelo</label>
-                    <input type="text" id="eq-modelo" value="${item ? (item.modelo || '') : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:bg-white font-medium text-slate-800">
-                </div>
-                
-                <div class="col-span-2">
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Número de Serie</label>
-                    <input type="text" id="eq-serie" value="${item ? (item.serie || '') : ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:bg-white font-medium text-slate-800">
-                </div>
-            </div>
-        </form>
-    `;
-    
-    openModal(
-        isEdit ? 'Editar Bien/Equipo' : 'Registrar Bien/Equipo',
-        formHtml,
-        async () => {
-            const form = document.getElementById('equipo-form');
-            if (!form.reportValidity()) return false;
-            
-            const payload = {
-                nombre: document.getElementById('eq-nombre').value,
-                caracteristicas_bien: document.getElementById('eq-caracteristicas').value,
-                no_inventario: document.getElementById('eq-no-inventario').value,
-                valor: document.getElementById('eq-valor').value,
-                marca: document.getElementById('eq-marca').value,
-                modelo: document.getElementById('eq-modelo').value,
-                serie: document.getElementById('eq-serie').value,
-            };
-            
-            try {
-                const url = isEdit ? `/api/equipos/${id}` : '/api/equipos';
-                const method = isEdit ? 'PUT' : 'POST';
-                const res = await fetch(url, {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const data = await res.json();
-                if (data.status === 'success') {
-                    closeModal();
-                    await loadEquiposData();
-                    return true;
-                } else {
-                    alert('Error: ' + data.message);
-                    return false;
-                }
-            } catch (err) {
-                alert('Error de conexión');
-                return false;
-            }
-        }
-    );
 }

@@ -8,6 +8,7 @@ const state = {
     isLoggedIn: false,
     userRole: null,
     userActive: 0,
+    assignedLabs: 'all',
     substancesViewMode: localStorage.getItem('itma2_substances_view_mode') || 'list',
     webcamStream: null,
     html5QrScanner: null

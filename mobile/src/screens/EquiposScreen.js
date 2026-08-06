@@ -1,16 +1,24 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState, useCallback, useContext } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+  TextInput
+} from 'react-native';
 import { apiService } from '../api/services';
 import { AuthContext } from '../context/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
-import { useTheme } from '../context/ThemeContext';
+import EquipoRegisterModal from '../components/modals/EquipoRegisterModal';
 
 export default function EquiposScreen({ navigation }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
   const { role } = useContext(AuthContext);
-  const { theme } = useTheme();
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -41,7 +49,7 @@ export default function EquiposScreen({ navigation }) {
   const renderItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.card}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
       <View style={styles.cardHeader}>
         <Text style={styles.itemName} numberOfLines={1}>{item.nombre}</Text>
@@ -66,28 +74,43 @@ export default function EquiposScreen({ navigation }) {
           <Text style={styles.detailValue}>{item.modelo || 'N/A'}</Text>
         </View>
         <View style={styles.detailCol}>
-          <Text style={styles.detailLabel}>Serie</Text>
-          <Text style={styles.detailValue}>{item.serie || 'N/A'}</Text>
+          <Text style={styles.detailLabel}>Estado</Text>
+          <Text style={[styles.detailValue, { color: item.estado_bien === 'Bueno' ? '#34d399' : '#f59e0b' }]}>
+            {item.estado_bien || 'Bueno'}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.searchContainer}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput 
-          style={styles.searchInput}
-          placeholder="Buscar bien o equipo..."
-          placeholderTextColor="#94a3b8"
-          value={search}
-          onChangeText={setSearch}
-        />
+    <View style={styles.container}>
+      {/* Top Controls */}
+      <View style={styles.topBar}>
+        <View style={styles.searchContainer}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput 
+            style={styles.searchInput}
+            placeholder="Buscar bien o equipo..."
+            placeholderTextColor="#94a3b8"
+            value={search}
+            onChangeText={setSearch}
+          />
+        </View>
+
+        {role !== 'estudiante' ? (
+          <TouchableOpacity 
+            style={styles.addBtn}
+            activeOpacity={0.8}
+            onPress={() => setShowRegisterModal(true)}
+          >
+            <Text style={styles.addBtnText}>+ Registrar</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color={theme.main} style={{marginTop: 30}} />
+        <ActivityIndicator size="large" color="#38bdf8" style={{ marginTop: 40 }} />
       ) : (
         <FlatList 
           data={filteredData}
@@ -99,6 +122,13 @@ export default function EquiposScreen({ navigation }) {
           }
         />
       )}
+
+      {/* Modal de Registro Independiente para Bienes / Equipos */}
+      <EquipoRegisterModal
+        visible={showRegisterModal}
+        onClose={() => setShowRegisterModal(false)}
+        onSuccess={loadData}
+      />
     </View>
   );
 }
@@ -106,14 +136,24 @@ export default function EquiposScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0f172a',
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
   },
   searchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1e293b',
-    margin: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   searchIcon: {
     fontSize: 16,
@@ -121,9 +161,28 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 48,
+    height: 44,
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addBtn: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  addBtnText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 13,
   },
   listContainer: {
     paddingHorizontal: 16,
@@ -131,11 +190,13 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#1e293b',
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#38bdf8', // Can be dynamic if we want
+    borderLeftColor: '#38bdf8',
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -145,26 +206,29 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#f8fafc',
     flex: 1,
     marginRight: 8,
   },
   badge: {
-    backgroundColor: '#334155',
-    paddingHorizontal: 8,
+    backgroundColor: '#0f172a',
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   badgeText: {
-    color: '#cbd5e1',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: '#38bdf8',
+    fontSize: 11,
+    fontWeight: '800',
   },
   itemDesc: {
     color: '#94a3b8',
     fontSize: 13,
     marginBottom: 12,
+    lineHeight: 18,
   },
   detailsRow: {
     flexDirection: 'row',
@@ -178,15 +242,16 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 10,
     textTransform: 'uppercase',
     marginBottom: 2,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   detailValue: {
     color: '#e2e8f0',
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '700',
   },
   emptyText: {
     color: '#94a3b8',

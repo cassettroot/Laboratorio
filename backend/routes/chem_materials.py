@@ -41,15 +41,19 @@ def get_materials():
 
     if search:
         query += ''' AND (
+            CAST(id AS TEXT) LIKE ? OR
             name LIKE ? OR 
             category LIKE ? OR 
             location LIKE ? OR 
             status LIKE ? OR 
             responsible LIKE ? OR 
-            observations LIKE ?
+            observations LIKE ? OR
+            inventory_number LIKE ? OR
+            serial_number LIKE ? OR
+            no_sep LIKE ?
         )'''
         like_search = f'%{search}%'
-        params.extend([like_search] * 6)
+        params.extend([like_search] * 10)
 
     if category:
         query += ' AND category LIKE ?'
@@ -96,8 +100,8 @@ def create_material():
     user_responsible = session.get('user', request.headers.get('X-User-Responsible', 'Sistema Local'))
 
     name = data.get('name', '').strip()
-    quantity_str = data.get('quantity', '0')
-    unit = data.get('unit', 'piezas').strip()
+    quantity_str = data.get('quantity', '1') or '1'
+    unit = (data.get('unit') or 'piezas').strip()
 
     if not name:
         return jsonify({"status": "error", "message": "El nombre del material es obligatorio"}), 400
@@ -107,7 +111,7 @@ def create_material():
     except ValueError:
         return jsonify({"status": "error", "message": "La cantidad debe ser un número válido"}), 400
 
-    fields = ['category', 'location', 'status', 'responsible', 'observations', 'image_path']
+    fields = ['category', 'location', 'status', 'responsible', 'observations', 'image_path', 'inventory_number', 'serial_number', 'no_sep', 'original_id']
     optional_vals = {f: data.get(f, '').strip() if data.get(f) is not None else None for f in fields}
 
     conn = get_db_connection()
@@ -116,12 +120,12 @@ def create_material():
     try:
         cursor.execute('''
             INSERT INTO chemical_materials (
-                name, category, quantity, unit, location, status, responsible, observations, image_path
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                name, category, quantity, unit, location, status, responsible, observations, image_path, inventory_number, serial_number, no_sep, original_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             name, optional_vals['category'], quantity, unit, optional_vals['location'],
             optional_vals['status'], optional_vals['responsible'], optional_vals['observations'],
-            optional_vals['image_path']
+            optional_vals['image_path'], optional_vals['inventory_number'], optional_vals['serial_number'], optional_vals['no_sep'], optional_vals['original_id']
         ))
         
         record_id = cursor.lastrowid
@@ -182,7 +186,7 @@ def update_material(item_id):
     except ValueError:
         return jsonify({"status": "error", "message": "La cantidad debe ser un número"}), 400
 
-    fields = ['category', 'location', 'status', 'responsible', 'observations', 'image_path']
+    fields = ['category', 'location', 'status', 'responsible', 'observations', 'image_path', 'inventory_number', 'serial_number', 'no_sep', 'original_id']
     optional_vals = {f: data.get(f, '').strip() if data.get(f) is not None else None for f in fields}
 
     try:
@@ -208,12 +212,15 @@ def update_material(item_id):
             UPDATE chemical_materials SET
                 name = ?, category = ?, quantity = ?, unit = ?, location = ?, status = ?,
                 responsible = ?, observations = ?, image_path = ?, qr_path = ?, qr_content = ?,
+                inventory_number = ?, serial_number = ?, no_sep = ?, original_id = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         ''', (
             name, optional_vals['category'], quantity, unit, optional_vals['location'],
             optional_vals['status'], optional_vals['responsible'], optional_vals['observations'],
-            optional_vals['image_path'], qr_path, qr_content, item_id
+            optional_vals['image_path'], qr_path, qr_content,
+            optional_vals['inventory_number'], optional_vals['serial_number'], optional_vals['no_sep'], optional_vals['original_id'],
+            item_id
         ))
 
         conn.commit()

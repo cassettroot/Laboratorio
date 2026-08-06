@@ -92,21 +92,9 @@
                 <i data-lucide="book-open-check" class="w-5 h-5"></i>
                 <span>Centro de Consulta</span>
             </a>
-            <a href="#/backup" id="nav-backup" class="flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium hover:bg-slate-800 hover:text-white">
-                <i data-lucide="database" class="w-5 h-5"></i>
-                <span>Base de Datos</span>
-            </a>
-            <a href="#/users" id="nav-users" class="flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium hover:bg-slate-800 hover:text-white">
-                <i data-lucide="users" class="w-5 h-5"></i>
-                <span>Usuarios</span>
-            </a>
             <a href="#/notifications" id="nav-notifications" class="flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium hover:bg-slate-800 hover:text-white">
                 <i data-lucide="bell" class="w-5 h-5"></i>
                 <span>Notificaciones</span>
-            </a>
-            <a href="#/account" id="nav-account" class="flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium hover:bg-slate-800 hover:text-white">
-                <i data-lucide="user" class="w-5 h-5"></i>
-                <span>Mi Cuenta</span>
             </a>
         </nav>
 
@@ -123,16 +111,147 @@
             <div class="flex items-center gap-4">
                 <h2 id="page-title" class="text-xl font-bold text-slate-900">Panel de Control</h2>
                 <div class="h-6 w-px bg-slate-200"></div>
-                <select id="inventory-selector" onchange="changeInventory(this.value)" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2 outline-none cursor-pointer font-medium">
+                <div class="flex items-center gap-2">
+                    <span id="active-space-badge" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200">
+                        Laboratorio de Química
+                    </span>
+                    <button onclick="openSpaceSelectModal()" class="flex items-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition border border-slate-200">
+                        <i data-lucide="building" class="w-3.5 h-3.5"></i>
+                        <span>Cambiar Espacio</span>
+                    </button>
+                </div>
+                <select id="inventory-selector" onchange="changeInventory(this.value)" class="hidden">
                     <option value="inventario">Laboratorio de Química</option>
                     <option value="oficina">Inventario de Oficina</option>
                     <option value="sistemas">Laboratorio de Sistemas</option>
                 </select>
                 <script>
-                    document.getElementById('inventory-selector').value = localStorage.getItem('inventory_id') || 'inventario';
-                    function changeInventory(val) {
+                    function updateSpaceBadge() {
+                        const savedInv = localStorage.getItem('inventory_id') || 'inventario';
+                        const names = {
+                            'inventario': '🧪 Laboratorio de Química',
+                            'oficina': '💼 Inventario de Oficina',
+                            'sistemas': '💻 Laboratorio de Sistemas'
+                        };
+                        const badge = document.getElementById('active-space-badge');
+                        if (badge) badge.textContent = names[savedInv] || names['inventario'];
+                    }
+                    document.addEventListener('DOMContentLoaded', updateSpaceBadge);
+
+                    async function handleSpaceInlineLogin() {
+                        const userEl = document.getElementById('space-auth-username');
+                        const passEl = document.getElementById('space-auth-password');
+                        const feedbackEl = document.getElementById('space-login-feedback');
+                        const username = userEl ? userEl.value.trim() : '';
+                        const password = passEl ? passEl.value.trim() : '';
+
+                        if (!username || !password) {
+                            if (feedbackEl) {
+                                feedbackEl.className = 'text-2xs font-bold p-2.5 rounded-xl border bg-amber-50 text-amber-700 border-amber-200';
+                                feedbackEl.textContent = "Por favor ingresa usuario y contraseña.";
+                                feedbackEl.classList.remove('hidden');
+                            }
+                            return;
+                        }
+
+                        try {
+                            const res = await fetch('/api/auth/login', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ username, password })
+                            }).then(r => r.json());
+
+                            if (res.status === 'success') {
+                                if (typeof checkSessionStatus === 'function') {
+                                    await checkSessionStatus();
+                                }
+                                if (feedbackEl) {
+                                    feedbackEl.className = 'text-2xs font-bold p-2.5 rounded-xl border bg-emerald-50 text-emerald-700 border-emerald-200';
+                                    feedbackEl.textContent = `✅ Sesión iniciada como ${res.user}. Selecciona un laboratorio para ingresar.`;
+                                    feedbackEl.classList.remove('hidden');
+                                }
+                                updateSpaceSelectAuthStatus();
+                            } else {
+                                if (feedbackEl) {
+                                    feedbackEl.className = 'text-2xs font-bold p-2.5 rounded-xl border bg-red-50 text-red-600 border-red-200';
+                                    feedbackEl.textContent = res.message || "Usuario o contraseña incorrectos.";
+                                    feedbackEl.classList.remove('hidden');
+                                }
+                            }
+                        } catch (err) {
+                            if (feedbackEl) {
+                                feedbackEl.className = 'text-2xs font-bold p-2.5 rounded-xl border bg-red-50 text-red-600 border-red-200';
+                                feedbackEl.textContent = "Error de conexión: " + err.message;
+                                feedbackEl.classList.remove('hidden');
+                            }
+                        }
+                    }
+
+                    function updateSpaceSelectAuthStatus() {
+                        const area = document.getElementById('space-modal-auth-area');
+                        const loginForm = document.getElementById('space-inline-login-form');
+                        if (!area) return;
+                        if (typeof state !== 'undefined' && state.isLoggedIn) {
+                            const roleLabel = state.userRole === 'admin' ? '👑 Admin' : (state.userRole === 'responsable' ? '🔑 Responsable' : 'Estudiante');
+                            area.innerHTML = `
+                                <span class="text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-1">
+                                    <i data-lucide="user" class="w-3.5 h-3.5 text-brand-400"></i>
+                                    <span>${state.activeUser} (${roleLabel})</span>
+                                </span>
+                                <button onclick="handleLogout()" class="bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold text-xs px-3 py-1.5 rounded-xl border border-red-500/30 transition flex items-center gap-1">
+                                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                                    <span>Salir</span>
+                                </button>
+                            `;
+                            if (loginForm) {
+                                loginForm.innerHTML = `
+                                    <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-center space-y-2">
+                                        <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                                            <i data-lucide="check" class="w-5 h-5"></i>
+                                        </div>
+                                        <h4 class="font-extrabold text-xs">Sesión Activa</h4>
+                                        <p class="text-2xs text-emerald-700 font-medium">Logueado como <strong>${state.activeUser}</strong> (${roleLabel})</p>
+                                        <button onclick="handleLogout()" class="w-full bg-red-100 hover:bg-red-200 text-red-700 font-bold text-2xs py-1.5 rounded-lg transition mt-2">
+                                            Cerrar Sesión
+                                        </button>
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            area.innerHTML = `
+                                <span class="text-2xs font-semibold text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
+                                    Modo Lectura (Invitado)
+                                </span>
+                            `;
+                        }
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+
+                    function openSpaceSelectModal() {
+                        const modal = document.getElementById('space-select-modal');
+                        const closeBtn = document.getElementById('close-space-modal-btn');
+                        updateSpaceSelectAuthStatus();
+                        if (modal) {
+                            if (localStorage.getItem('inventory_selected')) {
+                                if (closeBtn) closeBtn.classList.remove('hidden');
+                            }
+                            modal.classList.remove('hidden');
+                        }
+                    }
+
+                    function closeSpaceSelectModal() {
+                        const modal = document.getElementById('space-select-modal');
+                        if (modal) modal.classList.add('hidden');
+                    }
+
+                    function selectSpace(val) {
                         localStorage.setItem('inventory_id', val);
+                        localStorage.setItem('inventory_selected', 'true');
                         window.location.reload();
+                    }
+
+                    function changeInventory(val) {
+                        selectSpace(val);
                     }
                 </script>
             </div>
@@ -271,7 +390,7 @@
     </div>
 
     <!-- MODAL DE INICIAR SESIÓN / REGISTRO -->
-    <div id="auth-modal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[80] flex items-center justify-center hidden no-print">
+    <div id="auth-modal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[120] flex items-center justify-center hidden no-print">
         <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl flex flex-col gap-4 transform scale-95 opacity-0 transition duration-200" id="auth-modal-content">
             <!-- Pestañas del Modal -->
             <div class="flex border-b border-slate-100 pb-2">
@@ -297,6 +416,337 @@
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" onclick="closeAuthModal()" class="px-4 py-2 border rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">Cancelar</button>
                 <button type="button" id="btn-auth-submit" onclick="handleAuthSubmit()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl text-sm transition">Ingresar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE SELECCIÓN DE ESPACIO / LABORATORIO, PERFIL Y USUARIOS -->
+    <div id="space-select-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 transition-all duration-300 hidden">
+        <div class="bg-white rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col border border-slate-100 animate-fade-in max-h-[95vh]">
+            <!-- Modal Header with Tabs -->
+            <div class="px-8 py-5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex flex-col md:flex-row items-center justify-between gap-4 relative shrink-0">
+                <div>
+                    <h2 class="text-xl font-extrabold tracking-tight">Sistema de Gestión ITMA II</h2>
+                    <p class="text-slate-300 text-xs mt-0.5">Selección de laboratorios y administración de usuarios</p>
+                </div>
+
+                <!-- Tabs Container -->
+                <div class="flex items-center bg-slate-800/80 p-1.5 rounded-2xl border border-slate-700/80 gap-1" id="space-modal-tabs-header">
+                    <button id="space-modal-tab-btn-spaces" onclick="switchSpaceModalTab('spaces')" class="px-4 py-2 text-xs font-extrabold rounded-xl bg-brand-500 text-slate-900 shadow-md shadow-brand-500/20 flex items-center gap-1.5">
+                        <i data-lucide="building" class="w-3.5 h-3.5"></i>
+                        <span>🏢 Laboratorios</span>
+                    </button>
+                    <button id="space-modal-tab-btn-profile" onclick="switchSpaceModalTab('profile')" class="px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white transition hidden flex items-center gap-1.5">
+                        <i data-lucide="user" class="w-3.5 h-3.5"></i>
+                        <span>👤 Mi Perfil</span>
+                    </button>
+                    <button id="space-modal-tab-btn-users" onclick="switchSpaceModalTab('users')" class="px-4 py-2 text-xs font-bold rounded-xl text-slate-400 hover:text-white transition hidden flex items-center gap-1.5">
+                        <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                        <span>👑 Gestión de Usuarios</span>
+                    </button>
+                </div>
+
+                <button id="close-space-modal-btn" onclick="closeSpaceSelectModal()" class="absolute right-4 top-4 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 p-2 rounded-xl transition hidden">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content Area -->
+            <div class="overflow-y-auto flex-1 bg-slate-50">
+                
+                <!-- TAB 1: SELECCIÓN DE LABORATORIO Y LOGIN LATERAL -->
+                <div id="space-tab-content-spaces" class="p-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        
+                        <!-- Left Side: Login Form / Active User Info -->
+                        <div class="lg:col-span-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                            
+                            <!-- Option A: Login Form (Visible when logged out) -->
+                            <div id="space-inline-login-panel">
+                                <div class="flex items-center gap-2 pb-3 border-b border-slate-100 mb-3">
+                                    <div class="w-8 h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-bold">
+                                        <i data-lucide="lock" class="w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-sm font-extrabold text-slate-900">Acceso al Sistema</h3>
+                                        <p class="text-2xs text-slate-400">Inicia sesión con tu cuenta asignada</p>
+                                    </div>
+                                </div>
+
+                                <form id="space-inline-login-form" onsubmit="event.preventDefault(); handleSpaceInlineLogin();" class="space-y-3">
+                                    <div>
+                                        <label class="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nombre de Usuario</label>
+                                        <input type="text" id="space-auth-username" placeholder="Ej. administrador" autocomplete="username" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 font-semibold text-slate-700">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Contraseña</label>
+                                        <input type="password" id="space-auth-password" placeholder="••••••••" autocomplete="current-password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 font-semibold text-slate-700">
+                                    </div>
+
+                                    <div id="space-login-feedback" class="hidden text-2xs font-bold p-2.5 rounded-xl border"></div>
+
+                                    <button type="submit" id="btn-space-inline-login" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs py-2.5 rounded-xl transition shadow-md shadow-brand-600/20 flex items-center justify-center gap-1.5 mt-2">
+                                        <i data-lucide="log-in" class="w-4 h-4"></i>
+                                        <span>Iniciar Sesión</span>
+                                    </button>
+                                </form>
+
+                                <div class="mt-4 pt-3 border-t border-slate-100 text-2xs text-slate-400 text-center leading-tight">
+                                    🎓 <b>Modo Lectura / Estudiantes:</b> No necesitas contraseña. Selecciona cualquier laboratorio a la derecha para ingresar en modo consulta.
+                                </div>
+                            </div>
+
+                            <!-- Option B: Active User Info (Visible when logged in) -->
+                            <div id="space-active-user-panel" class="hidden space-y-4">
+                                <div class="flex items-center gap-3 pb-3 border-b border-slate-100">
+                                    <div class="w-10 h-10 rounded-2xl bg-brand-100 text-brand-600 flex items-center justify-center font-extrabold text-lg">
+                                        👤
+                                    </div>
+                                    <div>
+                                        <span class="text-2xs font-bold text-slate-400 uppercase tracking-wider">Sesión Activa</span>
+                                        <h3 class="text-base font-extrabold text-slate-900 leading-tight" id="space-active-username">Usuario</h3>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-slate-400">Rol:</span>
+                                        <span class="font-bold text-brand-700" id="space-active-role">Cargando...</span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-slate-400">Permisos:</span>
+                                        <span class="font-bold text-slate-800" id="space-active-labs">Todos</span>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2 pt-2">
+                                    <button onclick="switchSpaceModalTab('profile')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 border border-slate-200">
+                                        <i data-lucide="user" class="w-4 h-4"></i>
+                                        <span>👤 Configurar Mi Cuenta</span>
+                                    </button>
+                                    <button onclick="handleLogout()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 font-extrabold text-xs py-2 rounded-xl transition flex items-center justify-center gap-1.5 border border-red-100">
+                                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                                        <span>🚪 Cerrar Sesión</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Right Side: Cards de Laboratorios Permitidos -->
+                        <div class="lg:col-span-8 flex flex-col gap-4">
+                            <div class="bg-blue-50/50 border border-blue-100 rounded-2xl p-3 text-xs text-blue-800 flex items-center gap-2">
+                                <i data-lucide="info" class="w-4 h-4 text-blue-500 shrink-0"></i>
+                                <span>Los laboratorios mostrados dependen de los permisos asignados a tu usuario.</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="space-cards-container">
+                                <!-- Card 1: Química -->
+                                <div id="space-card-inventario" onclick="selectSpace('inventario')" class="group bg-white rounded-2xl p-5 border-2 border-slate-200 hover:border-teal-500 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between transform hover:-translate-y-1">
+                                    <div>
+                                        <div class="w-12 h-12 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center mb-3 group-hover:bg-teal-500 group-hover:text-white transition">
+                                            <i data-lucide="flask-conical" class="w-6 h-6"></i>
+                                        </div>
+                                        <h3 class="text-base font-extrabold text-slate-900 group-hover:text-teal-600 transition">Laboratorio de Química</h3>
+                                        <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                                            Reactivos, sustancias peligrosas, cristalería, didácticos y caducidades.
+                                        </p>
+                                    </div>
+                                    <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                        <span class="text-2xs font-bold text-teal-600 uppercase tracking-wider">Química</span>
+                                        <span class="bg-teal-50 text-teal-700 group-hover:bg-teal-500 group-hover:text-white text-xs px-2.5 py-1 rounded-xl font-bold transition">Ingresar &rarr;</span>
+                                    </div>
+                                </div>
+
+                                <!-- Card 2: Oficina -->
+                                <div id="space-card-oficina" onclick="selectSpace('oficina')" class="group bg-white rounded-2xl p-5 border-2 border-slate-200 hover:border-blue-500 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between transform hover:-translate-y-1">
+                                    <div>
+                                        <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-3 group-hover:bg-blue-500 group-hover:text-white transition">
+                                            <i data-lucide="briefcase" class="w-6 h-6"></i>
+                                        </div>
+                                        <h3 class="text-base font-extrabold text-slate-900 group-hover:text-blue-600 transition">Inventario de Oficina</h3>
+                                        <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                                            Control de bienes, equipos de oficina, asignaciones a personal e insumos.
+                                        </p>
+                                    </div>
+                                    <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                        <span class="text-2xs font-bold text-blue-600 uppercase tracking-wider">Oficina</span>
+                                        <span class="bg-blue-50 text-blue-700 group-hover:bg-blue-500 group-hover:text-white text-xs px-2.5 py-1 rounded-xl font-bold transition">Ingresar &rarr;</span>
+                                    </div>
+                                </div>
+
+                                <!-- Card 3: Sistemas -->
+                                <div id="space-card-sistemas" onclick="selectSpace('sistemas')" class="group bg-white rounded-2xl p-5 border-2 border-slate-200 hover:border-purple-500 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between transform hover:-translate-y-1">
+                                    <div>
+                                        <div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center mb-3 group-hover:bg-purple-500 group-hover:text-white transition">
+                                            <i data-lucide="cpu" class="w-6 h-6"></i>
+                                        </div>
+                                        <h3 class="text-base font-extrabold text-slate-900 group-hover:text-purple-600 transition">Laboratorio de Sistemas</h3>
+                                        <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                                            Equipos informáticos, servidores, mantenimiento preventivo y préstamos.
+                                        </p>
+                                    </div>
+                                    <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                        <span class="text-2xs font-bold text-purple-600 uppercase tracking-wider">Sistemas</span>
+                                        <span class="bg-purple-50 text-purple-700 group-hover:bg-purple-500 group-hover:text-white text-xs px-2.5 py-1 rounded-xl font-bold transition">Ingresar &rarr;</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- TAB 2: MI PERFIL Y CAMBIO DE CONTRASEÑA -->
+                <div id="space-tab-content-profile" class="p-6 hidden">
+                    <div class="max-w-2xl mx-auto space-y-6">
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center gap-4">
+                            <div class="w-16 h-16 rounded-2xl bg-brand-100 text-brand-600 flex items-center justify-center font-extrabold text-2xl">
+                                👤
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-extrabold text-slate-900" id="space-profile-name">Cargando...</h3>
+                                <p class="text-xs text-slate-500" id="space-profile-email">email@itma2.edu.mx</p>
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span class="text-2xs font-bold bg-brand-50 text-brand-700 border border-brand-200 px-2.5 py-0.5 rounded-lg" id="space-profile-role">Rol</span>
+                                    <span class="text-2xs font-bold bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-0.5 rounded-lg" id="space-profile-labs">Laboratorios Permitidos</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+                            <h4 class="text-sm font-extrabold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+                                <i data-lucide="key" class="w-4 h-4 text-brand-500"></i>
+                                <span>Cambiar Contraseña</span>
+                            </h4>
+                            <form onsubmit="event.preventDefault(); handleSpaceChangePassword();" class="space-y-3">
+                                <div>
+                                    <label class="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Contraseña Actual</label>
+                                    <input type="password" id="profile-old-password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 font-semibold text-slate-700">
+                                </div>
+                                <div>
+                                    <label class="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nueva Contraseña</label>
+                                    <input type="password" id="profile-new-password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 font-semibold text-slate-700">
+                                </div>
+                                <div id="profile-pw-feedback" class="hidden text-2xs font-bold p-2.5 rounded-xl border"></div>
+                                <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs px-5 py-2 rounded-xl transition">
+                                    Actualizar Contraseña
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: ADMINISTRACIÓN DE USUARIOS (Solo Admin) -->
+                <div id="space-tab-content-users" class="p-6 hidden">
+                    <div class="space-y-6">
+                        <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                            <div>
+                                <h3 class="text-sm font-extrabold text-slate-900">Usuarios Registrados en el Sistema</h3>
+                                <p class="text-2xs text-slate-400">Asigna laboratorios y gestiona permisos de acceso</p>
+                            </div>
+                            <button onclick="openSpaceUserModal()" class="bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-md shadow-brand-600/20">
+                                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                                <span>+ Crear Nuevo Usuario</span>
+                            </button>
+                        </div>
+
+                        <!-- Panel / Modal Integrado para Crear/Editar Usuario -->
+                        <div id="space-user-form-card" class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hidden space-y-4">
+                            <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2" id="space-user-form-title">
+                                Registrar Usuario
+                            </h4>
+                            <form onsubmit="event.preventDefault(); saveSpaceUser();" class="space-y-3">
+                                <input type="hidden" id="space-user-edit-id">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div>
+                                        <label class="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Nombre de Usuario *</label>
+                                        <input type="text" id="su-username" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 font-semibold text-slate-700">
+                                    </div>
+                                    <div>
+                                        <label class="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Correo Electrónico</label>
+                                        <input type="email" id="su-email" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 font-semibold text-slate-700">
+                                    </div>
+                                    <div>
+                                        <label class="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Contraseña</label>
+                                        <input type="password" id="su-password" placeholder="Solo si deseas cambiarla" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 font-semibold text-slate-700">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Rol</label>
+                                        <select id="su-role" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 font-semibold text-slate-700">
+                                            <option value="responsable">Responsable de Laboratorio</option>
+                                            <option value="jefe">Jefe de Área</option>
+                                            <option value="admin">Administrador General</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1">Estado</label>
+                                        <select id="su-active" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-500 font-semibold text-slate-700">
+                                            <option value="1">Activo</option>
+                                            <option value="0">Inactivo</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-2xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Laboratorio(s) Asignado(s)</label>
+                                    <div class="flex flex-wrap gap-4 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700">
+                                        <label id="su-lab-all-wrapper" class="flex items-center gap-1.5 cursor-pointer">
+                                            <input type="checkbox" id="su-lab-all" onchange="toggleSuLabAll(this.checked)" class="rounded text-brand-600 focus:ring-brand-500">
+                                            <span>🌐 Control Total (Todos los Laboratorios)</span>
+                                        </label>
+                                        <label id="su-lab-inventario-wrapper" class="flex items-center gap-1.5 cursor-pointer">
+                                            <input type="checkbox" id="su-lab-inventario" class="su-lab-single rounded text-brand-600 focus:ring-brand-500">
+                                            <span>🧪 Química</span>
+                                        </label>
+                                        <label id="su-lab-oficina-wrapper" class="flex items-center gap-1.5 cursor-pointer">
+                                            <input type="checkbox" id="su-lab-oficina" class="su-lab-single rounded text-brand-600 focus:ring-brand-500">
+                                            <span>💼 Oficina</span>
+                                        </label>
+                                        <label id="su-lab-sistemas-wrapper" class="flex items-center gap-1.5 cursor-pointer">
+                                            <input type="checkbox" id="su-lab-sistemas" class="su-lab-single rounded text-brand-600 focus:ring-brand-500">
+                                            <span>💻 Sistemas</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-end gap-2 pt-2">
+                                    <button type="button" onclick="closeSpaceUserModal()" class="px-4 py-2 border rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50">Cancelar</button>
+                                    <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs">Guardar Usuario</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Tabla de Usuarios -->
+                        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 text-2xs text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                                        <th class="p-3 font-bold">Usuario</th>
+                                        <th class="p-3 font-bold">Email</th>
+                                        <th class="p-3 font-bold">Rol</th>
+                                        <th class="p-3 font-bold">Laboratorios Asignados</th>
+                                        <th class="p-3 font-bold text-center">Estado</th>
+                                        <th class="p-3 font-bold text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="space-users-table-body" class="text-xs font-semibold text-slate-700 divide-y divide-slate-100">
+                                    <tr><td colspan="6" class="p-4 text-center text-slate-400">Cargando usuarios...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <div class="px-8 py-3 bg-white border-t border-slate-100 text-center text-xs text-slate-400 shrink-0">
+                El laboratorio seleccionado se mantendrá activo al iniciar. Puedes cambiar de laboratorio en cualquier momento desde el menú superior.
             </div>
         </div>
     </div>

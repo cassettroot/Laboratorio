@@ -611,6 +611,27 @@ export default function DetailScreen({ route, navigation }) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>📦 Inventario y Custodia</Text>
 
+        {item.inventory_number ? (
+          <View style={styles.row}>
+            <Text style={styles.label}>No. Inventario:</Text>
+            <Text style={[styles.value, { color: '#f59e0b', fontFamily: 'monospace' }]}>{item.inventory_number}</Text>
+          </View>
+        ) : null}
+
+        {item.serial_number ? (
+          <View style={styles.row}>
+            <Text style={styles.label}>No. Serie:</Text>
+            <Text style={[styles.value, { color: '#3b82f6', fontFamily: 'monospace' }]}>{item.serial_number}</Text>
+          </View>
+        ) : null}
+
+        {item.no_sep ? (
+          <View style={styles.row}>
+            <Text style={styles.label}>No. SEP:</Text>
+            <Text style={[styles.value, { color: '#10b981', fontFamily: 'monospace' }]}>{item.no_sep}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.row}>
           <Text style={styles.label}>Responsable Custodia:</Text>
           <Text style={styles.value}>{item.responsible || 'No asignado'}</Text>

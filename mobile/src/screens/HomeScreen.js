@@ -13,12 +13,32 @@ import { apiService } from '../api/services';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import SubstanceRegisterModal from '../components/modals/SubstanceRegisterModal';
+import ChemicalMaterialRegisterModal from '../components/modals/ChemicalMaterialRegisterModal';
+import DidacticMaterialRegisterModal from '../components/modals/DidacticMaterialRegisterModal';
+import EquipoRegisterModal from '../components/modals/EquipoRegisterModal';
+import RegistrationSelectorModal from '../components/modals/RegistrationSelectorModal';
+
 export default function HomeScreen({ navigation }) {
   const { user, role, logout } = useContext(AuthContext);
   const [stats, setStats] = useState({ sustancias: 0, chemMaterials: 0, didMaterials: 0, pendingRequests: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [inventoryId, setInventoryId] = useState('inventario');
+
+  // Modales Independientes de Registro
+  const [showSelectorModal, setShowSelectorModal] = useState(false);
+  const [showSubstanceModal, setShowSubstanceModal] = useState(false);
+  const [showChemMaterialModal, setShowChemMaterialModal] = useState(false);
+  const [showDidacticModal, setShowDidacticModal] = useState(false);
+  const [showEquipoModal, setShowEquipoModal] = useState(false);
+
+  const handleSelectRegistrationType = (type) => {
+    if (type === 'substances') setShowSubstanceModal(true);
+    else if (type === 'chemical_materials') setShowChemMaterialModal(true);
+    else if (type === 'didactic_materials') setShowDidacticModal(true);
+    else if (type === 'equipos') setShowEquipoModal(true);
+  };
 
   const themes = {
     'inventario': { main: '#38bdf8', bg: '#0f172a', card: '#1e293b', name: 'Lab. de Química' },
@@ -205,21 +225,67 @@ export default function HomeScreen({ navigation }) {
           )}
 
           {role !== 'estudiante' ? (
-            <TouchableOpacity 
-              style={[styles.card, { borderLeftColor: '#a855f7' }]}
-              activeOpacity={0.7}
-              onPress={() => navigation.navigate('Solicitudes')}
-            >
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardIcon}>📋</Text>
-                <Text style={styles.cardNum}>{stats.pendingRequests}</Text>
-              </View>
-              <Text style={styles.cardLabel}>Solicitudes Pendientes</Text>
-              <Text style={styles.cardSub}>Cambios por aprobar</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity 
+                style={[styles.card, { borderLeftColor: '#a855f7' }]}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('Solicitudes')}
+              >
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardIcon}>📋</Text>
+                  <Text style={styles.cardNum}>{stats.pendingRequests}</Text>
+                </View>
+                <Text style={styles.cardLabel}>Solicitudes Pendientes</Text>
+                <Text style={styles.cardSub}>Cambios por aprobar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.card, { borderLeftColor: '#0d9488', width: '100%', backgroundColor: '#134e4a' }]}
+                activeOpacity={0.8}
+                onPress={() => setShowSelectorModal(true)}
+              >
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardIcon}>➕</Text>
+                  <Text style={[styles.cardNum, { fontSize: 18, color: '#2dd4bf' }]}>Nuevo Registro</Text>
+                </View>
+                <Text style={[styles.cardLabel, { color: '#ffffff' }]}>Registrar Elemento o Equipo</Text>
+                <Text style={[styles.cardSub, { color: '#99f6e4' }]}>Formulario independiente según el tipo</Text>
+              </TouchableOpacity>
+            </>
           ) : null}
         </View>
       )}
+
+      {/* Selector e Independientes Modales */}
+      <RegistrationSelectorModal
+        visible={showSelectorModal}
+        onClose={() => setShowSelectorModal(false)}
+        onSelectType={handleSelectRegistrationType}
+      />
+
+      <SubstanceRegisterModal
+        visible={showSubstanceModal}
+        onClose={() => setShowSubstanceModal(false)}
+        onSuccess={fetchStats}
+      />
+
+      <ChemicalMaterialRegisterModal
+        visible={showChemMaterialModal}
+        onClose={() => setShowChemMaterialModal(false)}
+        onSuccess={fetchStats}
+      />
+
+      <DidacticMaterialRegisterModal
+        visible={showDidacticModal}
+        onClose={() => setShowDidacticModal(false)}
+        onSuccess={fetchStats}
+      />
+
+      <EquipoRegisterModal
+        visible={showEquipoModal}
+        onClose={() => setShowEquipoModal(false)}
+        onSuccess={fetchStats}
+      />
     </ScrollView>
   );
 }

@@ -25,28 +25,33 @@ async function buildWorkbook(sheetName, title, headers, rows) {
     const lastCol = colLetter(headers.length);
     ws.mergeCells(`A1:${lastCol}1`);
     const titleCell = ws.getCell('A1');
-    titleCell.value = `ITMA II — Laboratorio de Ciencias  |  ${title}`;
-    titleCell.font = { bold: true, size: 14, color: { argb: EXPORT_COLORS.primaryDark }, name: 'Calibri' };
+    titleCell.value = `TECNM - ITMA II  |  ${title}`;
+    titleCell.font = { bold: true, size: 14, color: { argb: 'FF1E293B' }, name: 'Calibri' };
     titleCell.alignment = { vertical: 'middle', horizontal: 'left' };
-    ws.getRow(1).height = 32;
+    ws.getRow(1).height = 34;
 
     // Subtitle row (date)
     const now = new Date();
     const dateStr = now.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     ws.mergeCells(`A2:${lastCol}2`);
     const dateCell = ws.getCell('A2');
-    dateCell.value = `Generado el ${dateStr}  —  Total de registros: ${rows.length}`;
-    dateCell.font = { italic: true, size: 9, color: { argb: 'FF94A3B8' }, name: 'Calibri' };
+    dateCell.value = `Reporte generado el ${dateStr}  |  Total de registros: ${rows.length}`;
+    dateCell.font = { italic: true, size: 10, color: { argb: 'FF64748B' }, name: 'Calibri' };
     dateCell.alignment = { vertical: 'middle', horizontal: 'left' };
-    ws.getRow(2).height = 20;
+    ws.getRow(2).height = 22;
 
-    // Column widths
-    headers.forEach((h, i) => {
-        const col = ws.getColumn(i + 1);
-        col.width = i === 0 ? 8 : (i === 1 ? 32 : (h === 'Observaciones' || h === 'Valor Anterior' || h === 'Valor Nuevo' ? 22 : 16));
+    // Calculate auto column widths with padding
+    headers.forEach((h, colIdx) => {
+        let maxLen = h.length;
+        rows.forEach(r => {
+            const val = (r[colIdx] !== null && r[colIdx] !== undefined) ? String(r[colIdx]) : '';
+            if (val.length > maxLen) maxLen = val.length;
+        });
+        const col = ws.getColumn(colIdx + 1);
+        col.width = Math.min(Math.max(maxLen + 5, 14), 55);
     });
 
-    // Real Excel table with data and auto-filters
+    // Table with data
     const tableStartRow = 3;
     const tableEndRow = tableStartRow + rows.length - 1;
     const tableRef = `A${tableStartRow}:${lastCol}${tableEndRow}`;
@@ -56,7 +61,7 @@ async function buildWorkbook(sheetName, title, headers, rows) {
         headerRow: true,
         totalsRow: false,
         style: {
-            theme: 'TableStyleMedium6',
+            theme: 'TableStyleMedium2',
             showRowStripes: true,
             showFirstColumn: false
         },
@@ -64,36 +69,35 @@ async function buildWorkbook(sheetName, title, headers, rows) {
         rows: rows
     });
 
-    // Override table header style with institutional colors
+    // Header styling
     const headerRow = ws.getRow(tableStartRow);
     headerRow.eachCell((cell) => {
-        cell.font = { bold: true, color: { argb: EXPORT_COLORS.headerText }, size: 11, name: 'Calibri' };
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: EXPORT_COLORS.primary } };
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11, name: 'Calibri' };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
         cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
     });
-    headerRow.height = 28;
+    headerRow.height = 30;
 
-    // Style data rows
+    // Data rows styling
     for (let i = 0; i < rows.length; i++) {
         const row = ws.getRow(tableStartRow + 1 + i);
-        const bg = i % 2 === 0 ? EXPORT_COLORS.bandWhite : EXPORT_COLORS.bandLight;
+        const bg = i % 2 === 0 ? 'FFFFFFFF' : 'FFF8FAFC';
         row.eachCell((cell, j) => {
-            cell.font = { size: 10, name: 'Calibri', color: { argb: EXPORT_COLORS.text } };
+            cell.font = { size: 10, name: 'Calibri', color: { argb: 'FF334155' } };
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
-            cell.alignment = j === 1 ? { vertical: 'middle', horizontal: 'left', wrapText: true } : { vertical: 'middle', horizontal: 'center', wrapText: true };
+            const isLeft = headers[j - 1] === 'Material' || headers[j - 1] === 'Sustancia' || headers[j - 1] === 'Descripción / Material' || headers[j - 1] === 'Observaciones';
+            cell.alignment = { vertical: 'middle', horizontal: isLeft ? 'left' : 'center', wrapText: true };
             cell.border = {
-                top: { style: 'thin', color: { argb: EXPORT_COLORS.border } },
-                left: { style: 'thin', color: { argb: EXPORT_COLORS.border } },
-                bottom: { style: 'thin', color: { argb: EXPORT_COLORS.border } },
-                right: { style: 'thin', color: { argb: EXPORT_COLORS.border } }
+                top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
             };
         });
-        row.height = 22;
+        row.height = 24;
     }
 
-    // Freeze header rows
     ws.views = [{ state: 'frozen', ySplit: 3 }];
-
     return workbook;
 }
 
@@ -119,24 +123,33 @@ function exportTableToExcel(type) {
     let title = '';
     let headers = [];
 
+    const spaceId = localStorage.getItem('inventory_id') || 'inventario';
+    const spaceNames = {
+        'inventario': 'Laboratorio_de_Quimica',
+        'oficina': 'Inventario_Oficina',
+        'sistemas': 'Laboratorio_de_Sistemas'
+    };
+    const deptName = spaceNames[spaceId] || 'Laboratorio';
+    const today = new Date().toISOString().split('T')[0];
+
     if (type === 'substances') {
-        items = state.substances;
+        items = state.substances || [];
         sheetName = 'Sustancias';
-        title = 'Inventario de Sustancias Químicas';
-        headers = ['ID', 'Sustancia', 'Grupo', 'Fórmula', 'CAS', 'Estado', 'Cantidad', 'Unidad', 'Ubicación', 'Caducidad', 'Responsable', 'Observaciones'];
-    } else if (type === 'chemical_materials') {
-        items = state.chemMaterials;
-        sheetName = 'Material Químico';
-        title = 'Inventario de Materiales Químicos';
-        headers = ['ID', 'Material', 'Categoría', 'Estado', 'Cantidad', 'Unidad', 'Ubicación', 'Responsable', 'Observaciones'];
+        title = `Inventario de Sustancias Químicas - ${deptName.replace(/_/g, ' ')}`;
+        headers = ['ID Sistema', 'ID Original (Excel)', 'Sustancia', 'Grupo', 'Fórmula', 'CAS', 'Estado', 'Cantidad', 'Unidad', 'Ubicación', 'Caducidad', 'Responsable', 'Observaciones'];
+    } else if (type === 'chemical_materials' || type === 'equipos') {
+        items = (state.chemMaterials && state.chemMaterials.length > 0) ? state.chemMaterials : (state.equipos || []);
+        sheetName = 'Materiales y Equipos';
+        title = `Inventario de Materiales y Equipos - ${deptName.replace(/_/g, ' ')}`;
+        headers = ['ID Sistema', 'ID Original (Excel)', 'Ubicación', 'Descripción / Material', 'No. Inventario', 'No. Serie', 'No. SEP', 'Estado', 'Responsable', 'Observaciones'];
     } else if (type === 'didactic_materials') {
-        items = state.didMaterials;
+        items = state.didMaterials || [];
         sheetName = 'Material Didáctico';
-        title = 'Inventario de Materiales Didácticos';
-        headers = ['ID', 'Material', 'Categoría', 'Estado', 'Cantidad', 'Ubicación', 'Responsable', 'Observaciones'];
+        title = `Inventario de Materiales Didácticos - ${deptName.replace(/_/g, ' ')}`;
+        headers = ['ID Sistema', 'ID Original (Excel)', 'Material', 'Categoría', 'Estado', 'Cantidad', 'Ubicación', 'Responsable', 'Observaciones'];
     }
 
-    if (items.length === 0) {
+    if (!items || items.length === 0) {
         alert('No hay registros en la tabla activa para exportar.');
         return;
     }
@@ -149,24 +162,26 @@ function exportTableToExcel(type) {
     let rows;
     if (type === 'substances') {
         rows = items.map(s => [
-            s.id, s.name, s.substance_group || '', s.chemical_formula || '',
+            s.id, s.original_id || '-', s.name, s.substance_group || '', s.chemical_formula || '',
             s.cas_number || '', s.physical_state || '', s.quantity, s.unit,
             s.location || '', s.expiration_date || '', s.responsible || '', s.observations || ''
         ]);
     } else if (type === 'chemical_materials') {
         rows = items.map(m => [
-            m.id, m.name, m.category || '', m.status || '', m.quantity, m.unit,
-            m.location || '', m.responsible || '', m.observations || ''
+            m.id, m.original_id || '-', m.location || '-', m.name, m.inventory_number || '-', m.serial_number || '-',
+            m.no_sep || '-', m.status || 'Buenas Condiciones', m.responsible || '-', m.observations || '-'
         ]);
     } else {
         rows = items.map(d => [
-            d.id, d.name, d.category || '', d.status || '', d.quantity,
+            d.id, d.original_id || '-', d.name, d.category || '', d.status || '', d.quantity,
             d.location || '', d.responsible || '', d.observations || ''
         ]);
     }
 
+    const customFilename = `Inventario_${deptName}_${today}.xlsx`;
+
     buildWorkbook(sheetName, title, headers, rows).then(wb => {
-        downloadXlsx(wb, title.replace(/ /g, '_') + '.xlsx');
+        downloadXlsx(wb, customFilename);
     });
 }
 

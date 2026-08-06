@@ -38,17 +38,28 @@ function router() {
     const navChem = document.getElementById('nav-chem-materials');
     const navDid = document.getElementById('nav-did-materials');
     const navEquipos = document.getElementById('nav-equipos');
+    const navConsulta = document.getElementById('nav-consulta');
+
+    if (navChem) {
+        navChem.classList.remove('hidden');
+        const chemText = navChem.querySelector('span');
+        if (chemText) {
+            if (currentInventory === 'oficina') chemText.textContent = 'Materiales y Bienes de Oficina';
+            else if (currentInventory === 'sistemas') chemText.textContent = 'Materiales y Equipos de Sistemas';
+            else chemText.textContent = 'Materiales Químicos';
+        }
+    }
 
     if (isLab) {
         if(navSub) navSub.classList.remove('hidden');
-        if(navChem) navChem.classList.remove('hidden');
         if(navDid) navDid.classList.remove('hidden');
+        if(navConsulta) navConsulta.classList.remove('hidden');
         if(navEquipos) navEquipos.classList.add('hidden');
     } else {
         if(navSub) navSub.classList.add('hidden');
-        if(navChem) navChem.classList.add('hidden');
         if(navDid) navDid.classList.add('hidden');
-        if(navEquipos) navEquipos.classList.remove('hidden');
+        if(navConsulta) navConsulta.classList.add('hidden');
+        if(navEquipos) navEquipos.classList.add('hidden');
     }
 
     // Redirección y validación de permisos de rutas
@@ -66,7 +77,7 @@ function router() {
         // Si no ha iniciado sesión, solo se permiten las vistas de elementos y escanear QR
         const isAllowed = allowedLoggedOutRoutes.some(route => state.activeRoute.startsWith(route));
         if (!isAllowed) {
-            window.location.hash = isLab ? '#/substances' : '#/equipos';
+            window.location.hash = isLab ? '#/substances' : '#/chemical-materials';
             return;
         }
     } else {
@@ -80,13 +91,13 @@ function router() {
         }
     }
 
-    // Redirecciones forzadas si intenta entrar a rutas no permitidas por el inventario
-    if (!isLab && (state.activeRoute.startsWith('#/substances') || state.activeRoute.startsWith('#/chemical-materials') || state.activeRoute.startsWith('#/didactic-materials'))) {
-        window.location.hash = '#/equipos';
+    // Redirecciones forzadas si intenta entrar a rutas exclusivas de sustancias
+    if (!isLab && (state.activeRoute.startsWith('#/substances') || state.activeRoute.startsWith('#/didactic-materials') || state.activeRoute.startsWith('#/consulta'))) {
+        window.location.hash = '#/chemical-materials';
         return;
     }
     if (isLab && state.activeRoute.startsWith('#/equipos')) {
-        window.location.hash = '#/substances';
+        window.location.hash = '#/chemical-materials';
         return;
     }
 
@@ -212,6 +223,12 @@ async function initApp() {
         state.substancesViewMode = savedViewMode;
     }
     await checkSessionStatus();
+
+    if (!localStorage.getItem('inventory_selected')) {
+        if (typeof openSpaceSelectModal === 'function') {
+            openSpaceSelectModal();
+        }
+    }
 }
 
 window.addEventListener('hashchange', router);

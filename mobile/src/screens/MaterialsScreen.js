@@ -14,8 +14,11 @@ import { AuthContext } from '../context/AuthContext';
 import { apiService } from '../api/services';
 import { getImageUrl } from '../api/client';
 
+import ChemicalMaterialRegisterModal from '../components/modals/ChemicalMaterialRegisterModal';
+import DidacticMaterialRegisterModal from '../components/modals/DidacticMaterialRegisterModal';
+
 export default function MaterialsScreen({ route, navigation }) {
-  const { serverUrl } = useContext(AuthContext);
+  const { role, serverUrl } = useContext(AuthContext);
   const initialTab = route.params?.initialTab || 'quimicos';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [chemMaterials, setChemMaterials] = useState([]);
@@ -23,6 +26,10 @@ export default function MaterialsScreen({ route, navigation }) {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Independent Modals
+  const [showChemModal, setShowChemModal] = useState(false);
+  const [showDidModal, setShowDidModal] = useState(false);
 
   const fetchMaterials = async () => {
     try {
@@ -45,6 +52,14 @@ export default function MaterialsScreen({ route, navigation }) {
     fetchMaterials();
   }, []);
 
+  const handleOpenRegister = () => {
+    if (activeTab === 'quimicos') {
+      setShowChemModal(true);
+    } else {
+      setShowDidModal(true);
+    }
+  };
+
   const currentList = activeTab === 'quimicos' ? chemMaterials : didMaterials;
   const filteredList = currentList.filter(item => {
     if (!search.trim()) return true;
@@ -62,6 +77,7 @@ export default function MaterialsScreen({ route, navigation }) {
     return (
       <TouchableOpacity 
         style={styles.card}
+        activeOpacity={0.8}
         onPress={() => navigation.navigate('Detail', { 
           type: activeTab === 'quimicos' ? 'chem_material' : 'did_material', 
           item 
@@ -69,10 +85,10 @@ export default function MaterialsScreen({ route, navigation }) {
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           {photoUri ? (
-            <Image source={{ uri: photoUri }} style={{ width: 56, height: 56, borderRadius: 10 }} resizeMode="cover" />
+            <Image source={{ uri: photoUri }} style={{ width: 56, height: 56, borderRadius: 12 }} resizeMode="cover" />
           ) : (
-            <View style={{ width: 56, height: 56, borderRadius: 10, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center' }}>
-              <Text style={{ fontSize: 22 }}>📦</Text>
+            <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#334155' }}>
+              <Text style={{ fontSize: 24 }}>{activeTab === 'quimicos' ? '💧' : '🎓'}</Text>
             </View>
           )}
 
@@ -80,21 +96,22 @@ export default function MaterialsScreen({ route, navigation }) {
             <View style={styles.cardHeader}>
               <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>{item.quantity} {item.unit || 'piezas'}</Text>
+                <Text style={styles.badgeText}>{item.quantity || item.stock || 1} {item.unit || 'piezas'}</Text>
               </View>
             </View>
 
-            {item.category ? (
-              <Text style={styles.category}>Categoría: {item.category}</Text>
+            {item.category || item.subject ? (
+              <Text style={styles.category}>{item.category || item.subject}</Text>
             ) : null}
 
             <View style={styles.cardFooter}>
-              {item.status ? (
+              <Text style={styles.meta}>📍 {item.location || 'Estante Principal'}</Text>
+              {item.status || item.condition ? (
                 <Text style={[
                   styles.status, 
-                  item.status === 'Disponible' || item.status === 'Bueno' ? styles.statusOk : styles.statusWarn
+                  item.status === 'Disponible' || item.status === 'Bueno' || item.condition === 'Excelente' ? styles.statusOk : styles.statusWarn
                 ]}>
-                  {item.status}
+                  {item.status || item.condition}
                 </Text>
               ) : null}
             </View>
@@ -106,33 +123,48 @@ export default function MaterialsScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.tabBar}>
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'quimicos' && styles.activeTab]} 
-          onPress={() => setActiveTab('quimicos')}
-        >
-          <Text style={[styles.tabText, activeTab === 'quimicos' && styles.activeTabText]}>
-            Materiales Químicos
-          </Text>
-        </TouchableOpacity>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <View style={[styles.tabBar, { flex: 1, marginBottom: 0 }]}>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'quimicos' && styles.activeTab]} 
+            onPress={() => setActiveTab('quimicos')}
+          >
+            <Text style={[styles.tabText, activeTab === 'quimicos' && styles.activeTabText]}>
+              Materiales Químicos
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.tab, activeTab === 'didacticos' && styles.activeTab]} 
-          onPress={() => setActiveTab('didacticos')}
-        >
-          <Text style={[styles.tabText, activeTab === 'didacticos' && styles.activeTabText]}>
-            Materiales Didácticos
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'didacticos' && styles.activeTabDidactic]} 
+            onPress={() => setActiveTab('didacticos')}
+          >
+            <Text style={[styles.tabText, activeTab === 'didacticos' && styles.activeTabText]}>
+              Materiales Didácticos
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {(role === 'admin' || role === 'responsable') ? (
+          <TouchableOpacity 
+            style={styles.addBtn} 
+            activeOpacity={0.8}
+            onPress={handleOpenRegister}
+          >
+            <Text style={styles.addBtnText}>+ Registrar</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Buscar por nombre, categoría o ubicación..."
-        value={search}
-        onChangeText={setSearch}
-        placeholderTextColor="#94a3b8"
-      />
+      <View style={styles.searchContainer}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar por nombre, categoría o ubicación..."
+          value={search}
+          onChangeText={setSearch}
+          placeholderTextColor="#94a3b8"
+        />
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" color="#0284c7" style={{ marginTop: 40 }} />
@@ -148,6 +180,19 @@ export default function MaterialsScreen({ route, navigation }) {
           }
         />
       )}
+
+      {/* Independent Registration Modals */}
+      <ChemicalMaterialRegisterModal
+        visible={showChemModal}
+        onClose={() => setShowChemModal(false)}
+        onSuccess={fetchMaterials}
+      />
+
+      <DidacticMaterialRegisterModal
+        visible={showDidModal}
+        onClose={() => setShowDidModal(false)}
+        onSuccess={fetchMaterials}
+      />
     </View>
   );
 }
@@ -162,9 +207,10 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     backgroundColor: '#1e293b',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 4,
-    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   tab: {
     flex: 1,
@@ -175,33 +221,62 @@ const styles = StyleSheet.create({
   activeTab: {
     backgroundColor: '#0284c7',
   },
+  activeTabDidactic: {
+    backgroundColor: '#4f46e5',
+  },
   tabText: {
     color: '#94a3b8',
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
   },
   activeTabText: {
     color: '#ffffff',
-    fontWeight: '700',
+    fontWeight: '800',
   },
-  searchInput: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 14,
+  addBtn: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 14,
+    shadowColor: '#0284c7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  addBtnText: {
     color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1e293b',
+    borderRadius: 14,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#334155',
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  searchIcon: {
+    fontSize: 15,
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
+    fontSize: 13,
+    color: '#ffffff',
+    fontWeight: '600',
   },
   listContainer: {
-    paddingBottom: 20,
+    paddingBottom: 24,
   },
   card: {
     backgroundColor: '#1e293b',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 18,
+    padding: 14,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#334155',
@@ -209,47 +284,52 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 6,
+    alignItems: 'center',
+    marginBottom: 4,
   },
   name: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
     color: '#ffffff',
     flex: 1,
     marginRight: 8,
   },
   badge: {
-    backgroundColor: '#047857',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: '#0f172a',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   badgeText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
+    color: '#38bdf8',
+    fontSize: 11,
+    fontWeight: '800',
   },
   category: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#38bdf8',
-    marginBottom: 8,
+    fontWeight: '600',
+    marginBottom: 6,
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    alignItems: 'center',
+    marginTop: 6,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#334155',
   },
   meta: {
-    fontSize: 12,
-    color: '#cbd5e1',
+    fontSize: 11,
+    color: '#94a3b8',
+    fontWeight: '600',
   },
   status: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
   },
   statusOk: {
     color: '#34d399',

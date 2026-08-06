@@ -56,6 +56,12 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def get_users_db_connection():
+    """Conecta SIEMPRE a la base de datos principal (inventario.db) donde residen las cuentas de usuario."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
 def get_user_by_username(username):
     """Busca un usuario SIEMPRE en inventario.db (BD principal donde viven los usuarios)."""
     conn = sqlite3.connect(DB_PATH)
@@ -122,6 +128,9 @@ def init_db():
             image_path TEXT,
             qr_path TEXT,
             qr_content TEXT,
+            inventory_number TEXT,
+            serial_number TEXT,
+            no_sep TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
@@ -567,6 +576,19 @@ def init_db():
             ("white", "ALK", "Base fuerte", "Puede causar quemaduras químicas graves.")
         ]
         cursor.executemany("INSERT INTO consulta_nfpa (quad, level, label, desc) VALUES (?, ?, ?, ?)", nfpa)
+
+    # Migraciones para chemical_materials
+    for col in ['inventory_number', 'serial_number', 'no_sep']:
+        try:
+            cursor.execute(f"ALTER TABLE chemical_materials ADD COLUMN {col} TEXT")
+        except sqlite3.OperationalError:
+            pass
+
+    # Migración de columna assigned_labs en la tabla users
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN assigned_labs TEXT DEFAULT 'all'")
+    except sqlite3.OperationalError:
+        pass
 
     conn.commit()
     conn.close()

@@ -21,7 +21,7 @@ function openAddModal(type, prefillData = null) {
         openAuthModal();
         return;
     }
-    if (state.userRole !== 'admin' && state.userRole !== 'responsable') {
+    if (state.userRole !== 'admin' && state.userRole !== 'jefe' && state.userRole !== 'responsable') {
         alert("No tiene permisos para registrar nuevos elementos.");
         return;
     }
@@ -40,7 +40,7 @@ function openAddModal(type, prefillData = null) {
     if (prefillData && prefillData.name) {
         title.textContent = `📋 Nueva Presentación / Envase de "${prefillData.name}"`;
     } else {
-        title.textContent = `Registrar ${type === 'substances' ? 'Reactivo o Sustancia' : (type === 'chemical_materials' ? 'Material Químico' : 'Material Didáctico')}`;
+        title.textContent = `Registrar ${type === 'substances' ? 'Reactivo o Sustancia' : (type === 'chemical_materials' ? 'Material o Equipo' : (type === 'equipos' ? 'Bien o Equipo' : 'Material Didáctico'))}`;
     }
 
     formContainer.innerHTML = buildFormHtml(type, prefillData || {});
@@ -61,7 +61,7 @@ async function openEditModal(type, id) {
         openAuthModal();
         return;
     }
-    if (state.userRole !== 'admin' && state.userRole !== 'responsable') {
+    if (state.userRole !== 'admin' && state.userRole !== 'jefe' && state.userRole !== 'responsable') {
         alert("No tiene permisos para modificar elementos.");
         return;
     }
@@ -77,7 +77,7 @@ async function openEditModal(type, id) {
     const formContainer = document.getElementById('modal-form-container');
     const title = document.getElementById('modal-title');
 
-    title.textContent = `Editar ${type === 'substances' ? 'Reactivo' : (type === 'chemical_materials' ? 'Material Químico' : 'Material Didáctico')}`;
+    title.textContent = `Editar ${type === 'substances' ? 'Reactivo' : ((type === 'chemical_materials' || type === 'chemical-materials') ? 'Material / Equipo' : (type === 'equipos' ? 'Bien o Equipo' : 'Material Didáctico'))}`;
     formContainer.innerHTML = `<div class="flex justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div></div>`;
 
     modal.classList.remove('hidden');
@@ -86,7 +86,7 @@ async function openEditModal(type, id) {
         content.classList.add('scale-100', 'opacity-100');
     }, 50);
 
-    const apiPath = type === 'chemical_materials' ? 'chemical-materials' : (type === 'didactic_materials' ? 'didactic-materials' : 'substances');
+    const apiPath = (type === 'chemical_materials' || type === 'chemical-materials') ? 'chemical-materials' : ((type === 'didactic_materials' || type === 'didactic-materials') ? 'didactic-materials' : (type === 'equipos' ? 'equipos' : 'substances'));
 
     try {
         const res = await fetch(`/api/${apiPath}/${id}`).then(r => r.json());
@@ -314,16 +314,33 @@ function buildFormHtml(type, data = {}) {
                 </div>
                 <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Nombre del Material *</label>
-                        <input type="text" id="form-name" value="${data.name || ''}" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Descripción / Nombre del Material *</label>
+                        <input type="text" id="form-name" value="${data.name || ''}" required placeholder="Ej. Equipo de Cómputo HP / Silla Secretarial" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Ubicación Física</label>
+                        <input type="text" id="form-location" value="${data.location || ''}" placeholder="Ej. LABORATORIO DE CIENCIAS BÁSICAS" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Categoría / Tipo</label>
-                        <input type="text" id="form-category" value="${data.category || ''}" placeholder="${isDidactic ? 'Ej. Modelos, Carteles' : 'Ej. Vidriería, Soporte'}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">ID Original Excel (DEPTO CB)</label>
+                        <input type="text" id="form-original-id" value="${data.original_id || ''}" placeholder="Ej. 154" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">No. Inventario</label>
+                        <input type="text" id="form-inventory-number" value="${data.inventory_number || ''}" placeholder="Ej. 115130001I51101000941309EUKVJ" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">No. Serie</label>
+                        <input type="text" id="form-serial-number" value="${data.serial_number || ''}" placeholder="Ej. 1P1822369599" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">No. SEP</label>
+                        <input type="text" id="form-no-sep" value="${data.no_sep || ''}" placeholder="Ej. 12900397" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold font-mono">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Estado de Conservación</label>
                         <select id="form-status" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                            <option value="Buenas Condiciones" ${data.status === 'Buenas Condiciones' ? 'selected' : ''}>Buenas Condiciones</option>
                             <option value="Nuevo" ${data.status === 'Nuevo' ? 'selected' : ''}>Nuevo</option>
                             <option value="Excelente" ${data.status === 'Excelente' ? 'selected' : ''}>Excelente</option>
                             <option value="Bueno" ${data.status === 'Bueno' ? 'selected' : ''}>Bueno</option>
@@ -331,27 +348,13 @@ function buildFormHtml(type, data = {}) {
                             <option value="Roto" ${data.status === 'Roto' ? 'selected' : ''}>Roto / Incompleto</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Cantidad *</label>
-                        <input type="number" id="form-quantity" value="${data.quantity || '0'}" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
-                    </div>
-                    ${isDidactic ? '' : `
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Unidad *</label>
-                            <input type="text" id="form-unit" value="${data.unit || 'piezas'}" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
-                        </div>
-                    `}
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Ubicación Física</label>
-                        <input type="text" id="form-location" value="${data.location || ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
-                    </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Responsable Custodia</label>
                         <input type="text" id="form-responsible" value="${data.responsible || getActiveUser()}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Observaciones</label>
-                        <textarea id="form-observations" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">${data.observations || ''}</textarea>
+                        <textarea id="form-observations" rows="2" placeholder="Detalles de ID original u observaciones de inventario..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">${data.observations || ''}</textarea>
                     </div>
                 </div>
             </form>
