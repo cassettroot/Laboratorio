@@ -2,7 +2,7 @@ import os
 import uuid
 import base64
 import qrcode
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from backend.database import get_db_connection
 
 tools_bp = Blueprint('tools', __name__)

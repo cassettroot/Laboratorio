@@ -1,0 +1,9 @@
+{
+  "venvPath": ".",
+  "venv": "venv",
+  "pythonVersion": "3.13",
+  "pythonPlatform": "Linux",
+  "extraPaths": [
+    "/home/adrian/Documentos/laboratorio"
+  ]
+}

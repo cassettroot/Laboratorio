@@ -27,7 +27,7 @@ const apiClient = axios.create({
   },
 });
 
-// Interceptor para inyectar la URL base configurada por el usuario desde la app
+// Interceptor para inyectar la URL base y el Inventario configurado por el usuario desde la app
 apiClient.interceptors.request.use(async (config) => {
   try {
     const customUrl = await AsyncStorage.getItem('custom_server_url');
@@ -39,8 +39,13 @@ apiClient.interceptors.request.use(async (config) => {
       config.baseURL = devUrl;
       apiClient.defaults.baseURL = devUrl;
     }
+    
+    // Inyectar el inventario seleccionado
+    const inventoryId = await AsyncStorage.getItem('inventory_id') || 'inventario';
+    config.headers['X-Inventory-Id'] = inventoryId;
+    
   } catch (e) {
-    console.warn("No se pudo leer custom_server_url:", e);
+    console.warn("No se pudo leer AsyncStorage en el interceptor:", e);
   }
   return config;
 }, (error) => Promise.reject(error));

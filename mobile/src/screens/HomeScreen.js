@@ -11,14 +11,27 @@ import {
 import { AuthContext } from '../context/AuthContext';
 import { apiService } from '../api/services';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export default function HomeScreen({ navigation }) {
   const { user, role, logout } = useContext(AuthContext);
   const [stats, setStats] = useState({ sustancias: 0, chemMaterials: 0, didMaterials: 0, pendingRequests: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [inventoryId, setInventoryId] = useState('inventario');
+
+  const themes = {
+    'inventario': { main: '#38bdf8', bg: '#0f172a', card: '#1e293b', name: 'Lab. de Química' },
+    'oficina': { main: '#3b82f6', bg: '#0a192f', card: '#112240', name: 'Oficina' },
+    'sistemas': { main: '#a855f7', bg: '#1a1025', card: '#2d1b42', name: 'Sistemas Electrónicos' }
+  };
+  const theme = themes[inventoryId] || themes['inventario'];
 
   const fetchStats = async () => {
     try {
+      const savedInv = await AsyncStorage.getItem('inventory_id') || 'inventario';
+      setInventoryId(savedInv);
+      
       const [subRes, chemRes, didRes, reqRes] = await Promise.allSettled([
         apiService.getSubstances(),
         apiService.getChemicalMaterials(),
@@ -34,12 +47,28 @@ export default function HomeScreen({ navigation }) {
       if (reqRes.status === 'fulfilled' && reqRes.value?.data) {
         reqCount = reqRes.value.data.filter(r => r.status === 'PENDIENTE').length;
       }
+      
+      let eqCount = 0;
+      if (savedInv !== 'inventario') {
+        try {
+          const res = await fetch(apiService.client.defaults.baseURL + '/api/equipos', {
+            headers: { 'X-Inventory-Id': savedInv }
+          });
+          const data = await res.json();
+          if (data.status === 'success') {
+            eqCount = data.data.length;
+          }
+        } catch (e) {
+          console.warn('Error fetching equipos count', e);
+        }
+      }
 
       setStats({
         sustancias: subCount,
         chemMaterials: chemCount,
         didMaterials: didCount,
         pendingRequests: reqCount,
+        equipos: eqCount,
       });
     } catch (e) {
       console.warn("Error fetching dashboard stats:", e);
@@ -57,32 +86,45 @@ export default function HomeScreen({ navigation }) {
     setRefreshing(true);
     fetchStats();
   };
+  
+  const cycleInventory = async () => {
+    const nextInv = inventoryId === 'inventario' ? 'oficina' : (inventoryId === 'oficina' ? 'sistemas' : 'inventario');
+    await AsyncStorage.setItem('inventory_id', nextInv);
+    setInventoryId(nextInv);
+    setLoading(true);
+    fetchStats();
+  };
 
   return (
     <ScrollView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.bg }]}
       contentContainerStyle={{ paddingBottom: 40 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#38bdf8" />}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.main} />}
     >
       <View style={styles.topBar}>
-        <View>
-          <Text style={styles.greeting}>Hola, <Text style={{fontWeight: '800', color: '#38bdf8'}}>{user || 'Estudiante'}</Text></Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.greeting}>Hola, <Text style={{fontWeight: '800', color: theme.main}}>{user || 'Estudiante'}</Text></Text>
           <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>
+            <Text style={[styles.roleText, { color: theme.main }]}>
               {role === 'admin' ? '👑 Administrador' : (role === 'responsable' ? '🔑 Responsable' : '🎓 Perfil Estudiante')}
             </Text>
           </View>
         </View>
 
-        {role === 'estudiante' ? (
-          <TouchableOpacity style={styles.loginBtn} onPress={() => navigation.navigate('Login')}>
-            <Text style={styles.loginBtnText}>🔑 Iniciar Sesión</Text>
+        <View style={{ alignItems: 'flex-end', gap: 6 }}>
+          {role === 'estudiante' ? (
+            <TouchableOpacity style={[styles.loginBtn, { backgroundColor: theme.main }]} onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.loginBtnText}>🔑 Iniciar Sesión</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
+              <Text style={styles.logoutBtnText}>🚪 Salir</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={{ backgroundColor: theme.card, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: theme.main }} onPress={cycleInventory}>
+            <Text style={{ color: theme.main, fontSize: 10, fontWeight: 'bold' }}>🔄 {theme.name}</Text>
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
-            <Text style={styles.logoutBtnText}>🚪 Salir</Text>
-          </TouchableOpacity>
-        )}
+        </View>
       </View>
 
       {/* BANNER DE ESCANEO DE QR */}
@@ -106,44 +148,61 @@ export default function HomeScreen({ navigation }) {
         <ActivityIndicator size="large" color="#38bdf8" style={{marginTop: 30}} />
       ) : (
         <View style={styles.grid}>
-          <TouchableOpacity 
-            style={[styles.card, { borderLeftColor: '#38bdf8' }]}
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate('Sustancias')}
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardIcon}>🧪</Text>
-              <Text style={styles.cardNum}>{stats.sustancias}</Text>
-            </View>
-            <Text style={styles.cardLabel}>Sustancias Químicas</Text>
-            <Text style={styles.cardSub}>Reactivos y soluciones</Text>
-          </TouchableOpacity>
+          {inventoryId === 'inventario' ? (
+            <>
+              <TouchableOpacity 
+                style={[styles.card, { borderLeftColor: '#38bdf8' }]}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('Sustancias')}
+              >
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardIcon}>🧪</Text>
+                  <Text style={styles.cardNum}>{stats.sustancias}</Text>
+                </View>
+                <Text style={styles.cardLabel}>Sustancias Químicas</Text>
+                <Text style={styles.cardSub}>Reactivos y soluciones</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.card, { borderLeftColor: '#10b981' }]}
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate('Materiales', { initialTab: 'quimicos' })}
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardIcon}>💧</Text>
-              <Text style={styles.cardNum}>{stats.chemMaterials}</Text>
-            </View>
-            <Text style={styles.cardLabel}>Materiales Químicos</Text>
-            <Text style={styles.cardSub}>Vidriería y utensilios</Text>
-          </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.card, { borderLeftColor: '#10b981' }]}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('Materiales', { initialTab: 'quimicos' })}
+              >
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardIcon}>💧</Text>
+                  <Text style={styles.cardNum}>{stats.chemMaterials}</Text>
+                </View>
+                <Text style={styles.cardLabel}>Materiales Químicos</Text>
+                <Text style={styles.cardSub}>Vidriería y utensilios</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.card, { borderLeftColor: '#f59e0b' }]}
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate('Materiales', { initialTab: 'didacticos' })}
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardIcon}>🎓</Text>
-              <Text style={styles.cardNum}>{stats.didMaterials}</Text>
-            </View>
-            <Text style={styles.cardLabel}>Materiales Didácticos</Text>
-            <Text style={styles.cardSub}>Modelos y muestras</Text>
-          </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.card, { borderLeftColor: '#f59e0b' }]}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('Materiales', { initialTab: 'didacticos' })}
+              >
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardIcon}>🎓</Text>
+                  <Text style={styles.cardNum}>{stats.didMaterials}</Text>
+                </View>
+                <Text style={styles.cardLabel}>Materiales Didácticos</Text>
+                <Text style={styles.cardSub}>Modelos y muestras</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.card, { borderLeftColor: theme.main, width: '100%' }]}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('Equipos')}
+            >
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardIcon}>🖥️</Text>
+                <Text style={styles.cardNum}>{stats.equipos || 0}</Text>
+              </View>
+              <Text style={styles.cardLabel}>Bienes y Equipos</Text>
+              <Text style={styles.cardSub}>Inventario físico</Text>
+            </TouchableOpacity>
+          )}
 
           {role !== 'estudiante' ? (
             <TouchableOpacity 

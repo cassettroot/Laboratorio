@@ -14,8 +14,9 @@ def open_browser():
     webbrowser.open('http://127.0.0.1:5000/')
 
 if __name__ == '__main__':
-    # Evita la doble apertura del navegador causada por el recargador automático de Flask (debug=True)
-    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
+    # Evita la múltiple apertura del navegador causada por el recargador automático de Flask
+    if not os.environ.get('BROWSER_OPENED'):
+        os.environ['BROWSER_OPENED'] = 'true'
         threading.Thread(target=open_browser, daemon=True).start()
         
     import socket
