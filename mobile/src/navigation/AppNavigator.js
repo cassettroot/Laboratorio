@@ -14,6 +14,7 @@ import QRScannerScreen from '../screens/QRScannerScreen';
 import DetailScreen from '../screens/DetailScreen';
 import RequestsScreen from '../screens/RequestsScreen';
 import LoansScreen from '../screens/LoansScreen';
+import EquiposScreen from '../screens/EquiposScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -87,6 +88,11 @@ export default function AppNavigator() {
           name="Detail" 
           component={DetailScreen} 
           options={{ title: 'Ficha Detallada' }} 
+        />
+        <Stack.Screen 
+          name="Equipos" 
+          component={EquiposScreen} 
+          options={{ title: 'Bienes y Equipos' }} 
         />
       </Stack.Navigator>
     </NavigationContainer>

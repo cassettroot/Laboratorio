@@ -1,3 +1,24 @@
+// Interceptor global para fetch
+const originalFetch = window.fetch;
+window.fetch = async function() {
+    let [resource, config] = arguments;
+    const url = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : String(resource));
+    
+    if (url.includes('/api/')) {
+        config = config || {};
+        if (!config.headers) {
+            config.headers = {};
+        }
+        const invId = localStorage.getItem('inventory_id') || 'inventario';
+        if (config.headers instanceof Headers) {
+            config.headers.append('X-Inventory-Id', invId);
+        } else {
+            config.headers['X-Inventory-Id'] = invId;
+        }
+    }
+    return originalFetch(resource, config);
+};
+
 function setActiveTab(id) {
     const tab = document.getElementById(id);
     if (tab) {
@@ -9,21 +30,43 @@ function setActiveTab(id) {
 function router() {
     state.activeRoute = window.location.hash || '#/';
 
+    const currentInventory = localStorage.getItem('inventory_id') || 'inventario';
+    const isLab = currentInventory === 'inventario';
+
+    // Manejo visual del menú lateral según inventario
+    const navSub = document.getElementById('nav-substances');
+    const navChem = document.getElementById('nav-chem-materials');
+    const navDid = document.getElementById('nav-did-materials');
+    const navEquipos = document.getElementById('nav-equipos');
+
+    if (isLab) {
+        if(navSub) navSub.classList.remove('hidden');
+        if(navChem) navChem.classList.remove('hidden');
+        if(navDid) navDid.classList.remove('hidden');
+        if(navEquipos) navEquipos.classList.add('hidden');
+    } else {
+        if(navSub) navSub.classList.add('hidden');
+        if(navChem) navChem.classList.add('hidden');
+        if(navDid) navDid.classList.add('hidden');
+        if(navEquipos) navEquipos.classList.remove('hidden');
+    }
+
     // Redirección y validación de permisos de rutas
     const allowedLoggedOutRoutes = [
         '#/substances',
         '#/chemical-materials',
         '#/didactic-materials',
+        '#/equipos',
         '#/scan-qr',
         '#/warehouse',
         '#/loans'
     ];
 
     if (!state.isLoggedIn) {
-        // Si no ha iniciado sesión, solo se permiten las vistas de reactivos, materiales y escanear QR
+        // Si no ha iniciado sesión, solo se permiten las vistas de elementos y escanear QR
         const isAllowed = allowedLoggedOutRoutes.some(route => state.activeRoute.startsWith(route));
         if (!isAllowed) {
-            window.location.hash = '#/substances';
+            window.location.hash = isLab ? '#/substances' : '#/equipos';
             return;
         }
     } else {
@@ -35,6 +78,16 @@ function router() {
                 return;
             }
         }
+    }
+
+    // Redirecciones forzadas si intenta entrar a rutas no permitidas por el inventario
+    if (!isLab && (state.activeRoute.startsWith('#/substances') || state.activeRoute.startsWith('#/chemical-materials') || state.activeRoute.startsWith('#/didactic-materials'))) {
+        window.location.hash = '#/equipos';
+        return;
+    }
+    if (isLab && state.activeRoute.startsWith('#/equipos')) {
+        window.location.hash = '#/substances';
+        return;
     }
 
     stopQrScanner();
@@ -85,6 +138,20 @@ function router() {
             renderItemDetail(mainEl, 'didactic-materials', parts[2]);
         } else {
             renderDidacticMaterialsList(mainEl);
+        }
+    }
+    else if (state.activeRoute.startsWith('#/equipos')) {
+        setActiveTab('nav-equipos');
+        titleEl.textContent = "Bienes y Equipos";
+        const parts = state.activeRoute.split('/');
+        if (parts.length === 3) {
+            renderItemDetail(mainEl, 'equipos', parts[2]);
+        } else {
+            if (typeof renderEquiposList === 'function') {
+                renderEquiposList(mainEl);
+            } else {
+                mainEl.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Error: renderEquiposList no definido.</div>`;
+            }
         }
     }
     else if (state.activeRoute === '#/scan-qr') {

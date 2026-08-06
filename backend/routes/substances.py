@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify
 from backend.database import get_db_connection
 from backend.history_logger import log_creation, log_deletion, log_updates
 from backend.routes.tools import generate_qr
-import sqlite3
 import json
 import time
 from datetime import datetime

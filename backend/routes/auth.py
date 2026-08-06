@@ -1,4 +1,3 @@
-import sqlite3
 from flask import Blueprint, request, jsonify, session
 from backend.database import get_db_connection, encrypt_username, decrypt_username, get_user_by_username
 from werkzeug.security import generate_password_hash, check_password_hash

@@ -1,5 +1,5 @@
 import json
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify
 from backend.database import get_db_connection
 
 consulta_bp = Blueprint('consulta', __name__)
@@ -315,8 +315,8 @@ def update_consulta_item(section, item_id):
 
 @consulta_bp.route('/api/consulta/<section>/<item_id>', methods=['DELETE'])
 def delete_consulta_item(section, item_id):
-    from flask import session
     from backend.database import get_user_by_username
+    from flask import session
     user = session.get('user')
     user_data = get_user_by_username(user) if user else None
     if not user_data or user_data['role'] != 'admin':

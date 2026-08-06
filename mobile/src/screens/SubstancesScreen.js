@@ -236,10 +236,14 @@ export default function SubstancesScreen({ navigation }) {
 
       const res = await apiService.createSubstance(payload);
       if (res.status === 'success') {
-        Alert.alert(
-          '✅ Registro Exitoso',
-          'La sustancia se ha agregado exitosamente al inventario.'
-        );
+        if (res.pending) {
+          Alert.alert('⏳ Solicitud Enviada', res.message || 'La creación requiere aprobación de un administrador.');
+        } else {
+          Alert.alert(
+            '✅ Registro Exitoso',
+            'La sustancia se ha agregado exitosamente al inventario.'
+          );
+        }
         setAddModalVisible(false);
         // Limpiar formulario
         setFormName('');

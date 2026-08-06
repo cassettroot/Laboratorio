@@ -8,20 +8,18 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        const savedInv = localStorage.getItem('inventory_id') || 'inventario';
+        const themes = {
+            'inventario': { 50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 800: '#115e59', 900: '#134e4a' }, // Teal
+            'oficina': { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' }, // Blue
+            'sistemas': { 50: '#f5f3ff', 100: '#ede9fe', 200: '#ddd6fe', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9', 800: '#5b21b6', 900: '#4c1d95' } // Violet
+        };
+        const activeTheme = themes[savedInv] || themes['inventario'];
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            50: '#f0fdfa',
-                            100: '#ccfbf1',
-                            200: '#99f6e4',
-                            500: '#14b8a6',
-                            600: '#0d9488',
-                            700: '#0f766e',
-                            800: '#115e59',
-                            900: '#134e4a',
-                        }
+                        brand: activeTheme
                     }
                 }
             }
@@ -74,6 +72,10 @@
                 <i data-lucide="graduation-cap" class="w-5 h-5"></i>
                 <span>Materiales Didácticos</span>
             </a>
+            <a href="#/equipos" id="nav-equipos" class="hidden flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium hover:bg-slate-800 hover:text-white">
+                <i data-lucide="monitor" class="w-5 h-5"></i>
+                <span>Bienes y Equipos</span>
+            </a>
             <a href="#/scan-qr" id="nav-scan-qr" class="flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium hover:bg-slate-800 hover:text-white">
                 <i data-lucide="qr-code" class="w-5 h-5"></i>
                 <span>Escanear QR</span>
@@ -118,8 +120,21 @@
         
         <!-- HEADER SUPERIOR (No se imprime) -->
         <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 no-print z-10">
-            <div>
+            <div class="flex items-center gap-4">
                 <h2 id="page-title" class="text-xl font-bold text-slate-900">Panel de Control</h2>
+                <div class="h-6 w-px bg-slate-200"></div>
+                <select id="inventory-selector" onchange="changeInventory(this.value)" class="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2 outline-none cursor-pointer font-medium">
+                    <option value="inventario">Laboratorio de Química</option>
+                    <option value="oficina">Inventario de Oficina</option>
+                    <option value="sistemas">Laboratorio de Sistemas</option>
+                </select>
+                <script>
+                    document.getElementById('inventory-selector').value = localStorage.getItem('inventory_id') || 'inventario';
+                    function changeInventory(val) {
+                        localStorage.setItem('inventory_id', val);
+                        window.location.reload();
+                    }
+                </script>
             </div>
             
             <!-- Control de Autenticación de Usuario (Dinámico) -->
@@ -297,6 +312,7 @@
     <script src="/js/views/substances.js"></script>
     <script src="/js/views/chem-materials.js"></script>
     <script src="/js/views/didactic-materials.js"></script>
+    <script src="/js/views/equipos.js"></script>
     <script src="/js/views/detail.js"></script>
     <script src="/js/views/history.js"></script>
     <script src="/js/views/scan-qr.js"></script>

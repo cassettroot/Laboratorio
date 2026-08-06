@@ -1,6 +1,5 @@
 import os
 import json
-import sqlite3
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session
 from backend.database import get_db_connection, get_user_by_username, decrypt_username
@@ -219,7 +218,6 @@ def approve_loan_request(loan_id):
 @loans_bp.route('/<int:loan_id>/request-return', methods=['POST'])
 def request_return_loan(loan_id):
     """El Responsable sube la foto y observaciones de devolución de la sustancia."""
-    now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return_notes = request.form.get('notes', '').strip() or request.form.get('return_notes', '').strip()
     
     photo_path = None

@@ -1,5 +1,5 @@
 import os
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, request, jsonify, session
 from backend.database import init_db
 from backend.routes.substances import substances_bp
 from backend.routes.chem_materials import chem_materials_bp
@@ -10,6 +10,7 @@ from backend.routes.auth import auth_bp
 from backend.routes.consulta import consulta_bp
 from backend.routes.change_requests import change_requests_bp
 from backend.routes.loans import loans_bp
+from backend.routes.equipos import equipos_bp
 
 def create_app():
     # Asegurar que la base de datos esté inicializada
@@ -37,6 +38,8 @@ def create_app():
         user_logged_in = 'user' in session
         user_role = None
         user_active = 0
+        allowed_inventories = []
+        requested_inventory = request.headers.get('X-Inventory-Id', 'inventario')
 
         if user_logged_in:
             from backend.database import get_user_by_username
@@ -44,9 +47,20 @@ def create_app():
             if user_data:
                 user_role = user_data['role']
                 user_active = user_data['active']
+                user_dict = dict(user_data)
+                allowed_inv_str = user_dict.get('allowed_inventories')
+                if allowed_inv_str is None:
+                    allowed_inv_str = 'inventario,oficina,sistemas'
+                allowed_inventories = [i.strip() for i in allowed_inv_str.split(',')]
             else:
                 session.pop('user', None)
                 user_logged_in = False
+                
+        # 0. Verificar acceso al inventario solicitado (para usuarios logueados)
+        if user_logged_in and user_role != 'admin':
+            if requested_inventory not in allowed_inventories:
+                if request.method not in ['GET', 'OPTIONS']:
+                    return jsonify({"status": "error", "message": f"No tiene permisos de escritura en el inventario: {requested_inventory}"}), 403
 
         # 1. Sesión cerrada:
         if not user_logged_in:
@@ -56,6 +70,7 @@ def create_app():
                         request.path.startswith('/api/substances') or
                         request.path.startswith('/api/chemical-materials') or
                         request.path.startswith('/api/didactic-materials') or
+                        request.path.startswith('/api/equipos') or
                         request.path.startswith('/api/loans')
                     )) or
                     (request.method == 'POST' and request.path in ['/api/scan-qr', '/api/loans'])
@@ -80,6 +95,7 @@ def create_app():
     app.register_blueprint(consulta_bp)
     app.register_blueprint(change_requests_bp)
     app.register_blueprint(loans_bp)
+    app.register_blueprint(equipos_bp)
 
     # Ruta raíz: sirve el archivo index.html del frontend
     @app.route('/')
@@ -111,8 +127,6 @@ def create_app():
 
     return app
 
-# Importación local para evitar problemas de contexto en errorhandler
-from flask import request, jsonify, session
 
 if __name__ == '__main__':
     app = create_app()

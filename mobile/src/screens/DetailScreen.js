@@ -257,9 +257,14 @@ export default function DetailScreen({ route, navigation }) {
       }
 
       if (res && res.status === 'success') {
-        Alert.alert('✅ Cambios Guardados', 'Los datos han sido actualizados exitosamente en el inventario.');
-        setItem(res.data || { ...item, ...payload });
-        setEditModalVisible(false);
+        if (res.pending) {
+          Alert.alert('⏳ Solicitud Enviada', res.message || 'La edición requiere aprobación de un administrador.');
+          setEditModalVisible(false);
+        } else {
+          Alert.alert('✅ Cambios Guardados', 'Los datos han sido actualizados exitosamente en el inventario.');
+          setItem(res.data || { ...item, ...payload });
+          setEditModalVisible(false);
+        }
       } else {
         Alert.alert('Error', res?.message || 'No se pudo guardar la edición.');
       }
