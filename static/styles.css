@@ -635,3 +635,141 @@ body.theme-itma .glass-card-premium {
     border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
+/* ==========================================================================
+   REDISEÑO Y ADAPTABILIDAD DUAL: LIENZO BLANCO / COMPACTO & ELEVACIONES
+   ========================================================================== */
+
+/* 1. Integración de Contenedores y Lienzo Blanco (Sin Bloques Oscuros Rígidos) */
+body.theme-light .bg-gradient-to-r,
+body.theme-light [class*="from-slate-9"],
+body.theme-light [class*="via-slate-8"],
+body.theme-light [class*="to-slate-9"],
+body.theme-light .bg-slate-900,
+body.theme-light .bg-slate-950,
+body.theme-light .bg-slate-800,
+body.theme-light .bg-slate-800\/90,
+body.theme-light .bg-slate-800\/80,
+body.theme-light .bg-slate-900\/90,
+body.theme-light .bg-slate-950\/60,
+body.theme-light .bg-slate-950\/80,
+body.theme-light .bg-slate-950\/90 {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03) !important;
+}
+
+body.theme-light .bg-gradient-to-r h1,
+body.theme-light .bg-gradient-to-r h2,
+body.theme-light .bg-gradient-to-r h3,
+body.theme-light .bg-gradient-to-r h4,
+body.theme-light .bg-slate-900 h1,
+body.theme-light .bg-slate-900 h2,
+body.theme-light .bg-slate-900 h3,
+body.theme-light .bg-slate-900 h4,
+body.theme-light .bg-slate-950 h1,
+body.theme-light .bg-slate-950 h2,
+body.theme-light .bg-slate-950 h3,
+body.theme-light .bg-slate-950 h4,
+body.theme-light .text-white,
+body.theme-light .text-slate-100,
+body.theme-light .text-slate-200 {
+    color: #0f172a !important;
+}
+
+body.theme-light .text-slate-300,
+body.theme-light .text-slate-400 {
+    color: #475569 !important;
+}
+
+/* Sustitución de texto menta o deslavado */
+body.theme-light .text-brand-400,
+body.theme-light .text-brand-300,
+body.theme-light .text-emerald-400,
+body.theme-light .text-emerald-300,
+body.theme-light .text-teal-400,
+body.theme-light .text-teal-300,
+body.theme-light .text-sky-400,
+body.theme-light .text-sky-300 {
+    color: #0d9488 !important;
+    font-weight: 800 !important;
+}
+
+/* Badges y Píldoras de Estado Adaptables */
+body.theme-light .bg-brand-500\/20,
+body.theme-light .bg-emerald-500\/20,
+body.theme-light .bg-amber-500\/20,
+body.theme-light .bg-purple-500\/20,
+body.theme-light .bg-blue-500\/20,
+body.theme-light .bg-cyan-500\/20 {
+    background-color: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+}
+
+body.theme-light .bg-brand-500\/20 span,
+body.theme-light .bg-emerald-500\/20 span,
+body.theme-light .bg-amber-500\/20 span,
+body.theme-light .bg-purple-500\/20 span,
+body.theme-light .bg-blue-500\/20 span,
+body.theme-light .bg-cyan-500\/20 span {
+    color: #0f172a !important;
+    font-weight: 900 !important;
+}
+
+/* 2. Modales Flotantes Adaptables a Tema Activo */
+body.theme-light #auth-modal #auth-modal-content,
+body.theme-light #responsible-modal #responsible-modal-content,
+body.theme-light #delete-modal #delete-modal-content,
+body.theme-light #space-select-modal > div,
+body.theme-light #consulta-modal > div,
+body.theme-light #camera-modal > div {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 20px !important;
+}
+
+body.theme-light #space-select-modal header,
+body.theme-light #space-select-modal .bg-gradient-to-r,
+body.theme-light #space-select-modal .bg-slate-950\/60,
+body.theme-light #space-select-modal .bg-slate-900 {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #e2e8f0 !important;
+}
+
+body.theme-light #space-select-modal .text-slate-400,
+body.theme-light #space-select-modal .text-slate-300 {
+    color: #64748b !important;
+}
+
+body.theme-light #space-select-modal .bg-slate-800\/80 {
+    background-color: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+}
+
+body:not(.theme-light) #auth-modal #auth-modal-content,
+body:not(.theme-light) #responsible-modal #responsible-modal-content,
+body:not(.theme-light) #delete-modal #delete-modal-content,
+body:not(.theme-light) #space-select-modal > div,
+body:not(.theme-light) #consulta-modal > div,
+body:not(.theme-light) #camera-modal > div {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    border: 1px solid #334155 !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
+    border-radius: 20px !important;
+}
+
+body:not(.theme-light) #auth-modal input,
+body:not(.theme-light) #responsible-modal input,
+body:not(.theme-light) #delete-modal input,
+body:not(.theme-light) #space-select-modal input {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    border-color: #334155 !important;
+}
+

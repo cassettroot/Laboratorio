@@ -171,11 +171,6 @@ function router() {
         titleEl.textContent = "Escaneo de Códigos QR";
         renderScanQrView(mainEl);
     }
-    else if (state.activeRoute === '#/warehouse') {
-        setActiveTab('nav-warehouse');
-        titleEl.textContent = "Almacén y Estantería (Organizador 2x3)";
-        renderWarehouseView(mainEl);
-    }
     else if (state.activeRoute === '#/loans') {
         setActiveTab('nav-loans');
         titleEl.textContent = "Control de Préstamos y Devoluciones";
