@@ -271,20 +271,19 @@
 
             <script>
                 function setWebTheme(themeName) {
-                    localStorage.setItem('app_theme', themeName);
+                    const validTheme = themeName === 'light' ? 'light' : 'dark';
+                    localStorage.setItem('app_theme', validTheme);
                     document.body.classList.remove(
                         'theme-light', 'theme-dark', 'theme-neon', 'theme-ocean', 
                         'theme-sunset', 'theme-itma', 'theme-emerald', 'theme-cyberpunk', 
                         'theme-amethyst', 'theme-cosmos'
                     );
-                    if (themeName) {
-                        document.body.classList.add('theme-' + themeName);
-                    }
+                    document.body.classList.add('theme-' + validTheme);
                 }
 
                 function initWebTheme() {
-                    const savedTheme = localStorage.getItem('app_theme') || 'itma';
-                    setWebTheme(savedTheme);
+                    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+                    setWebTheme(savedTheme === 'light' ? 'light' : 'dark');
                 }
                 document.addEventListener('DOMContentLoaded', initWebTheme);
             </script>

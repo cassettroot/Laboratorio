@@ -134,7 +134,7 @@ body {
 
 /* Adaptabilidad de Tarjetas de Reactivos en Tema Claro vs Oscuro */
 body.theme-light .substance-container-badge {
-    background-color: rgba(255, 255, 255, 0.92) !important;
+    background-color: rgba(255, 255, 255, 0.95) !important;
     border-color: rgba(203, 213, 225, 0.9) !important;
     color: #0f172a !important;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1) !important;
@@ -146,7 +146,7 @@ body.theme-light .substance-container-badge span {
 }
 
 body:not(.theme-light) .substance-container-badge {
-    background-color: rgba(15, 23, 42, 0.85) !important;
+    background-color: rgba(15, 23, 42, 0.9) !important;
     border-color: rgba(255, 255, 255, 0.15) !important;
     color: #ffffff !important;
 }
@@ -168,6 +168,18 @@ body.theme-light .substance-photo-badge {
     color: #0f172a !important;
     border-color: #cbd5e1 !important;
 }
+
+/* Badges SGA Adaptables para Tema Claro */
+body.theme-light .badge-inflammable { background-color: #fee2e2 !important; color: #991b1b !important; border-color: #fca5a5 !important; font-weight: 900 !important; }
+body.theme-light .badge-toxic { background-color: #f3e8ff !important; color: #581c87 !important; border-color: #d8b4fe !important; font-weight: 900 !important; }
+body.theme-light .badge-corrosive { background-color: #fef3c7 !important; color: #78350f !important; border-color: #fde68a !important; font-weight: 900 !important; }
+body.theme-light .badge-explosive { background-color: #fef9c3 !important; color: #713f12 !important; border-color: #fef08a !important; font-weight: 900 !important; }
+body.theme-light .badge-comburent { background-color: #fce7f3 !important; color: #831843 !important; border-color: #fbcfe8 !important; font-weight: 900 !important; }
+body.theme-light .badge-irritant { background-color: #d1fae5 !important; color: #064e3b !important; border-color: #6ee7b7 !important; font-weight: 900 !important; }
+body.theme-light .badge-alcohol { background-color: #cffafe !important; color: #164e63 !important; border-color: #67e8f9 !important; font-weight: 900 !important; }
+body.theme-light .badge-organic { background-color: #ede9fe !important; color: #4c1d95 !important; border-color: #ddd6fe !important; font-weight: 900 !important; }
+body.theme-light .badge-acid { background-color: #ffe4e6 !important; color: #881337 !important; border-color: #fecdd3 !important; font-weight: 900 !important; }
+body.theme-light .badge-base { background-color: #dbeafe !important; color: #1e3a8a !important; border-color: #93c5fd !important; font-weight: 900 !important; }
 
 /* Tema Claro / Modo Día (Blanco Puro y Gris Muy Claro con Sombras Suaves y Texto Carbón) */
 body.theme-light {
@@ -250,236 +262,105 @@ body.theme-light textarea {
     border-color: #cbd5e1 !important;
 }
 
-/* Tema Modo Noche / Grafito Oscuro */
-body.theme-dark {
-    background-color: #0b0f19 !important;
+/* ==========================================================================
+   SISTEMA DUAL UNIFICADO (Modo Claro vs Modo Oscuro)
+   ========================================================================== */
+
+/* 1. MODO OSCURO (Dark Mode: Grafito Oscuro #0F172A / #1E293B con Texto Blanco #FFFFFF) */
+body.theme-dark,
+body:not(.theme-light) {
+    background-color: #0f172a !important;
     color: #ffffff !important;
 }
-body.theme-dark aside {
+
+body.theme-dark aside,
+body:not(.theme-light) aside {
     background-color: #0f172a !important;
     border-color: #1e293b !important;
     color: #ffffff !important;
 }
-body.theme-dark header {
+
+body.theme-dark aside nav a,
+body:not(.theme-light) aside nav a {
+    color: #cbd5e1 !important;
+}
+
+body.theme-dark aside nav a:hover,
+body.theme-dark aside nav a.bg-brand-500,
+body:not(.theme-light) aside nav a:hover,
+body:not(.theme-light) aside nav a.bg-brand-500 {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+}
+
+body.theme-dark header,
+body:not(.theme-light) header {
     background-color: #0f172a !important;
     border-color: #1e293b !important;
     color: #ffffff !important;
 }
-body.theme-dark header h2 {
+
+body.theme-dark header h2,
+body:not(.theme-light) header h2 {
     color: #ffffff !important;
 }
+
 body.theme-dark .bg-white,
-body.theme-dark .glass-card-premium {
+body.theme-dark .glass-card-premium,
+body:not(.theme-light) .bg-white,
+body:not(.theme-light) .glass-card-premium {
     background-color: #1e293b !important;
+    color: #ffffff !important;
+    border: 1px solid #334155 !important;
+}
+
+body.theme-dark .bg-slate-50,
+body.theme-dark .bg-slate-100,
+body:not(.theme-light) .bg-slate-50,
+body:not(.theme-light) .bg-slate-100 {
+    background-color: #0f172a !important;
+    color: #cbd5e1 !important;
+}
+
+body.theme-dark h1, body.theme-dark h2, body.theme-dark h3, body.theme-dark h4, body.theme-dark h5, body.theme-dark h6,
+body:not(.theme-light) h1, body:not(.theme-light) h2, body:not(.theme-light) h3, body:not(.theme-light) h4, body:not(.theme-light) h5, body:not(.theme-light) h6 {
+    color: #ffffff !important;
+}
+
+body.theme-dark p, body.theme-dark label,
+body:not(.theme-light) p, body:not(.theme-light) label {
+    color: #94a3b8 !important;
+}
+
+body.theme-dark input, body.theme-dark select, body.theme-dark textarea,
+body:not(.theme-light) input, body:not(.theme-light) select, body:not(.theme-light) textarea {
+    background-color: #0f172a !important;
     color: #ffffff !important;
     border-color: #334155 !important;
 }
-body.theme-dark .bg-slate-50 {
-    background-color: #0f172a !important;
-    color: #cbd5e1 !important;
-}
-body.theme-dark .text-slate-900, body.theme-dark .text-slate-800, body.theme-dark .text-slate-700 {
-    color: #ffffff !important;
-}
-body.theme-dark .text-slate-600, body.theme-dark .text-slate-500 {
-    color: #cbd5e1 !important;
-}
-body.theme-dark input, body.theme-dark select, body.theme-dark textarea {
-    background-color: #0f172a !important;
-    color: #ffffff !important;
-    border-color: #475569 !important;
-}
 
-/* Tema Degradado Neón (Purple) */
-body.theme-neon {
-    background: linear-gradient(135deg, #0f172a 0%, #2e1065 50%, #4c1d95 100%) fixed !important;
-    color: #f8fafc !important;
-}
-body.theme-neon header {
-    background: rgba(30, 27, 75, 0.85) !important;
-    backdrop-filter: blur(16px);
-    border-color: rgba(139, 92, 246, 0.3) !important;
-    color: #f8fafc !important;
-}
-body.theme-neon .bg-white {
-    background: rgba(30, 27, 75, 0.75) !important;
-    backdrop-filter: blur(12px);
-    border-color: rgba(139, 92, 246, 0.25) !important;
-    color: #f8fafc !important;
-}
-body.theme-neon .text-slate-900, body.theme-neon .text-slate-800, body.theme-neon .text-slate-700 {
-    color: #f8fafc !important;
-}
-body.theme-neon .text-slate-600, body.theme-neon .text-slate-500 {
-    color: #ddd6fe !important;
-}
-body.theme-neon input, body.theme-neon select, body.theme-neon textarea {
-    background-color: rgba(15, 23, 42, 0.8) !important;
-    color: #f8fafc !important;
-    border-color: rgba(167, 139, 250, 0.4) !important;
-}
-
-/* Tema Degradado Océano (Teal / Cyan / Emerald) */
-body.theme-ocean {
-    background-color: #090e17 !important;
-    color: #f8fafc !important;
-}
-body.theme-ocean header {
-    background-color: #0f172a !important;
-    border-color: #1e293b !important;
-    color: #f8fafc !important;
-}
-body.theme-ocean .bg-white {
+/* Filas de Tabla en Modo Oscuro */
+body.theme-dark table tbody tr:hover,
+body.theme-dark table tbody tr.selected,
+body:not(.theme-light) table tbody tr:hover,
+body:not(.theme-light) table tbody tr.selected {
     background-color: #1e293b !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
-    color: #f8fafc !important;
-}
-body.theme-ocean .text-slate-900, body.theme-ocean .text-slate-800, body.theme-ocean .text-slate-700 {
-    color: #ffffff !important;
-}
-body.theme-ocean .text-slate-600, body.theme-ocean .text-slate-500 {
-    color: #cbd5e1 !important;
-}
-body.theme-ocean input, body.theme-ocean select, body.theme-ocean textarea {
-    background-color: #0f172a !important;
-    color: #f8fafc !important;
-    border-color: #334155 !important;
+    border-left: 4px solid #10b981 !important;
 }
 
-/* Tema Degradado Atardecer (Sunset Amber/Rose) */
-body.theme-sunset {
-    background-color: #120b12 !important;
-    color: #f8fafc !important;
-}
-body.theme-sunset header {
-    background-color: #1a101f !important;
-    border-color: #2e1a38 !important;
-    color: #f8fafc !important;
-}
-body.theme-sunset .bg-white {
-    background-color: #1a101f !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
-    color: #f8fafc !important;
-}
-body.theme-sunset .text-slate-900, body.theme-sunset .text-slate-800, body.theme-sunset .text-slate-700 {
+body.theme-dark table tbody tr:hover td,
+body.theme-dark table tbody tr.selected td,
+body.theme-dark table tbody tr:hover a,
+body.theme-dark table tbody tr.selected a,
+body.theme-dark table tbody tr:hover span,
+body.theme-dark table tbody tr.selected span,
+body:not(.theme-light) table tbody tr:hover td,
+body:not(.theme-light) table tbody tr.selected td,
+body:not(.theme-light) table tbody tr:hover a,
+body:not(.theme-light) table tbody tr.selected a,
+body:not(.theme-light) table tbody tr:hover span,
+body:not(.theme-light) table tbody tr.selected span {
     color: #ffffff !important;
-}
-body.theme-sunset .text-slate-600, body.theme-sunset .text-slate-500 {
-    color: #cbd5e1 !important;
-}
-body.theme-sunset input, body.theme-sunset select, body.theme-sunset textarea {
-    background-color: #120b12 !important;
-    color: #f8fafc !important;
-    border-color: #2e1a38 !important;
-}
-
-/* Tema Verde Institucional ITMA (Fondo Neutro Oscuro de Alta Gama) */
-body.theme-itma {
-    background-color: #090e12 !important;
-    color: #f8fafc !important;
-}
-body.theme-itma aside {
-    background-color: #0e1815 !important;
-    border-color: #1b2e28 !important;
-    color: #f8fafc !important;
-}
-body.theme-itma header {
-    background-color: #0e1815 !important;
-    border-color: #1b2e28 !important;
-    color: #f8fafc !important;
-}
-body.theme-itma header h2 {
-    color: #ffffff !important;
-}
-body.theme-itma .bg-white {
-    background-color: #14221d !important;
-    color: #ffffff !important;
-    border-color: rgba(16, 185, 129, 0.2) !important;
-}
-body.theme-itma .bg-slate-50, body.theme-itma .bg-slate-100 {
-    background-color: #0c1613 !important;
-    color: #cbd5e1 !important;
-}
-body.theme-itma input, body.theme-itma select, body.theme-itma textarea {
-    background-color: #090e12 !important;
-    color: #ffffff !important;
-    border-color: #10b981 !important;
-}
-
-/* Tema Degradado Esmeralda Profundo */
-body.theme-emerald {
-    background-color: #080d14 !important;
-    color: #f8fafc !important;
-}
-body.theme-emerald header {
-    background-color: #0e1622 !important;
-    border-color: #1e2d42 !important;
-    color: #ffffff !important;
-}
-body.theme-emerald .bg-white {
-    background-color: #152232 !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
-    color: #ffffff !important;
-}
-body.theme-emerald input, body.theme-emerald select, body.theme-emerald textarea {
-    background-color: #080d14 !important;
-    color: #ffffff !important;
-    border-color: #10b981 !important;
-}
-
-/* Tema Ciberpunk (Amarillo Neón / Negro / Cyan) */
-body.theme-cyberpunk {
-    background: linear-gradient(135deg, #09090b 0%, #18181b 50%, #27272a 100%) fixed !important;
-    color: #facc15 !important;
-}
-body.theme-cyberpunk header {
-    background: #09090b !important;
-    border-color: #facc15 !important;
-    color: #facc15 !important;
-}
-body.theme-cyberpunk .bg-white {
-    background: #18181b !important;
-    color: #facc15 !important;
-    border-color: #3f3f46 !important;
-}
-body.theme-cyberpunk input, body.theme-cyberpunk select, body.theme-cyberpunk textarea {
-    background-color: #09090b !important;
-    color: #facc15 !important;
-    border-color: #facc15 !important;
-}
-
-/* Tema Amatista (Violeta / Indigo / Rosa) */
-body.theme-amethyst {
-    background: linear-gradient(135deg, #31103f 0%, #581c87 50%, #701a75 100%) fixed !important;
-    color: #f5d0fe !important;
-}
-body.theme-amethyst header {
-    background: rgba(49, 16, 63, 0.85) !important;
-    backdrop-filter: blur(16px);
-    border-color: rgba(232, 121, 249, 0.3) !important;
-    color: #f5d0fe !important;
-}
-body.theme-amethyst .bg-white {
-    background: rgba(88, 28, 135, 0.75) !important;
-    backdrop-filter: blur(12px);
-    border-color: rgba(232, 121, 249, 0.25) !important;
-    color: #f5d0fe !important;
-}
-
-/* Tema Cosmos (Azul Profundo / Dorado) */
-body.theme-cosmos {
-    background: linear-gradient(135deg, #030712 0%, #111827 50%, #1f2937 100%) fixed !important;
-    color: #fef08a !important;
-}
-body.theme-cosmos header {
-    background: #030712 !important;
-    border-color: #eab308 !important;
-    color: #fef08a !important;
-}
-body.theme-cosmos .bg-white {
-    background: #111827 !important;
-    color: #f3f4f6 !important;
-    border-color: #374151 !important;
 }
 
 /* ==========================================================================

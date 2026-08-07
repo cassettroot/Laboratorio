@@ -13,16 +13,8 @@ window.renderSettings = function(container) {
     };
 
     const themesData = [
-        { id: 'itma', name: 'Verde ITMA', dotBg: 'bg-emerald-500', activeRing: 'ring-2 ring-emerald-400 border-emerald-500' },
-        { id: 'light', name: 'Modo Dia', dotBg: 'bg-slate-300', activeRing: 'ring-2 ring-slate-300 border-slate-400' },
-        { id: 'dark', name: 'Modo Noche', dotBg: 'bg-slate-900', activeRing: 'ring-2 ring-sky-400 border-sky-500' },
-        { id: 'neon', name: 'Neon', dotBg: 'bg-purple-600', activeRing: 'ring-2 ring-purple-400 border-purple-500' },
-        { id: 'ocean', name: 'Oceano', dotBg: 'bg-teal-500', activeRing: 'ring-2 ring-teal-400 border-teal-500' },
-        { id: 'sunset', name: 'Atardecer', dotBg: 'bg-amber-500', activeRing: 'ring-2 ring-amber-400 border-amber-500' },
-        { id: 'emerald', name: 'Esmeralda', dotBg: 'bg-emerald-600', activeRing: 'ring-2 ring-emerald-400 border-emerald-500' },
-        { id: 'cyberpunk', name: 'Ciberpunk', dotBg: 'bg-yellow-400', activeRing: 'ring-2 ring-yellow-400 border-yellow-500' },
-        { id: 'amethyst', name: 'Amatista', dotBg: 'bg-fuchsia-500', activeRing: 'ring-2 ring-fuchsia-400 border-fuchsia-500' },
-        { id: 'cosmos', name: 'Cosmos', dotBg: 'bg-amber-400', activeRing: 'ring-2 ring-amber-300 border-amber-400' }
+        { id: 'light', name: 'Modo Claro', icon: 'sun', desc: 'Lienzo blanco puro con tarjetas elevadas e interfaz ultra limpia (#FFFFFF)', bgClass: 'bg-white text-slate-900 border-slate-300' },
+        { id: 'dark', name: 'Modo Oscuro', icon: 'moon', desc: 'Paleta grafito profesional de alta legibilidad (#0F172A / #1E293B)', bgClass: 'bg-slate-900 text-white border-slate-700' }
     ];
 
     container.innerHTML = `
@@ -48,25 +40,30 @@ window.renderSettings = function(container) {
             <div class="glass-card-premium rounded-3xl p-6 border border-slate-700/60 shadow-2xl space-y-5">
                 <div class="flex items-center justify-between pb-4 border-b border-slate-700/60">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center justify-center shadow-md">
+                        <div class="w-10 h-10 rounded-2xl bg-brand-500/20 text-brand-300 border border-brand-500/40 flex items-center justify-center shadow-md">
                             <i data-lucide="palette" class="w-5 h-5"></i>
                         </div>
                         <div>
-                            <h3 class="text-base font-extrabold text-white tracking-tight">Temas de la Interfaz</h3>
-                            <p class="text-xs text-slate-300 font-medium">Elige la paleta de colores para sincronizar la barra lateral, botones e iconos</p>
+                            <h3 class="text-base font-extrabold text-white tracking-tight">Apariencia Visual del Sistema</h3>
+                            <p class="text-xs text-slate-300 font-medium">Elige el tema base unificado para adaptar la barra lateral, botones y tablas</p>
                         </div>
                     </div>
-                    <span class="text-2xs font-extrabold px-3.5 py-1.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-xl shadow-xs">10 Temas Disponibles</span>
+                    <span class="text-2xs font-extrabold px-3.5 py-1.5 bg-brand-500/20 text-brand-300 border border-brand-500/40 rounded-xl shadow-xs">Sistema Dual Unificado</span>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 pt-1">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-1">
                     ${themesData.map(t => {
-                        const isSelected = currentTheme === t.id;
+                        const isSelected = (currentTheme === t.id) || (currentTheme !== 'light' && t.id === 'dark');
                         return `
-                            <button type="button" onclick="selectThemeFromSettings('${t.id}')" class="relative p-4 rounded-2xl border text-center font-extrabold text-xs transition-all duration-200 flex flex-col items-center gap-3 ${isSelected ? 'border-emerald-400 bg-emerald-950/40 text-white shadow-[0_0_20px_rgba(52,211,153,0.3)] ring-2 ring-emerald-400/60 transform scale-[1.04]' : 'bg-slate-900/60 text-slate-300 border-slate-700/70 hover:border-slate-500 hover:text-white hover:bg-slate-800/80 hover:scale-[1.02]'}">
-                                ${isSelected ? '<span class="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-emerald-400 text-slate-950 flex items-center justify-center font-black text-xs shadow-md animate-pulse">✓</span>' : ''}
-                                <div class="w-10 h-10 rounded-full ${t.dotBg} shadow-lg border-2 border-white/20"></div>
-                                <span class="font-extrabold text-xs tracking-wide">${t.name}</span>
+                            <button type="button" onclick="selectThemeFromSettings('${t.id}')" class="relative p-6 rounded-2xl border text-left font-extrabold transition-all duration-200 flex items-start gap-4 ${isSelected ? 'border-emerald-500 bg-emerald-950/40 text-white shadow-[0_0_25px_rgba(16,185,129,0.3)] ring-2 ring-emerald-400' : 'bg-slate-900/60 text-slate-300 border-slate-700/70 hover:border-slate-500 hover:text-white hover:bg-slate-800/80'}">
+                                ${isSelected ? '<span class="absolute top-4 right-4 px-3 py-1 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-2xs uppercase tracking-wider shadow-md">✓ Activo</span>' : ''}
+                                <div class="w-12 h-12 rounded-2xl ${t.bgClass} shadow-lg flex items-center justify-center shrink-0 border border-slate-500/30">
+                                    <i data-lucide="${t.icon}" class="w-6 h-6"></i>
+                                </div>
+                                <div class="space-y-1">
+                                    <h4 class="font-extrabold text-base tracking-wide">${t.name}</h4>
+                                    <p class="text-xs font-normal text-slate-300 leading-relaxed">${t.desc}</p>
+                                </div>
                             </button>
                         `;
                     }).join('')}

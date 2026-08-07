@@ -1,23 +1,36 @@
+function formatChemicalFormulaHtml(formula) {
+    if (!formula) return '-';
+    return formula.replace(/([A-Za-z\)])(\d+)/g, '$1<sub>$2</sub>');
+}
+
 function buildGroupBadgesHtml(substance_group) {
     if (!substance_group) return '';
     const groups = substance_group.split(/[,/;|]/).map(g => g.trim()).filter(Boolean);
     return groups.map(group => {
-        let gColor = 'bg-slate-100 text-slate-900 border-slate-300 font-extrabold';
+        let gColor = 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-black shadow-[0_0_10px_rgba(6,182,212,0.2)]';
         const g = group.toLowerCase();
-        if (g.includes('inflam')) gColor = 'bg-rose-100 text-rose-950 border-rose-300 font-extrabold';
-        else if (g.includes('tox') || g.includes('venen')) gColor = 'bg-purple-100 text-purple-950 border-purple-300 font-extrabold';
-        else if (g.includes('corros')) gColor = 'bg-amber-100 text-amber-950 border-amber-300 font-extrabold';
-        else if (g.includes('explos')) gColor = 'bg-yellow-100 text-yellow-950 border-yellow-400 font-extrabold';
-        else if (g.includes('comburent')) gColor = 'bg-pink-100 text-pink-950 border-pink-300 font-extrabold';
-        else if (g.includes('irrit')) gColor = 'bg-emerald-100 text-emerald-950 border-emerald-300 font-extrabold';
-        else if (g.includes('alcoh') || g.includes('solvent')) gColor = 'bg-sky-100 text-sky-950 border-sky-300 font-extrabold';
-        else if (g.includes('ester') || g.includes('éster')) gColor = 'bg-fuchsia-100 text-fuchsia-950 border-fuchsia-300 font-extrabold';
-        else if (g.includes('aldehid') || g.includes('aldehíd')) gColor = 'bg-violet-100 text-violet-950 border-violet-300 font-extrabold';
-        else if (g.includes('cetona')) gColor = 'bg-indigo-100 text-indigo-950 border-indigo-300 font-extrabold';
-        else if (g.includes('acid') || g.includes('ácid')) gColor = 'bg-rose-100 text-rose-950 border-rose-300 font-extrabold';
-        else if (g.includes('base') || g.includes('alcali')) gColor = 'bg-blue-100 text-blue-950 border-blue-300 font-extrabold';
-        else if (g.includes('inert') || g.includes('sal')) gColor = 'bg-cyan-100 text-cyan-950 border-cyan-300 font-extrabold';
-        return `<span class="px-3 py-1 rounded-xl border text-3xs font-extrabold uppercase tracking-wider shadow-2xs ${gColor}">${group}</span>`;
+        if (g.includes('inflam')) {
+            gColor = 'badge-inflammable bg-red-500/20 text-red-400 border-red-500/50 font-black shadow-[0_0_12px_rgba(239,68,68,0.25)]';
+        } else if (g.includes('tox') || g.includes('venen')) {
+            gColor = 'badge-toxic bg-purple-500/20 text-purple-300 border-purple-500/50 font-black shadow-[0_0_12px_rgba(168,85,247,0.25)]';
+        } else if (g.includes('corros')) {
+            gColor = 'badge-corrosive bg-amber-500/20 text-amber-300 border-amber-500/50 font-black shadow-[0_0_12px_rgba(245,158,11,0.25)]';
+        } else if (g.includes('explos')) {
+            gColor = 'badge-explosive bg-yellow-500/20 text-yellow-300 border-yellow-500/50 font-black shadow-[0_0_12px_rgba(234,179,8,0.25)]';
+        } else if (g.includes('comburent')) {
+            gColor = 'badge-comburent bg-pink-500/20 text-pink-300 border-pink-500/50 font-black shadow-[0_0_12px_rgba(236,72,153,0.25)]';
+        } else if (g.includes('irrit')) {
+            gColor = 'badge-irritant bg-emerald-500/20 text-emerald-400 border-emerald-500/50 font-black shadow-[0_0_12px_rgba(16,185,129,0.25)]';
+        } else if (g.includes('alcoh') || g.includes('solvent')) {
+            gColor = 'badge-alcohol bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-black shadow-[0_0_12px_rgba(6,182,212,0.25)]';
+        } else if (g.includes('ester') || g.includes('éster') || g.includes('aldehid') || g.includes('aldehíd') || g.includes('cetona')) {
+            gColor = 'badge-organic bg-violet-500/20 text-violet-300 border-violet-500/50 font-black shadow-[0_0_12px_rgba(139,92,246,0.25)]';
+        } else if (g.includes('acid') || g.includes('ácid')) {
+            gColor = 'badge-acid bg-rose-500/20 text-rose-300 border-rose-500/50 font-black shadow-[0_0_12px_rgba(244,63,94,0.25)]';
+        } else if (g.includes('base') || g.includes('alcali')) {
+            gColor = 'badge-base bg-blue-500/20 text-blue-300 border-blue-500/50 font-black shadow-[0_0_12px_rgba(59,130,246,0.25)]';
+        }
+        return `<span class="px-3 py-1 rounded-xl border text-3xs font-black uppercase tracking-wider ${gColor}">${group}</span>`;
     }).join(' ');
 }
 
@@ -551,7 +564,7 @@ function renderSubstancesBlock(items, mode) {
                     const today = new Date();
                     let expBadge = '';
                     if (s.expiration_date === 'Sin caducidad' || s.expiration_date === 'No aplica') {
-                        expBadge = `<span class="absolute top-3 left-3 bg-blue-600 text-white text-3xs font-extrabold uppercase px-2.5 py-1 rounded-xl shadow-md z-10">Sin Caducidad</span>`;
+                        expBadge = `<span class="absolute top-3 left-3 bg-sky-500 text-white font-black text-3xs uppercase tracking-wider px-3 py-1 rounded-xl shadow-lg border border-sky-300 z-10">Sin Caducidad</span>`;
                     } else if (s.expiration_date) {
                         const exp = new Date(s.expiration_date);
                         if (!isNaN(exp)) {
@@ -571,7 +584,7 @@ function renderSubstancesBlock(items, mode) {
                         try {
                             const imgs = typeof s.presentation_images === 'string' ? JSON.parse(s.presentation_images) : s.presentation_images;
                             if (Array.isArray(imgs) && imgs.length > 0) {
-                                presBadge = `<span class="substance-photo-badge absolute top-3 right-3 bg-slate-900/80 backdrop-blur-sm text-white text-3xs font-extrabold px-2.5 py-1 rounded-xl border border-white/20 z-10 flex items-center gap-1 shadow-sm"><i data-lucide="image" class="w-3 h-3 text-sky-400"></i> ${imgs.length + (s.image_path ? 1 : 0)} fotos</span>`;
+                                presBadge = `<span class="substance-photo-badge absolute top-3 right-3 bg-slate-900/90 backdrop-blur-sm text-white text-3xs font-black px-2.5 py-1 rounded-xl border border-slate-700 z-10 flex items-center gap-1 shadow-sm"><i data-lucide="image" class="w-3 h-3 text-cyan-400"></i> ${imgs.length + (s.image_path ? 1 : 0)} fotos</span>`;
                             }
                         } catch(e) {}
                     }
@@ -584,16 +597,16 @@ function renderSubstancesBlock(items, mode) {
                                 ${cardImage ? `
                                     <img src="${cardImage}" class="w-full h-full object-cover group-hover/img:scale-105 transition duration-500">
                                     <div class="absolute inset-0 bg-slate-950/60 opacity-0 group-hover/img:opacity-100 transition flex items-center justify-center text-white text-xs font-extrabold gap-1.5 backdrop-blur-[2px]">
-                                        <i data-lucide="maximize-2" class="w-4 h-4 text-emerald-400"></i>
+                                        <i data-lucide="maximize-2" class="w-4 h-4 text-cyan-400"></i>
                                         <span>Ver Foto Completa</span>
                                     </div>
                                 ` : `
                                     <i data-lucide="flask-conical" class="w-12 h-12 text-slate-500"></i>
                                 `}
-                                <div class="substance-container-badge absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-md text-slate-900 text-xs rounded-2xl p-2.5 flex justify-center items-center shadow-lg border border-slate-200/80 z-10">
+                                <div class="substance-container-badge absolute bottom-3 left-3 right-3 bg-slate-900/90 backdrop-blur-md text-white text-xs rounded-2xl p-2.5 flex justify-center items-center shadow-xl border border-slate-700/80 z-10">
                                     <span class="font-black flex items-center gap-1.5">
-                                        <i data-lucide="scale" class="w-4 h-4 text-emerald-600"></i>
-                                        <span>${s.container_content || s.unit || ''}</span>
+                                        <i data-lucide="scale" class="w-4 h-4 text-cyan-400"></i>
+                                        <span>${s.container_content || (s.quantity + ' ' + (s.unit || ''))}</span>
                                     </span>
                                 </div>
                             </div>
@@ -601,15 +614,15 @@ function renderSubstancesBlock(items, mode) {
                             <div class="p-5 flex-1 flex flex-col justify-between gap-4">
                                 <div class="space-y-3">
                                     <div class="flex items-center justify-between gap-2 flex-wrap">
-                                        <span class="substance-id-code text-xs font-mono font-extrabold uppercase tracking-wider text-slate-800">LAB-SUB-${s.id}</span>
+                                        <span class="substance-id-code text-xs font-mono font-black uppercase tracking-wider text-amber-400">LAB-SUB-${s.id}</span>
                                     </div>
                                     <div class="flex flex-wrap gap-1.5">
                                         ${groupBadgeHtml}
                                     </div>
-                                    <h4 class="font-black text-white text-base leading-snug line-clamp-2" title="${s.name}">${s.name}</h4>
+                                    <h4 class="font-black text-white text-base leading-snug line-clamp-2 hover:text-cyan-300 transition cursor-pointer" title="${s.name}">${s.name}</h4>
 
                                     <div class="text-xs space-y-2 pt-3 border-t border-slate-800">
-                                        <div class="flex justify-between items-center"><span class="font-extrabold text-white">Fórmula:</span><span class="font-bold text-slate-100 truncate max-w-[140px]" title="${s.chemical_formula || ''}">${s.chemical_formula || '-'}</span></div>
+                                        <div class="flex justify-between items-center"><span class="font-extrabold text-white">Fórmula:</span><span class="font-bold text-slate-100 truncate max-w-[140px]" title="${s.chemical_formula || ''}">${formatChemicalFormulaHtml(s.chemical_formula)}</span></div>
                                         <div class="flex justify-between items-center"><span class="font-extrabold text-white">CAS:</span><span class="font-bold text-slate-100">${s.cas_number || '-'}</span></div>
                                         <div class="flex justify-between items-center"><span class="font-extrabold text-white">Estado:</span><span class="font-black text-emerald-400">${s.physical_state || 'N/D'}</span></div>
                                         <div class="flex justify-between items-center"><span class="font-extrabold text-white">Ubicación:</span><span class="font-extrabold text-amber-300 bg-slate-950 px-2 py-0.5 rounded-lg border border-amber-400/50 text-3xs truncate max-w-[130px]" title="${s.location || 'No asignada'}">📍 ${s.location || 'No asignada'}</span></div>

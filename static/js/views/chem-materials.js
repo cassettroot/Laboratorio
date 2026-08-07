@@ -108,18 +108,18 @@ async function renderChemicalMaterialsList(container) {
             }
 
             body.innerHTML = state.chemMaterials.map(m => {
-                let statusBadge = `<span class="badge-status bg-emerald-100 text-emerald-950 border border-emerald-300 font-extrabold px-3 py-1 rounded-xl text-2xs inline-block">Buenas Condiciones</span>`;
+                let statusBadge = `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-extrabold px-3 py-1 rounded-lg text-2xs inline-block shadow-2xs">Buenas Condiciones</span>`;
                 const st = (m.status || '').toLowerCase();
                 if (st.includes('excelente') || st.includes('nuevo')) {
-                    statusBadge = `<span class="badge-status bg-teal-100 text-teal-950 border border-teal-300 font-extrabold px-3 py-1 rounded-xl text-2xs inline-block">${m.status}</span>`;
-                } else if (st.includes('dañado') || st.includes('roto')) {
-                    statusBadge = `<span class="badge-status bg-rose-100 text-rose-950 border border-rose-300 font-extrabold px-3 py-1 rounded-xl text-2xs inline-block">${m.status}</span>`;
-                } else if (st.includes('bueno')) {
-                    statusBadge = `<span class="badge-status bg-emerald-100 text-emerald-950 border border-emerald-300 font-extrabold px-3 py-1 rounded-xl text-2xs inline-block">${m.status}</span>`;
+                    statusBadge = `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-extrabold px-3 py-1 rounded-lg text-2xs inline-block shadow-2xs">${m.status}</span>`;
+                } else if (st.includes('dañado') || st.includes('roto') || st.includes('inoperativo')) {
+                    statusBadge = `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/40 font-extrabold px-3 py-1 rounded-lg text-2xs inline-block shadow-2xs">${m.status}</span>`;
+                } else if (st.includes('bueno') || st.includes('regular') || st.includes('mantenimiento')) {
+                    statusBadge = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 font-extrabold px-3 py-1 rounded-lg text-2xs inline-block shadow-2xs">${m.status}</span>`;
                 }
 
                 return `
-                    <tr class="hover:bg-sky-50 transition border-b border-slate-200/80">
+                    <tr class="hover:bg-slate-800/60 transition border-b border-slate-800/60">
                         <td class="py-4 px-4 text-center font-mono font-extrabold text-slate-800 text-xs">${m.id}</td>
                         <td class="py-4 px-4 text-center font-mono font-extrabold text-amber-700 text-xs">${m.original_id ? '#' + m.original_id + ' (PROVISIONAL)' : '-'}</td>
                         <td class="py-4 px-4 text-xs font-bold text-slate-700 uppercase max-w-[180px] truncate" title="${m.location || ''}">${m.location || '-'}</td>
