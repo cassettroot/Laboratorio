@@ -172,7 +172,9 @@ function router() {
         renderScanQrView(mainEl);
     }
     else if (state.activeRoute === '#/warehouse') {
-        window.location.hash = '#/substances';
+        setActiveTab('nav-warehouse');
+        titleEl.textContent = "Almacén y Estantería (Organizador 2x3)";
+        renderWarehouseView(mainEl);
     }
     else if (state.activeRoute === '#/loans') {
         setActiveTab('nav-loans');
