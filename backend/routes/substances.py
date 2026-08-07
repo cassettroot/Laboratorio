@@ -139,15 +139,16 @@ def create_substance():
     from flask import session
     user_responsible = session.get('user', request.headers.get('X-User-Responsible', 'Sistema Local'))
 
-    name = data.get('name', '').strip()
-    quantity_str = data.get('quantity', '0')
-    unit = data.get('unit', '').strip()
+    name = str(data.get('name') or '').strip()
+    quantity_str = data.get('quantity') if data.get('quantity') is not None else data.get('amount', '0')
+    unit = str(data.get('unit') or '').strip()
 
     if not name:
         return jsonify({"status": "error", "message": "El nombre de la sustancia es obligatorio"}), 400
         
+    container_content = str(data.get('container_content') or data.get('container') or '').strip()
+
     if not unit:
-        container_content = data.get('container_content', '').strip()
         if container_content:
             import re
             match = re.search(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ°%]+$', container_content)
@@ -165,14 +166,30 @@ def create_substance():
     except (ValueError, TypeError):
         stock_units = 1
 
+    chemical_formula = str(data.get('chemical_formula') or data.get('formula') or '').strip()
+    cas_number = str(data.get('cas_number') or data.get('cas') or '').strip()
+    composition = str(data.get('composition') or '').strip()
+    concentration = str(data.get('concentration') or data.get('purity') or '').strip()
+    observations = str(data.get('observations') or data.get('notes') or '').strip()
+
+    risks = str(data.get('risks_warnings') or '').strip()
+    if not risks and 'health_risk' in data:
+        risks = f"Salud: {data.get('health_risk', 0)}, Inflamabilidad: {data.get('flammability_risk', 0)}, Reactividad: {data.get('reactivity_risk', 0)}"
+
     # Extraer campos opcionales
     fields = [
-        'chemical_formula', 'cas_number', 'composition', 'concentration',
-        'physical_state', 'color', 'odor', 'risks_warnings', 'location',
-        'entry_date', 'expiration_date', 'responsible', 'observations', 'image_path',
-        'external_links', 'pdf_path', 'substance_group', 'container_content'
+        'physical_state', 'color', 'odor', 'location',
+        'entry_date', 'expiration_date', 'responsible', 'image_path',
+        'external_links', 'pdf_path', 'substance_group'
     ]
     optional_vals = {f: data.get(f, '').strip() if data.get(f) is not None else None for f in fields}
+    optional_vals['chemical_formula'] = chemical_formula
+    optional_vals['cas_number'] = cas_number
+    optional_vals['composition'] = composition
+    optional_vals['concentration'] = concentration
+    optional_vals['observations'] = observations
+    optional_vals['risks_warnings'] = risks
+    optional_vals['container_content'] = container_content
 
     raw_pres_imgs = data.get('presentation_images')
     if isinstance(raw_pres_imgs, list):
@@ -304,11 +321,18 @@ def update_substance(item_id):
 
     optional_vals = {}
     for f in fields:
-        if f in data:
+        if f in data and data[f] is not None:
             val = data[f]
             optional_vals[f] = val.strip() if isinstance(val, str) else val
         else:
             optional_vals[f] = old_row[f]
+
+    # Soporte para alias enviados por la app móvil
+    if 'formula' in data and data['formula']: optional_vals['chemical_formula'] = str(data['formula']).strip()
+    if 'cas' in data and data['cas']: optional_vals['cas_number'] = str(data['cas']).strip()
+    if 'notes' in data and data['notes']: optional_vals['observations'] = str(data['notes']).strip()
+    if 'container' in data and data['container']: optional_vals['container_content'] = str(data['container']).strip()
+    if 'purity' in data and data['purity']: optional_vals['concentration'] = str(data['purity']).strip()
 
     optional_vals['presentation_images'] = pres_imgs_str
 

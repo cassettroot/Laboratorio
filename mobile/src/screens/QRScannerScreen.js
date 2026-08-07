@@ -31,14 +31,33 @@ export default function QRScannerScreen({ navigation }) {
         return;
       }
 
-      // 1. Extraer ID numérico o código
+      // 1. Intentar primero con la API de escaneo unificada
+      try {
+        const res = await apiService.scanQR(rawText);
+        const targetItem = res?.data || res?.item;
+
+        if (res && res.status === 'success' && targetItem) {
+          setLoading(false);
+          setScanned(false);
+          navigation.navigate('Detail', { 
+            type: res.type || 'substance', 
+            id: targetItem.id,
+            item: targetItem 
+          });
+          return;
+        }
+      } catch (apiErr) {
+        console.warn("API scanQR falló, realizando búsqueda de respaldo local:", apiErr.message);
+      }
+
+      // 2. Extraer ID numérico si existe un patrón como LAB-SUB-15 o sustancias/15 o números
       const match = rawText.match(/LAB-[A-Z]+-(\d+)/i) || rawText.match(/(?:substances|chemical_materials|didactic_materials|equipos)\/(\d+)/i) || rawText.match(/^(\d+)$/);
 
       if (match && match[1]) {
         const itemId = match[1];
         try {
           const subRes = await apiService.getSubstanceById(itemId);
-          if (subRes.status === 'success' && subRes.data) {
+          if (subRes && subRes.status === 'success' && subRes.data) {
             setLoading(false);
             setScanned(false);
             navigation.navigate('Detail', { 
@@ -49,28 +68,13 @@ export default function QRScannerScreen({ navigation }) {
             return;
           }
         } catch (e) {
-          console.warn("Búsqueda directa por ID no encontrada, intentando API de escaneo:", e);
+          console.warn("Búsqueda directa por ID no encontrada:", e);
         }
       }
 
-      // 2. Intentar escaneo por el API general
-      const res = await apiService.scanQR(rawText);
-      const targetItem = res.data || res.item;
-
-      if (res.status === 'success' && targetItem) {
-        setLoading(false);
-        setScanned(false);
-        navigation.navigate('Detail', { 
-          type: res.type || 'substance', 
-          id: targetItem.id,
-          item: targetItem 
-        });
-        return;
-      }
-
-      // 3. Fallback de búsqueda local en todo el inventario de sustancias
+      // 3. Búsqueda local en sustancias
       const allRes = await apiService.getSubstances();
-      if (allRes.status === 'success' && allRes.data) {
+      if (allRes && allRes.status === 'success' && allRes.data) {
         const found = allRes.data.find(s => {
           if (!s) return false;
           if (rawText.includes(`LAB-SUB-${s.id}`) || rawText.includes(`substances/${s.id}`)) return true;

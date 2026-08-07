@@ -110,9 +110,12 @@ async function renderItemDetail(container, typePath, itemId) {
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3.5 text-sm pt-3 border-t border-slate-100">
                             <div>
                                 <span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Stock Disponible</span>
-                                <span class="text-xl font-bold text-brand-600">${item.quantity} ${item.unit || 'uds'}</span>
+                                <div class="flex items-baseline gap-2 mt-0.5">
+                                    <span class="text-xl font-bold text-brand-600">${item.stock_units || 1} envase(s)</span>
+                                    <span class="text-sm font-semibold text-slate-600">(${item.quantity} ${item.unit || 'g'} c/u)</span>
+                                </div>
                                 ${typePath === 'substances' && item.container_content ? `
-                                    <div class="text-2xs text-slate-400 font-bold mt-0.5">Contenido por envase: ${item.container_content}</div>
+                                    <div class="text-2xs text-slate-500 font-medium mt-1">Presentación: ${item.container_content}</div>
                                 ` : ''}
                             </div>
                             <div>

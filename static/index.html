@@ -100,6 +100,10 @@
                 <i data-lucide="bell" class="w-5 h-5"></i>
                 <span>Notificaciones</span>
             </a>
+            <a href="#/settings" id="nav-settings" class="flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium hover:bg-slate-800 hover:text-white">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span>Configuración</span>
+            </a>
         </nav>
 
         <div class="p-4 border-t border-slate-800 text-center text-xs text-slate-500">
@@ -111,16 +115,16 @@
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         
         <!-- HEADER SUPERIOR (No se imprime) -->
-        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 no-print z-10">
+        <header class="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-8 shrink-0 no-print z-10 shadow-md">
             <div class="flex items-center gap-4">
-                <h2 id="page-title" class="text-xl font-bold text-slate-900">Panel de Control</h2>
-                <div class="h-6 w-px bg-slate-200"></div>
-                <div class="flex items-center gap-2">
-                    <span id="active-space-badge" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-50 text-brand-700 border border-brand-200">
-                        Laboratorio de Química
+                <h2 id="page-title" class="text-xl font-extrabold text-white tracking-tight">Panel de Control</h2>
+                <div class="h-6 w-px bg-slate-800"></div>
+                <div class="flex items-center gap-2.5">
+                    <span id="active-space-badge" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-slate-800 text-white border border-slate-700 shadow-sm flex items-center gap-2">
+                        🧪 Laboratorio de Química
                     </span>
-                    <button onclick="openSpaceSelectModal()" class="flex items-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition border border-slate-200">
-                        <i data-lucide="building" class="w-3.5 h-3.5"></i>
+                    <button onclick="openSpaceSelectModal()" class="flex items-center gap-2 text-xs font-extrabold bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-1.5 rounded-xl transition border border-slate-700 shadow-sm cursor-pointer">
+                        <i data-lucide="building" class="w-4 h-4 text-emerald-400"></i>
                         <span>Cambiar Espacio</span>
                     </button>
                 </div>
@@ -171,7 +175,7 @@
                                 }
                                 if (feedbackEl) {
                                     feedbackEl.className = 'text-2xs font-bold p-2.5 rounded-xl border bg-emerald-50 text-emerald-700 border-emerald-200';
-                                    feedbackEl.textContent = `✅ Sesión iniciada como ${res.user}. Selecciona un laboratorio para ingresar.`;
+                                    feedbackEl.textContent = "¡Sesión iniciada con éxito!";
                                     feedbackEl.classList.remove('hidden');
                                 }
                                 updateSpaceSelectAuthStatus();
@@ -258,12 +262,35 @@
                         selectSpace(val);
                     }
                 </script>
+            <!-- Acceso Directo a Configuración / Ajustes -->
+            <div class="flex items-center gap-2.5">
+                <a href="#/settings" class="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 text-xs font-extrabold px-3.5 py-1.5 rounded-xl transition flex items-center gap-2 shadow-sm cursor-pointer">
+                    <i data-lucide="settings" class="w-4 h-4 text-amber-400"></i>
+                    <span>Ajustes</span>
+                </a>
+                <div id="user-auth-control" class="flex items-center gap-2.5">
+                    <!-- Se inyecta dinámicamente por JS: botón de Iniciar Sesión o nombre de usuario + Cerrar Sesión -->
+                </div>
             </div>
-            
-            <!-- Control de Autenticación de Usuario (Dinámico) -->
-            <div id="user-auth-control" class="flex items-center gap-3">
-                <!-- Se inyecta dinámicamente por JS: botón de Iniciar Sesión o nombre de usuario + Cerrar Sesión -->
-            </div>
+
+            <script>
+                function setWebTheme(themeName) {
+                    const validTheme = themeName === 'light' ? 'light' : 'dark';
+                    localStorage.setItem('app_theme', validTheme);
+                    document.body.classList.remove(
+                        'theme-light', 'theme-dark', 'theme-neon', 'theme-ocean', 
+                        'theme-sunset', 'theme-itma', 'theme-emerald', 'theme-cyberpunk', 
+                        'theme-amethyst', 'theme-cosmos'
+                    );
+                    document.body.classList.add('theme-' + validTheme);
+                }
+
+                function initWebTheme() {
+                    const savedTheme = localStorage.getItem('app_theme') || 'dark';
+                    setWebTheme(savedTheme === 'light' ? 'light' : 'dark');
+                }
+                document.addEventListener('DOMContentLoaded', initWebTheme);
+            </script>
         </header>
 
         <!-- CONTENEDOR DINÁMICO DE PÁGINAS -->
@@ -425,13 +452,13 @@
     </div>
 
     <!-- MODAL DE SELECCIÓN DE ESPACIO / LABORATORIO, PERFIL Y USUARIOS -->
-    <div id="space-select-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4 transition-all duration-300 hidden">
-        <div class="bg-white rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col border border-slate-100 animate-fade-in max-h-[95vh]">
+    <div id="space-select-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[100] flex items-center justify-center p-4 transition-all duration-300 hidden">
+        <div class="bg-slate-900 text-slate-100 rounded-3xl w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col border border-slate-800 animate-fade-in max-h-[95vh]">
             <!-- Modal Header with Tabs -->
-            <div class="px-8 py-5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex flex-col md:flex-row items-center justify-between gap-4 relative shrink-0">
+            <div class="px-8 py-5 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white flex flex-col md:flex-row items-center justify-between gap-4 relative shrink-0 border-b border-slate-800">
                 <div>
                     <h2 class="text-xl font-extrabold tracking-tight">Sistema de Gestión ITMA II</h2>
-                    <p class="text-slate-300 text-xs mt-0.5">Selección de laboratorios y administración de usuarios</p>
+                    <p class="text-slate-400 text-xs mt-0.5">Selección de laboratorios y administración de usuarios</p>
                 </div>
 
                 <!-- Tabs Container -->
@@ -456,7 +483,7 @@
             </div>
 
             <!-- Modal Content Area -->
-            <div class="overflow-y-auto flex-1 bg-slate-50">
+            <div class="overflow-y-auto flex-1 bg-slate-950/60">
                 
                 <!-- TAB 1: SELECCIÓN DE LABORATORIO Y LOGIN LATERAL -->
                 <div id="space-tab-content-spaces" class="p-6">
@@ -777,6 +804,7 @@
     <script src="/js/views/notifications.js"></script>
     <script src="/js/views/warehouse.js"></script>
     <script src="/js/views/loans.js"></script>
+    <script src="/js/views/settings.js"></script>
     <script src="/js/consulta/data/ghs.js"></script>
     <script src="/js/consulta/data/nfpa.js"></script>
     <script src="/js/consulta/data/lab-materials.js"></script>

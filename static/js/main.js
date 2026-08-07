@@ -70,7 +70,8 @@ function router() {
         '#/equipos',
         '#/scan-qr',
         '#/warehouse',
-        '#/loans'
+        '#/loans',
+        '#/settings'
     ];
 
     if (!state.isLoggedIn) {
@@ -217,6 +218,13 @@ function router() {
         titleEl.textContent = "Mi Cuenta";
         renderAccountView(mainEl);
     }
+    else if (state.activeRoute === '#/settings') {
+        setActiveTab('nav-settings');
+        titleEl.textContent = "Configuración del Sistema";
+        if (typeof renderSettings === 'function') {
+            renderSettings(mainEl);
+        }
+    }
     else {
         mainEl.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">Ruta no encontrada.</div>`;
     }
@@ -239,6 +247,59 @@ async function initApp() {
         }
     }
 }
+
+window.openImageLightbox = function(imgSrc, title = 'Vista Previa de Foto / Evidencia') {
+    let lightbox = document.getElementById('global-image-lightbox');
+    if (!lightbox) {
+        lightbox = document.createElement('div');
+        lightbox.id = 'global-image-lightbox';
+        lightbox.className = 'fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 transition-all duration-300 opacity-0 pointer-events-none no-print';
+        lightbox.innerHTML = `
+            <div class="bg-slate-900 border border-slate-700/80 rounded-3xl p-6 max-w-3xl w-full shadow-2xl relative flex flex-col items-center space-y-4 animate-fade-in text-white">
+                <div class="w-full flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h3 id="lightbox-title" class="font-extrabold text-sm text-slate-100 flex items-center gap-2">
+                        <i data-lucide="image" class="w-4 h-4 text-emerald-400"></i>
+                        <span>${title}</span>
+                    </h3>
+                    <button onclick="closeImageLightbox()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition font-bold text-lg">&times;</button>
+                </div>
+                <div class="w-full max-h-[75vh] flex items-center justify-center overflow-hidden rounded-2xl bg-black/50 border border-slate-800 p-2">
+                    <img id="lightbox-img" src="${imgSrc}" class="max-h-[70vh] max-w-full object-contain rounded-xl shadow-lg" />
+                </div>
+                <div class="w-full flex justify-between items-center text-xs text-slate-400">
+                    <span class="italic">Haz clic fuera o presiona ESC para cerrar</span>
+                    <a id="lightbox-download-link" href="${imgSrc}" download target="_blank" class="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30 transition flex items-center gap-1.5 font-bold">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i> Descargar Imagen
+                    </a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(lightbox);
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) closeImageLightbox();
+        });
+    } else {
+        const img = document.getElementById('lightbox-img');
+        const titleEl = document.getElementById('lightbox-title')?.querySelector('span');
+        const link = document.getElementById('lightbox-download-link');
+        if (img) img.src = imgSrc;
+        if (titleEl) titleEl.textContent = title;
+        if (link) link.href = imgSrc;
+    }
+    lightbox.classList.remove('opacity-0', 'pointer-events-none');
+    if (window.lucide) window.lucide.createIcons();
+};
+
+window.closeImageLightbox = function() {
+    const lightbox = document.getElementById('global-image-lightbox');
+    if (lightbox) {
+        lightbox.classList.add('opacity-0', 'pointer-events-none');
+    }
+};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeImageLightbox();
+});
 
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', initApp);

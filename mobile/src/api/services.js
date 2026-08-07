@@ -99,7 +99,7 @@ export const apiService = {
 
   // Escaneo de QR
   scanQR: async (qrContent) => {
-    const response = await apiClient.post('/api/scan-qr', { qr_content: qrContent });
+    const response = await apiClient.post('/api/scan-qr', { qr_content: qrContent, qr_code: qrContent });
     return response.data;
   },
 
