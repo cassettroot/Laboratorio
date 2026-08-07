@@ -448,18 +448,18 @@ export default function DetailScreen({ route, navigation }) {
 
   const renderCabinetGrid = () => {
     if (type !== 'substance') return null;
-    if (!item.location || !/^[1-6]-[AB]$/.test(item.location)) return null;
+    if (!item.location || !/^[1-3]-[AB]$/.test(item.location)) return null;
     
     const [rowStr, colStr] = item.location.split('-');
     const itemRow = parseInt(rowStr);
     const itemCol = colStr;
     
-    const rows = [1, 2, 3, 4, 5, 6];
+    const rows = [1, 2, 3];
     const cols = ['A', 'B'];
     
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📍 Ubicación: Organizador 2x6</Text>
+        <Text style={styles.sectionTitle}>📍 Ubicación: Organizador 2x3</Text>
         <View style={{ backgroundColor: '#f1f5f9', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
           {rows.map(r => (
             <View key={r} style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>

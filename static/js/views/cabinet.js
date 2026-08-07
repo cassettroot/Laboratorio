@@ -1,9 +1,22 @@
-window.renderCabinetView = function(container) {
-    const allSubstances = state.substances || [];
+window.renderCabinetView = async function(container) {
+    container.innerHTML = '<div class="p-12 text-center text-slate-500 font-medium animate-pulse">Cargando organizador...</div>';
+    
+    let allSubstances = [];
+    try {
+        const invId = window.state ? (window.state.inventoryId || 'inventario') : 'inventario';
+        const res = await fetch(`/api/substances?inventory_id=${invId}`).then(r => r.json());
+        allSubstances = res.data || [];
+        // Update state as well just in case
+        if (window.state) window.state.substances = allSubstances;
+    } catch(err) {
+        console.error(err);
+        container.innerHTML = '<div class="p-12 text-center text-red-500 font-bold">Error al cargar datos.</div>';
+        return;
+    }
     
     // Agrupar por locación
     const shelfMap = {};
-    const rows = 6;
+    const rows = 3;
     const cols = ['A', 'B'];
     
     for (let r = 1; r <= rows; r++) {
@@ -24,22 +37,18 @@ window.renderCabinetView = function(container) {
     };
 
     const rowDesc = {
-        1: 'Reactivos Generales / Sales Inertes',
-        2: 'Colorantes / Sales',
-        3: 'Bases y Ácidos Orgánicos',
-        4: 'Ácidos Fuertes y Tóxicos',
-        5: 'Oxidantes e Inflamables Sólidos',
-        6: 'Inflamables Líquidos (Solventes)'
+        1: 'Reactivos Generales / Biológicos',
+        2: 'Ácidos y Bases',
+        3: 'Inflamables, Oxidantes y Tóxicos'
     };
 
     const getShelfColor = (r, c) => {
         // Colores para identificar zonas de riesgo
-        if (r === 6) return 'bg-red-100 border-red-300';
-        if (r === 5 && c === 'B') return 'bg-red-50 border-red-200';
-        if (r === 5 && c === 'A') return 'bg-yellow-100 border-yellow-300';
-        if (r === 4 && c === 'B') return 'bg-purple-100 border-purple-300';
-        if (r === 4 && c === 'A') return 'bg-orange-100 border-orange-300';
-        if (r === 3) return 'bg-blue-50 border-blue-200';
+        if (r === 3 && c === 'B') return 'bg-red-100 border-red-300';
+        if (r === 3 && c === 'A') return 'bg-orange-100 border-orange-300';
+        if (r === 2 && c === 'A') return 'bg-purple-50 border-purple-200';
+        if (r === 2 && c === 'B') return 'bg-blue-50 border-blue-200';
+        if (r === 1 && c === 'B') return 'bg-emerald-50 border-emerald-200';
         return 'bg-slate-50 border-slate-200';
     };
 
@@ -73,8 +82,8 @@ window.renderCabinetView = function(container) {
                     <i data-lucide="grid-3x3" class="w-8 h-8"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-extrabold text-slate-900 mb-1">Organizador de Reactivos 2x6</h2>
-                    <p class="text-sm text-slate-500">Visualización de la distribución segura de sustancias químicas en el estante de 12 espacios basada en compatibilidad y peligrosidad.</p>
+                    <h2 class="text-xl font-extrabold text-slate-900 mb-1">Organizador de Reactivos 2x3</h2>
+                    <p class="text-sm text-slate-500">Visualización de la distribución segura de sustancias químicas en el estante de 6 espacios basada en compatibilidad y peligrosidad.</p>
                 </div>
             </div>
             ${gridHtml}
@@ -119,8 +128,19 @@ window.openCabinetShelfModal = function(loc) {
                                 ${s.substance_group ? `<div class="text-3xs font-bold text-slate-400 uppercase tracking-wider mt-0.5 truncate">${s.substance_group}</div>` : ''}
                             </div>
                         </div>
-                        <div class="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg shrink-0 text-center">
-                            ${s.quantity} <span class="text-3xs text-indigo-500">${s.unit}</span>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <div class="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg text-center hidden sm:block">
+                                ${s.quantity} <span class="text-3xs text-indigo-500">${s.unit}</span>
+                            </div>
+                            <select onchange="moveSubstanceToCabinet(${s.id}, this.value, '${loc}')" class="text-xs font-semibold border border-slate-200 rounded-lg py-1.5 px-2 bg-white text-slate-700 outline-none focus:border-indigo-400 cursor-pointer hover:bg-slate-50 shadow-sm" title="Mover a otra sección">
+                                <option value="" disabled selected>Mover...</option>
+                                <option value="1-A">1-A</option>
+                                <option value="1-B">1-B</option>
+                                <option value="2-A">2-A</option>
+                                <option value="2-B">2-B</option>
+                                <option value="3-A">3-A</option>
+                                <option value="3-B">3-B</option>
+                            </select>
                         </div>
                     </div>
                 `).join('')}
@@ -129,4 +149,35 @@ window.openCabinetShelfModal = function(loc) {
     `;
     
     if (window.lucide) window.lucide.createIcons();
+};
+
+window.moveSubstanceToCabinet = async function(id, newLoc, oldLoc) {
+    if (!newLoc || newLoc === oldLoc) return;
+    try {
+        const res = await fetch(`/api/substances/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ location: newLoc })
+        }).then(r => r.json());
+        
+        if (res.status === 'success') {
+            // Update local state
+            const substance = state.substances.find(s => s.id === id);
+            if (substance) substance.location = newLoc;
+            
+            // Re-render views
+            const mainEl = document.getElementById('main-content');
+            renderCabinetView(mainEl);
+            
+            // Close old modal and re-open to reflect changes
+            const modal = document.getElementById('cabinet-modal');
+            if (modal) modal.remove();
+            openCabinetShelfModal(oldLoc);
+        } else {
+            alert('Error al mover reactivo: ' + (res.message || 'Error desconocido'));
+        }
+    } catch(err) {
+        console.error(err);
+        alert('Error de conexión al intentar mover el reactivo.');
+    }
 };
