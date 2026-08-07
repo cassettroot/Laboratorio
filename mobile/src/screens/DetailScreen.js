@@ -446,6 +446,65 @@ export default function DetailScreen({ route, navigation }) {
     }
   };
 
+  const renderCabinetGrid = () => {
+    if (type !== 'substance') return null;
+    if (!item.location || !/^[1-6]-[AB]$/.test(item.location)) return null;
+    
+    const [rowStr, colStr] = item.location.split('-');
+    const itemRow = parseInt(rowStr);
+    const itemCol = colStr;
+    
+    const rows = [1, 2, 3, 4, 5, 6];
+    const cols = ['A', 'B'];
+    
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📍 Ubicación: Organizador 2x6</Text>
+        <View style={{ backgroundColor: '#f1f5f9', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+          {rows.map(r => (
+            <View key={r} style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+              {cols.map(c => {
+                const isTarget = (r === itemRow && c === itemCol);
+                return (
+                  <View key={c} style={{
+                    flex: 1,
+                    height: 48,
+                    borderRadius: 8,
+                    borderWidth: 2,
+                    borderColor: isTarget ? '#10b981' : '#cbd5e1',
+                    backgroundColor: isTarget ? '#d1fae5' : '#ffffff',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    shadowColor: isTarget ? '#10b981' : 'transparent',
+                    shadowOpacity: isTarget ? 0.3 : 0,
+                    shadowRadius: 4,
+                    elevation: isTarget ? 3 : 0
+                  }}>
+                    <Text style={{ 
+                      fontSize: 16, 
+                      fontWeight: 'bold', 
+                      color: isTarget ? '#047857' : '#94a3b8'
+                    }}>
+                      {r}-{c}
+                    </Text>
+                    {isTarget && (
+                      <View style={{ position: 'absolute', top: -10, right: -10, backgroundColor: '#10b981', width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}>
+                         <Text style={{fontSize: 12}}>📍</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          ))}
+          <Text style={{ textAlign: 'center', fontSize: 11, color: '#64748b', marginTop: 4 }}>
+            El reactivo se encuentra en la posición resaltada en verde.
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   if (!item) {
     return (
       <View style={styles.emptyContainer}>
@@ -745,6 +804,9 @@ export default function DetailScreen({ route, navigation }) {
           ) : null}
         </>
       ) : null}
+
+      {/* UBICACIÓN EN ORGANIZADOR (2x6) */}
+      {renderCabinetGrid()}
 
       {/* SECCIÓN 3: OBSERVACIONES */}
       {item.observations ? (

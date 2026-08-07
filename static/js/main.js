@@ -131,6 +131,15 @@ function router() {
             renderSubstancesList(mainEl);
         }
     }
+    else if (state.activeRoute === '#/cabinet') {
+        setActiveTab('nav-cabinet');
+        titleEl.textContent = "Organizador de Reactivos (Gabinete 2x6)";
+        if (typeof renderCabinetView === 'function') {
+            renderCabinetView(mainEl);
+        } else {
+            mainEl.innerHTML = '<div class="p-8 text-center text-slate-500">Módulo en construcción...</div>';
+        }
+    }
     else if (state.activeRoute.startsWith('#/chemical-materials')) {
         setActiveTab('nav-chem-materials');
         titleEl.textContent = "Materiales Químicos";
