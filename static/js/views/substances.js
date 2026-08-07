@@ -1504,7 +1504,8 @@ window.downloadSelectedQRPDF = async function() {
                     
                     <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
                     <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">Stock: ${s.container_content || `${s.quantity} ${s.unit}`}</div>
-                    ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
+                    ${s.location ? `<div style="font-size: 8pt; font-weight: bold; color: #e11d48; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">📍 Org: ${s.location}</div>` : ''}
+                    ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
                 </div>
             `).join('')}
 >>>>>>> origin/lavextra
@@ -1621,7 +1622,8 @@ window.printSelectedQRLabels = function() {
                     
                     <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
                     <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">${s.container_content || `${s.quantity} ${s.unit}`}</div>
-                    ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
+                    ${s.location ? `<div style="font-size: 8pt; font-weight: bold; color: #e11d48; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">📍 Org: ${s.location}</div>` : ''}
+                    ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
                 </div>
             `).join('')}
 >>>>>>> origin/lavextra
