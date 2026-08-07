@@ -42,6 +42,7 @@ def get_materials():
     if search:
         query += ''' AND (
             CAST(id AS TEXT) LIKE ? OR
+            original_id LIKE ? OR
             name LIKE ? OR 
             category LIKE ? OR 
             location LIKE ? OR 
@@ -53,7 +54,7 @@ def get_materials():
             no_sep LIKE ?
         )'''
         like_search = f'%{search}%'
-        params.extend([like_search] * 10)
+        params.extend([like_search] * 11)
 
     if category:
         query += ' AND category LIKE ?'
