@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   StyleSheet,
   Text,
@@ -17,6 +18,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 import { apiService } from '../api/services';
 import { getImageUrl } from '../api/client';
 
@@ -25,9 +27,11 @@ import ChemicalMaterialRegisterModal from '../components/modals/ChemicalMaterial
 import DidacticMaterialRegisterModal from '../components/modals/DidacticMaterialRegisterModal';
 import EquipoRegisterModal from '../components/modals/EquipoRegisterModal';
 import RegistrationSelectorModal from '../components/modals/RegistrationSelectorModal';
+import QRBatchPrintModal from '../components/modals/QRBatchPrintModal';
 
 export default function SubstancesScreen({ route, navigation }) {
   const { user, role, serverUrl } = useContext(AuthContext);
+  const { theme } = useContext(ThemeContext);
 
   const [substances, setSubstances] = useState([]);
   const [filtered, setFiltered] = useState([]);
@@ -51,6 +55,7 @@ export default function SubstancesScreen({ route, navigation }) {
   const [showChemMaterialModal, setShowChemMaterialModal] = useState(false);
   const [showDidacticModal, setShowDidacticModal] = useState(false);
   const [showEquipoModal, setShowEquipoModal] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   const handleSelectRegistrationType = (type) => {
     if (type === 'substances') setShowSubstanceModal(true);
@@ -135,6 +140,15 @@ export default function SubstancesScreen({ route, navigation }) {
     setDateModalVisible(false);
   };
 
+  const formatChemicalFormula = (formula) => {
+    if (!formula) return '';
+    const subscriptsMap = {
+      '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+      '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉'
+    };
+    return formula.replace(/\d/g, (match) => subscriptsMap[match] || match);
+  };
+
   const normalizeText = (text) => {
     if (!text) return '';
     return text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -143,22 +157,31 @@ export default function SubstancesScreen({ route, navigation }) {
   const fetchSubstances = async () => {
     try {
       const res = await apiService.getSubstances();
-      if (res.status === 'success') {
-        setSubstances(res.data);
-        if (!search.trim()) {
-          setFiltered(res.data);
-        } else {
-          const qNorm = normalizeText(search);
-          const result = res.data.filter(item => 
-            normalizeText(item.name).includes(qNorm) ||
-            normalizeText(item.cas_number).includes(qNorm) ||
-            normalizeText(item.chemical_formula).includes(qNorm) ||
-            normalizeText(item.substance_group).includes(qNorm) ||
-            normalizeText(item.responsible).includes(qNorm) ||
-            normalizeText(item.location).includes(qNorm)
-          );
-          setFiltered(result);
-        }
+      let list = [];
+      if (Array.isArray(res)) {
+        list = res;
+      } else if (res && Array.isArray(res.data)) {
+        list = res.data;
+      } else if (res && res.status === 'success' && Array.isArray(res.data)) {
+        list = res.data;
+      }
+
+      setSubstances(list);
+
+      const currentSearch = search || '';
+      if (!currentSearch.trim()) {
+        setFiltered(list);
+      } else {
+        const qNorm = normalizeText(currentSearch);
+        const result = list.filter(item => 
+          normalizeText(item.name).includes(qNorm) ||
+          normalizeText(item.cas_number).includes(qNorm) ||
+          normalizeText(item.chemical_formula).includes(qNorm) ||
+          normalizeText(item.substance_group).includes(qNorm) ||
+          normalizeText(item.responsible).includes(qNorm) ||
+          normalizeText(item.location).includes(qNorm)
+        );
+        setFiltered(result);
       }
     } catch (e) {
       console.warn("Error al cargar sustancias:", e);
@@ -168,9 +191,11 @@ export default function SubstancesScreen({ route, navigation }) {
     }
   };
 
-  useEffect(() => {
-    fetchSubstances();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchSubstances();
+    }, [search])
+  );
 
   useEffect(() => {
     if (route?.params?.openAddModal) {
@@ -416,10 +441,11 @@ export default function SubstancesScreen({ route, navigation }) {
       } catch (e) {}
     }
     const photoUri = getImageUri(mainPhotoPath);
+    const formattedFormula = formatChemicalFormula(item.chemical_formula);
 
     return (
       <TouchableOpacity
-        style={styles.card}
+        style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
         activeOpacity={0.7}
         onPress={() => navigation.navigate('Detail', { id: item.id, item: item, type: 'substance' })}
       >
@@ -428,7 +454,7 @@ export default function SubstancesScreen({ route, navigation }) {
             {photoUri ? (
               <Image source={{ uri: photoUri }} style={styles.substanceImage} resizeMode="cover" />
             ) : (
-              <View style={styles.placeholderImage}>
+              <View style={[styles.placeholderImage, { backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: 'rgba(56, 189, 248, 0.3)' }]}>
                 <Text style={{ fontSize: 26 }}>🧪</Text>
               </View>
             )}
@@ -436,26 +462,26 @@ export default function SubstancesScreen({ route, navigation }) {
 
           <View style={styles.cardDetails}>
             <View style={styles.cardHeader}>
-              <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
+              <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>{item.name}</Text>
             </View>
 
             {item.chemical_formula ? (
-              <Text style={styles.formula}>Fórmula: {item.chemical_formula}</Text>
+              <Text style={[styles.formula, { color: theme.brand }]}>Fórmula: {formattedFormula}</Text>
             ) : null}
 
             {item.cas_number ? (
-              <Text style={styles.meta}>CAS: {item.cas_number}</Text>
+              <Text style={[styles.meta, { color: theme.subtext }]}>CAS: {item.cas_number}</Text>
             ) : null}
 
             {item.substance_group ? (
-              <View style={styles.groupBadgeTag}>
-                <Text style={styles.groupBadgeTagText} numberOfLines={1}>🏷️ {item.substance_group}</Text>
+              <View style={[styles.groupBadgeTag, { backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: 'rgba(56, 189, 248, 0.35)' }]}>
+                <Text style={[styles.groupBadgeTagText, { color: '#38bdf8' }]} numberOfLines={1}>🏷️ {item.substance_group}</Text>
               </View>
             ) : null}
 
             <View style={styles.cardFooter}>
-              <View style={styles.quantityBadge}>
-                <Text style={styles.quantityText}>{item.quantity} {item.unit || 'g'}</Text>
+              <View style={[styles.quantityBadge, { backgroundColor: theme.accentBg || 'rgba(16, 185, 129, 0.15)', borderColor: theme.brand }]}>
+                <Text style={[styles.quantityText, { color: theme.brand }]}>📦 {item.stock_units || 1} envase(s) ({item.quantity || 1} {item.unit || 'g'})</Text>
               </View>
             </View>
           </View>
@@ -465,29 +491,37 @@ export default function SubstancesScreen({ route, navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <View style={[styles.searchBox, { flex: 1 }]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <View style={{ marginBottom: 12 }}>
+        {/* Fila Superior: Buscador Ancho Completo */}
+        <View style={[styles.searchBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, marginBottom: 8 }]}>
           <Text style={{ fontSize: 16, marginRight: 6 }}>🔍</Text>
           <TextInput
-            style={[styles.searchInput, { flex: 1 }]}
+            style={[styles.searchInput, { flex: 1, color: theme.text }]}
             placeholder="Buscar por nombre, CAS, fórmula..."
             value={search}
             onChangeText={handleSearch}
-            placeholderTextColor="#94a3b8"
+            placeholderTextColor={theme.subtext}
             autoCapitalize="none"
             autoCorrect={false}
           />
           {search ? (
             <TouchableOpacity onPress={() => handleSearch('')} style={{ padding: 4 }}>
-              <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
+              <Text style={{ color: theme.subtext, fontSize: 14, fontWeight: 'bold' }}>✕</Text>
             </TouchableOpacity>
           ) : null}
         </View>
+
+        {/* Fila Inferior: Botones de Acción */}
         {(role === 'admin' || role === 'responsable') ? (
-          <TouchableOpacity style={styles.addBtnHeader} onPress={() => setShowSelectorModal(true)}>
-            <Text style={styles.addBtnHeaderText}>+ Registrar</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
+            <TouchableOpacity style={[styles.qrBtnHeader, { backgroundColor: 'rgba(20, 184, 166, 0.2)', borderColor: 'rgba(20, 184, 166, 0.4)' }]} onPress={() => setShowQRModal(true)}>
+              <Text style={[styles.qrBtnHeaderText, { color: '#2dd4bf' }]}>🖨️ QR Masivo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.addBtnHeader, { backgroundColor: theme.brand }]} onPress={() => setShowSelectorModal(true)}>
+              <Text style={styles.addBtnHeaderText}>+ Registrar</Text>
+            </TouchableOpacity>
+          </View>
         ) : null}
       </View>
 
@@ -505,6 +539,14 @@ export default function SubstancesScreen({ route, navigation }) {
           }
         />
       )}
+
+      {/* MODAL IMPRESIÓN Y DESCARGA MASIVA CÓDIGOS QR */}
+      <QRBatchPrintModal
+        visible={showQRModal}
+        onClose={() => setShowQRModal(false)}
+        substances={substances}
+        serverUrl={serverUrl}
+      />
 
       {/* MODAL DE REGISTRO MULTITIPO (SUSTANCIAS, MAT. QUÍMICO, DIDÁCTICO) */}
       <Modal
@@ -1056,8 +1098,23 @@ const styles = StyleSheet.create({
   },
   addBtnHeaderText: {
     color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  qrBtnHeader: {
+    backgroundColor: '#0f766e',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#14b8a6',
+  },
+  qrBtnHeaderText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   listContainer: {
     paddingBottom: 30,

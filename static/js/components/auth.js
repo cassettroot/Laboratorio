@@ -127,12 +127,12 @@ async function checkSessionStatus() {
 
             if (container) {
                 container.innerHTML = `
-                    <span class="text-xs font-bold bg-brand-50 text-brand-700 border border-brand-100 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
-                        <i data-lucide="user" class="w-3.5 h-3.5 text-brand-500"></i>
-                        <span>Sesión: <strong class="font-extrabold">${res.user}</strong></span>
+                    <span class="text-xs font-extrabold bg-slate-800 text-white border border-slate-700 px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
+                        <i data-lucide="user" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span>Sesión: <strong class="font-extrabold text-white">${res.user}</strong></span>
                     </span>
-                    <button onclick="handleLogout()" class="bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 font-semibold text-xs px-3.5 py-1.5 rounded-xl transition flex items-center gap-1 border border-transparent hover:border-red-100">
-                        <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                    <button onclick="handleLogout()" class="bg-slate-800 hover:bg-rose-500/20 text-white hover:text-rose-300 font-extrabold text-xs px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 border border-slate-700 hover:border-rose-500/40 shadow-sm cursor-pointer">
+                        <i data-lucide="log-out" class="w-3.5 h-3.5 text-rose-400"></i>
                         <span>Cerrar Sesión</span>
                     </button>
                 `;
@@ -146,11 +146,11 @@ async function checkSessionStatus() {
 
             if (container) {
                 container.innerHTML = `
-                    <span class="text-xs font-bold bg-slate-100 text-slate-500 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-                        <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span class="text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
+                        <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-300"></i>
                         <span>Modo Lectura</span>
                     </span>
-                    <button onclick="openAuthModal()" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs px-3.5 py-1.5 rounded-xl transition flex items-center gap-1 shadow-sm shadow-brand-600/10">
+                    <button onclick="openAuthModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-md cursor-pointer">
                         <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
                         <span>Iniciar Sesión</span>
                     </button>

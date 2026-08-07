@@ -118,7 +118,7 @@ def scan_qr():
     """
     import re
     data = request.get_json() or {}
-    qr_code = str(data.get('qr_code') or '').strip()
+    qr_code = str(data.get('qr_code') or data.get('qr_content') or '').strip()
 
     if not qr_code:
         return jsonify({"status": "error", "message": "Falta el código QR"}), 400
@@ -126,7 +126,7 @@ def scan_qr():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # 1. Extraer ID numérico si existe un patrón como LAB-SUB-15 o sustancias/15 o es solo números
+    # 1. Extraer ID numérico si existe un patrón como LAB-SUB-15, sustancias/15 o es solo números
     sub_match = re.search(r'substance[s]?/(\d+)', qr_code, re.IGNORECASE) or re.search(r'LAB-SUB(?:STANCES)?-(\d+)', qr_code, re.IGNORECASE)
     int_id = int(sub_match.group(1)) if sub_match else (int(qr_code) if qr_code.isdigit() else -1)
 

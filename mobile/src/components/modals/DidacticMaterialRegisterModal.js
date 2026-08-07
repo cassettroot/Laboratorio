@@ -9,8 +9,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { apiService } from '../../api/services';
 
 export default function DidacticMaterialRegisterModal({ visible, onClose, onSuccess }) {
@@ -21,7 +23,9 @@ export default function DidacticMaterialRegisterModal({ visible, onClose, onSucc
   const [location, setLocation] = useState('');
   const [stock, setStock] = useState('1');
   const [condition, setCondition] = useState('Excelente');
+  const [responsible, setResponsible] = useState('');
   const [notes, setNotes] = useState('');
+  const [photoUri, setPhotoUri] = useState(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -33,7 +37,51 @@ export default function DidacticMaterialRegisterModal({ visible, onClose, onSucc
     setLocation('');
     setStock('1');
     setCondition('Excelente');
+    setResponsible('');
     setNotes('');
+    setPhotoUri(null);
+  };
+
+  const pickPhotoFromCamera = async () => {
+    try {
+      const permRes = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permRes.granted) {
+        Alert.alert('Permiso Requerido', 'Se requiere permiso para acceder a la cámara.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setPhotoUri(result.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo tomar la foto: ' + e.message);
+    }
+  };
+
+  const pickPhotoFromGallery = async () => {
+    try {
+      const permRes = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permRes.granted) {
+        Alert.alert('Permiso Requerido', 'Se requiere permiso para acceder a la galería.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setPhotoUri(result.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo seleccionar la foto: ' + e.message);
+    }
   };
 
   const handleSave = async () => {
@@ -44,20 +92,42 @@ export default function DidacticMaterialRegisterModal({ visible, onClose, onSucc
 
     setLoading(true);
     try {
+      let serverImagePath = '';
+
+      if (photoUri) {
+        const filename = photoUri.split('/').pop() || 'didactic_photo.jpg';
+        const formData = new FormData();
+        formData.append('photo', {
+          uri: photoUri,
+          name: filename,
+          type: 'image/jpeg',
+        });
+        const uploadRes = await apiService.uploadPhoto(formData);
+        if (uploadRes && uploadRes.status === 'success') {
+          serverImagePath = uploadRes.image_path;
+        }
+      }
+
       const payload = {
         name: name.trim(),
         subject: subject.trim(),
         type: materialType.trim(),
+        category: `${materialType.trim()} - ${subject.trim()}`.trim(),
         contents: contents.trim(),
         location: location.trim(),
-        stock: parseInt(stock) || 1,
+        stock: parseInt(stock, 10) || 1,
+        quantity: parseInt(stock, 10) || 1,
         condition: condition.trim(),
+        status: condition.trim(),
+        responsible: responsible.trim(),
         notes: notes.trim(),
+        observations: notes.trim(),
+        image_path: serverImagePath
       };
 
       const res = await apiService.createDidacticMaterial(payload);
       if (res.status === 'success') {
-        Alert.alert('Éxito', '🎓 Material didáctico registrado correctamente.');
+        Alert.alert('Éxito', '🎓 Material didáctico registrado correctamente con su fotografía.');
         resetForm();
         onSuccess && onSuccess();
         onClose();
@@ -181,6 +251,17 @@ export default function DidacticMaterialRegisterModal({ visible, onClose, onSucc
             </View>
 
             <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Responsable de Custodia</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ej. Ing. Carlos Martínez"
+                placeholderTextColor="#94a3b8"
+                value={responsible}
+                onChangeText={setResponsible}
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
               <Text style={styles.label}>Observaciones</Text>
               <TextInput
                 style={[styles.input, { height: 65, textAlignVertical: 'top' }]}
@@ -190,6 +271,42 @@ export default function DidacticMaterialRegisterModal({ visible, onClose, onSucc
                 value={notes}
                 onChangeText={setNotes}
               />
+            </View>
+
+            <Text style={styles.sectionTitle}>Fotografía del Material</Text>
+            <View style={styles.fieldGroup}>
+              {photoUri ? (
+                <View style={styles.photoPreviewBox}>
+                  <Image source={{ uri: photoUri }} style={styles.photoPreviewImage} />
+                  <View style={styles.photoActionsRow}>
+                    <TouchableOpacity style={styles.changePhotoBtn} onPress={pickPhotoFromCamera}>
+                      <Text style={styles.changePhotoBtnText}>📷 Tomar Otra</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.changePhotoBtn} onPress={pickPhotoFromGallery}>
+                      <Text style={styles.changePhotoBtnText}>🖼️ Galería</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.removePhotoBtn} onPress={() => setPhotoUri(null)}>
+                      <Text style={styles.removePhotoBtnText}>✕ Quitar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.photoPickerBox}>
+                  <Text style={styles.photoPickerHint}>
+                    Captura una fotografía con la cámara de tu dispositivo o selecciona una de la galería.
+                  </Text>
+                  <View style={styles.photoButtonsRow}>
+                    <TouchableOpacity style={styles.photoBtn} onPress={pickPhotoFromCamera}>
+                      <Text style={styles.photoBtnIcon}>📷</Text>
+                      <Text style={styles.photoBtnText}>Tomar Foto</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.photoBtn, styles.galleryBtn]} onPress={pickPhotoFromGallery}>
+                      <Text style={styles.photoBtnIcon}>🖼️</Text>
+                      <Text style={styles.photoBtnText}>Galería</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </View>
           </ScrollView>
 
@@ -366,5 +483,90 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '800',
     fontSize: 13,
+  },
+  photoPickerBox: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+  },
+  photoPickerHint: {
+    fontSize: 11,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  photoButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  photoBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6366f1',
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 6,
+  },
+  galleryBtn: {
+    backgroundColor: '#0284c7',
+  },
+  photoBtnIcon: {
+    fontSize: 14,
+  },
+  photoBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  photoPreviewBox: {
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  photoPreviewImage: {
+    width: 140,
+    height: 140,
+    borderRadius: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+  },
+  photoActionsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  changePhotoBtn: {
+    backgroundColor: '#475569',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  changePhotoBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  removePhotoBtn: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  removePhotoBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
 });

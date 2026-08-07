@@ -91,33 +91,34 @@ async function renderDidacticMaterialsList(container) {
             const isLogged = state.isLoggedIn;
 
             body.innerHTML = state.didMaterials.map(d => {
-                let statusColor = 'bg-slate-100 text-slate-700';
-                if (d.status === 'Nuevo' || d.status === 'Completo') statusColor = 'bg-emerald-50 text-emerald-700';
-                if (d.status === 'Incompleto' || d.status === 'Dañado') statusColor = 'bg-amber-50 text-amber-700';
+                let statusColor = 'bg-slate-100 text-slate-800 border border-slate-300 font-extrabold';
+                if (d.status === 'Nuevo' || d.status === 'Excelente' || d.status === 'Completo' || d.status === 'Buenas Condiciones') statusColor = 'bg-emerald-100 text-emerald-950 border border-emerald-300 font-extrabold';
+                if (d.status === 'Incompleto' || d.status === 'Dañado' || d.status === 'Roto') statusColor = 'bg-rose-100 text-rose-950 border border-rose-300 font-extrabold';
+                if (d.status === 'Bueno') statusColor = 'bg-teal-100 text-teal-950 border border-teal-300 font-extrabold';
 
                 return `
-                    <tr class="hover:bg-slate-50/50 transition">
+                    <tr class="hover:bg-sky-50 transition border-b border-slate-200/80">
                         <td class="py-4 px-6">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden border border-slate-200/50 shrink-0">
-                                    ${d.image_path ? `<img src="${d.image_path}" class="w-full h-full object-cover">` : `<i data-lucide="graduation-cap" class="w-5 h-5"></i>`}
+                                <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden border border-slate-200 shrink-0">
+                                    ${d.image_path ? `<img src="${d.image_path}" class="w-full h-full object-cover">` : `<i data-lucide="graduation-cap" class="w-5 h-5 text-indigo-600"></i>`}
                                 </div>
                                 <div>
-                                    <a href="#/didactic-materials/${d.id}" class="text-sm font-bold text-slate-900 hover:text-brand-600 transition block">${d.name}</a>
-                                    <span class="text-3xs text-slate-400 uppercase tracking-wider">ID: LAB-DID-${d.id}</span>
+                                    <a href="#/didactic-materials/${d.id}" class="text-sm font-extrabold text-slate-900 hover:text-brand-600 transition block">${d.name}</a>
+                                    <span class="text-3xs text-slate-700 font-bold uppercase tracking-wider">ID: LAB-DID-${d.id}</span>
                                 </div>
                             </div>
                         </td>
-                        <td class="py-4 px-6 text-slate-600 font-semibold">${d.category || '-'}</td>
+                        <td class="py-4 px-6 text-slate-700 font-bold">${d.category || d.subject || '-'}</td>
                         <td class="py-4 px-6">
-                            <span class="px-2.5 py-0.5 rounded-md text-2xs font-bold ${statusColor}">${d.status || 'N/D'}</span>
+                            <span class="badge-status px-3 py-1 rounded-xl text-2xs ${statusColor}">${d.status || 'N/D'}</span>
                         </td>
                         <td class="py-4 px-6">
-                            <span class="text-sm font-bold text-slate-900">${d.quantity}</span>
-                            <span class="text-xs text-slate-500">unidades</span>
+                            <span class="text-sm font-extrabold text-slate-900">${d.quantity || d.stock || 1}</span>
+                            <span class="text-xs font-semibold text-slate-700">unidades</span>
                         </td>
-                        <td class="py-4 px-6 text-slate-600">${d.location || '-'}</td>
-                        <td class="py-4 px-6 text-slate-500 text-xs">${d.responsible || '-'}</td>
+                        <td class="py-4 px-6 text-slate-700 font-bold max-w-[180px] truncate" title="${d.location || ''}">${d.location || '-'}</td>
+                        <td class="py-4 px-6 text-slate-700 font-medium text-xs">${d.responsible || '-'}</td>
                         <td class="py-4 px-6 no-print text-right">
                             <div class="flex items-center justify-end gap-1.5">
                                 <a href="#/didactic-materials/${d.id}" class="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition">

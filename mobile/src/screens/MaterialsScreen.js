@@ -11,6 +11,7 @@ import {
   Image
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 import { apiService } from '../api/services';
 import { getImageUrl } from '../api/client';
 
@@ -19,6 +20,7 @@ import DidacticMaterialRegisterModal from '../components/modals/DidacticMaterial
 
 export default function MaterialsScreen({ route, navigation }) {
   const { role, serverUrl } = useContext(AuthContext);
+  const { theme } = useContext(ThemeContext);
   const initialTab = route.params?.initialTab || 'quimicos';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [chemMaterials, setChemMaterials] = useState([]);
@@ -73,13 +75,17 @@ export default function MaterialsScreen({ route, navigation }) {
 
   const renderItem = ({ item }) => {
     const photoUri = getImageUrl(item.image_path, serverUrl);
+    const isChem = activeTab === 'quimicos';
+    const avatarBg = isChem ? 'rgba(20, 184, 166, 0.15)' : 'rgba(99, 102, 241, 0.15)';
+    const avatarBorder = isChem ? 'rgba(20, 184, 166, 0.35)' : 'rgba(99, 102, 241, 0.35)';
+    const iconEmoji = isChem ? '🧪' : '🎓';
 
     return (
       <TouchableOpacity 
-        style={styles.card}
+        style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
         activeOpacity={0.8}
         onPress={() => navigation.navigate('Detail', { 
-          type: activeTab === 'quimicos' ? 'chem_material' : 'did_material', 
+          type: isChem ? 'chem_material' : 'did_material', 
           item 
         })}
       >
@@ -87,32 +93,42 @@ export default function MaterialsScreen({ route, navigation }) {
           {photoUri ? (
             <Image source={{ uri: photoUri }} style={{ width: 56, height: 56, borderRadius: 12 }} resizeMode="cover" />
           ) : (
-            <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: '#0f172a', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#334155' }}>
-              <Text style={{ fontSize: 24 }}>{activeTab === 'quimicos' ? '💧' : '🎓'}</Text>
+            <View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: avatarBg, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: avatarBorder }}>
+              <Text style={{ fontSize: 24 }}>{iconEmoji}</Text>
             </View>
           )}
 
           <View style={{ flex: 1 }}>
             <View style={styles.cardHeader}>
-              <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{item.quantity || item.stock || 1} {item.unit || 'piezas'}</Text>
+              <Text style={[styles.name, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">
+                {item.name || 'Material sin nombre'}
+              </Text>
+              <View style={[styles.badge, { backgroundColor: theme.accentBg || 'rgba(56, 189, 248, 0.15)', borderColor: theme.brand }]}>
+                <Text style={[styles.badgeText, { color: theme.brand }]}>
+                  {item.quantity || item.stock || 1} {item.unit || 'piezas'}
+                </Text>
               </View>
             </View>
 
             {item.category || item.subject ? (
-              <Text style={styles.category}>{item.category || item.subject}</Text>
+              <Text style={[styles.category, { color: theme.brand }]} numberOfLines={1} ellipsizeMode="tail">
+                {item.category || item.subject}
+              </Text>
             ) : null}
 
             <View style={styles.cardFooter}>
-              <Text style={styles.meta}>📍 {item.location || 'Estante Principal'}</Text>
+              <Text style={[styles.meta, { flex: 1, marginRight: 8, color: theme.subtext }]} numberOfLines={1} ellipsizeMode="tail">
+                📍 {item.location || 'Estante Principal'}
+              </Text>
               {item.status || item.condition ? (
-                <Text style={[
-                  styles.status, 
-                  item.status === 'Disponible' || item.status === 'Bueno' || item.condition === 'Excelente' ? styles.statusOk : styles.statusWarn
+                <View style={[
+                  styles.statusBadgeTag, 
+                  item.status === 'Disponible' || item.status === 'Bueno' || item.condition === 'Excelente' ? styles.statusOkTag : styles.statusWarnTag
                 ]}>
-                  {item.status || item.condition}
-                </Text>
+                  <Text style={item.status === 'Disponible' || item.status === 'Bueno' || item.condition === 'Excelente' ? styles.statusOkText : styles.statusWarnText} numberOfLines={1}>
+                    {item.status || item.condition}
+                  </Text>
+                </View>
               ) : null}
             </View>
           </View>
@@ -122,31 +138,49 @@ export default function MaterialsScreen({ route, navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <View style={[styles.tabBar, { flex: 1, marginBottom: 0 }]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      {/* 1. Buscador Ancho Completo en Fila Superior */}
+      <View style={[styles.searchContainer, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={[styles.searchInput, { color: theme.text }]}
+          placeholder="Buscar por nombre, categoría o ubicación..."
+          value={search}
+          onChangeText={setSearch}
+          placeholderTextColor={theme.subtext}
+        />
+        {search ? (
+          <TouchableOpacity onPress={() => setSearch('')} style={{ padding: 4 }}>
+            <Text style={{ color: theme.subtext, fontSize: 14, fontWeight: 'bold' }}>✕</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+
+      {/* 2. Controles Segmentados e Botón Registrar en Fila Inferior */}
+      <View style={styles.controlsRow}>
+        <View style={[styles.segmentedControl, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
           <TouchableOpacity 
-            style={[styles.tab, activeTab === 'quimicos' && styles.activeTab]} 
+            style={[styles.segmentBtn, activeTab === 'quimicos' && { backgroundColor: theme.brand }]} 
             onPress={() => setActiveTab('quimicos')}
           >
-            <Text style={[styles.tabText, activeTab === 'quimicos' && styles.activeTabText]}>
-              Materiales Químicos
+            <Text style={[styles.segmentText, activeTab === 'quimicos' ? { color: '#ffffff', fontWeight: '800' } : { color: theme.subtext }]}>
+              🧪 Químicos
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.tab, activeTab === 'didacticos' && styles.activeTabDidactic]} 
+            style={[styles.segmentBtn, activeTab === 'didacticos' && { backgroundColor: theme.brand }]} 
             onPress={() => setActiveTab('didacticos')}
           >
-            <Text style={[styles.tabText, activeTab === 'didacticos' && styles.activeTabText]}>
-              Materiales Didácticos
+            <Text style={[styles.segmentText, activeTab === 'didacticos' ? { color: '#ffffff', fontWeight: '800' } : { color: theme.subtext }]}>
+              🎓 Didácticos
             </Text>
           </TouchableOpacity>
         </View>
 
         {(role === 'admin' || role === 'responsable') ? (
           <TouchableOpacity 
-            style={styles.addBtn} 
+            style={[styles.addBtn, { backgroundColor: theme.brand }]} 
             activeOpacity={0.8}
             onPress={handleOpenRegister}
           >
@@ -155,28 +189,17 @@ export default function MaterialsScreen({ route, navigation }) {
         ) : null}
       </View>
 
-      <View style={styles.searchContainer}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar por nombre, categoría o ubicación..."
-          value={search}
-          onChangeText={setSearch}
-          placeholderTextColor="#94a3b8"
-        />
-      </View>
-
       {loading ? (
-        <ActivityIndicator size="large" color="#0284c7" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={theme.brand} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={filteredList}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={styles.listContainer}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchMaterials(); }} tintColor="#0284c7" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchMaterials(); }} tintColor={theme.brand} />}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No hay materiales registrados en esta categoría.</Text>
+            <Text style={[styles.emptyText, { color: theme.subtext }]}>No hay materiales registrados en esta categoría.</Text>
           }
         />
       )}
@@ -200,64 +223,16 @@ export default function MaterialsScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
     paddingHorizontal: 16,
     paddingTop: 12,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: '#334155',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  activeTab: {
-    backgroundColor: '#0284c7',
-  },
-  activeTabDidactic: {
-    backgroundColor: '#4f46e5',
-  },
-  tabText: {
-    color: '#94a3b8',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  activeTabText: {
-    color: '#ffffff',
-    fontWeight: '800',
-  },
-  addBtn: {
-    backgroundColor: '#0284c7',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 14,
-    shadowColor: '#0284c7',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  addBtnText: {
-    color: '#ffffff',
-    fontWeight: '800',
-    fontSize: 13,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
     borderRadius: 14,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#334155',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   searchIcon: {
     fontSize: 15,
@@ -265,21 +240,61 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 44,
+    height: 42,
     fontSize: 13,
-    color: '#ffffff',
     fontWeight: '600',
+  },
+  controlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  segmentedControl: {
+    flex: 1,
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 3,
+    borderWidth: 1,
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 9,
+  },
+  segmentText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  addBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  addBtnText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 12.5,
   },
   listContainer: {
     paddingBottom: 24,
   },
   card: {
-    backgroundColor: '#1e293b',
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 14,
-    marginBottom: 12,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -288,57 +303,64 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   name: {
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: '800',
-    color: '#ffffff',
     flex: 1,
     marginRight: 8,
   },
   badge: {
-    backgroundColor: '#0f172a',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   badgeText: {
-    color: '#38bdf8',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
   },
   category: {
-    fontSize: 12,
-    color: '#38bdf8',
+    fontSize: 11.5,
     fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 6,
-    paddingTop: 8,
+    marginTop: 4,
+    paddingTop: 6,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
   },
   meta: {
     fontSize: 11,
-    color: '#94a3b8',
     fontWeight: '600',
   },
-  status: {
-    fontSize: 11,
+  statusBadgeTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  statusOkTag: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+  },
+  statusOkText: {
+    color: '#34d399',
+    fontSize: 10.5,
     fontWeight: '800',
   },
-  statusOk: {
-    color: '#34d399',
+  statusWarnTag: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderColor: 'rgba(245, 158, 11, 0.35)',
   },
-  statusWarn: {
+  statusWarnText: {
     color: '#fbbf24',
+    fontSize: 10.5,
+    fontWeight: '800',
   },
   emptyText: {
-    color: '#94a3b8',
     textAlign: 'center',
     marginTop: 40,
     fontSize: 14,

@@ -28,6 +28,7 @@ export default function SubstanceRegisterModal({ visible, onClose, onSuccess }) 
   const [flammability, setFlammability] = useState('0');
   const [reactivity, setReactivity] = useState('0');
 
+  const [stockUnits, setStockUnits] = useState('1');
   const [loading, setLoading] = useState(false);
 
   const resetForm = () => {
@@ -38,7 +39,8 @@ export default function SubstanceRegisterModal({ visible, onClose, onSuccess }) 
     setContainer('');
     setLocation('');
     setAmount('');
-    setUnit('mL');
+    setUnit('g');
+    setStockUnits('1');
     setNotes('');
     setHealthRisk('0');
     setFlammability('0');
@@ -55,17 +57,16 @@ export default function SubstanceRegisterModal({ visible, onClose, onSuccess }) 
     try {
       const payload = {
         name: name.trim(),
-        cas: cas.trim(),
-        formula: formula.trim(),
-        purity: purity.trim(),
-        container: container.trim(),
+        chemical_formula: formula.trim(),
+        cas_number: cas.trim(),
+        concentration: purity.trim(),
+        container_content: container.trim() || `${stockUnits || '1'} envase(s) de ${amount || '1'} ${unit || 'g'}`,
         location: location.trim(),
-        amount: parseFloat(amount) || 0,
-        unit: unit.trim(),
-        notes: notes.trim(),
-        health_risk: parseInt(healthRisk) || 0,
-        flammability_risk: parseInt(flammability) || 0,
-        reactivity_risk: parseInt(reactivity) || 0,
+        quantity: parseFloat(amount) || 1.0,
+        unit: unit.trim() || 'g',
+        stock_units: parseInt(stockUnits, 10) || 1,
+        observations: notes.trim(),
+        risks_warnings: `Salud: ${healthRisk || 0}, Inflamabilidad: ${flammability || 0}, Reactividad: ${reactivity || 0}`,
       };
 
       const res = await apiService.createSubstance(payload);

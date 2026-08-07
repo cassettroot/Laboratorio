@@ -612,63 +612,64 @@ function renderLoansTable() {
     items.forEach(loan => {
         let badgeStatus = '';
         if (loan.status === 'Pendiente Aprobación Admin') {
-            badgeStatus = '<span class="bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2.5 py-1 rounded-full text-3xs uppercase tracking-wider flex items-center gap-1 w-fit">⏳ Pendiente Aprobación</span>';
+            badgeStatus = '<span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-xs whitespace-nowrap leading-normal">⏳ Pendiente Aprobación</span>';
         } else if (loan.status === 'Prestado') {
-            badgeStatus = '<span class="bg-amber-100 text-amber-800 border border-amber-300 font-bold px-2.5 py-1 rounded-full text-3xs uppercase tracking-wider flex items-center gap-1 w-fit"><span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span> 🟡 En Préstamo</span>';
+            badgeStatus = '<span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs whitespace-nowrap leading-normal"><span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> 🟡 En Préstamo</span>';
         } else if (loan.status === 'Pendiente Verificación Admin') {
-            badgeStatus = '<span class="bg-orange-100 text-orange-800 border border-orange-300 font-bold px-2.5 py-1 rounded-full text-3xs uppercase tracking-wider flex items-center gap-1 w-fit">📷 Pendiente Verificación</span>';
+            badgeStatus = '<span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-orange-500/20 text-orange-300 border border-orange-500/40 shadow-xs whitespace-nowrap leading-normal">📷 Pendiente Verificación</span>';
         } else {
-            badgeStatus = '<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold px-2.5 py-1 rounded-full text-3xs uppercase tracking-wider w-fit">🟢 Devuelto & Aprobado</span>';
+            badgeStatus = '<span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs whitespace-nowrap leading-normal">🟢 DEVUELTO & APROBADO</span>';
         }
 
         const photoHtml = loan.return_photo_path ? `
             <div class="space-y-1">
-                <a href="${loan.return_photo_path}" target="_blank" class="block w-12 h-12 rounded-lg overflow-hidden border border-slate-300 hover:opacity-80 transition shadow-xs" title="Ver evidencia fotográfica">
-                    <img src="${loan.return_photo_path}" class="w-full h-full object-cover" />
-                </a>
-                ${loan.return_notes ? `<div class="text-3xs text-slate-600 font-medium max-w-xs italic">"${loan.return_notes}"</div>` : ''}
+                <button type="button" onclick="openImageLightbox('${loan.return_photo_path}', 'Evidencia en Estante - Préstamo #${loan.id}')" class="block w-14 h-14 rounded-2xl overflow-hidden border border-slate-700/80 hover:border-emerald-400 hover:scale-105 transition-all duration-200 shadow-md group relative bg-slate-900 shrink-0" title="Haz clic para ampliar la evidencia">
+                    <img src="${loan.return_photo_path}" class="w-full h-full object-cover group-hover:scale-110 transition duration-200" />
+                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold">🔍</div>
+                </button>
+                ${loan.return_notes ? `<div class="text-3xs text-slate-300 font-medium max-w-[140px] italic line-clamp-2 leading-tight">"${loan.return_notes}"</div>` : ''}
             </div>
-        ` : (loan.return_notes ? `<div class="text-3xs text-slate-600 italic">"${loan.return_notes}"</div>` : '<span class="text-3xs text-slate-400 italic">Sin foto</span>');
+        ` : (loan.return_notes ? `<div class="text-3xs text-slate-400 italic">"${loan.return_notes}"</div>` : '<span class="text-3xs text-slate-500 italic">Sin foto</span>');
 
         html += `
-            <tr class="hover:bg-slate-50/80 transition">
-                <td class="py-3.5 px-6 font-mono font-bold text-slate-900">#PR-${loan.id}</td>
-                <td class="py-3.5 px-6">
-                    <div class="font-bold text-slate-900">${loan.item_name}</div>
-                    ${loan.notes ? `<div class="text-3xs text-slate-500">Motivo: ${loan.notes}</div>` : ''}
+            <tr class="hover:bg-slate-800/60 transition border-b border-slate-800/60">
+                <td class="py-4 px-6 font-mono font-extrabold text-amber-400 text-xs">#PR-${loan.id}</td>
+                <td class="py-4 px-6">
+                    <div class="font-extrabold text-white text-sm leading-snug">${loan.item_name}</div>
+                    ${loan.notes ? `<div class="text-3xs text-slate-400 mt-0.5">Motivo: ${loan.notes}</div>` : ''}
                 </td>
-                <td class="py-3.5 px-6">
-                    <div class="font-bold text-slate-900">${loan.borrower_name}</div>
-                    <div class="text-3xs text-slate-500 uppercase">${loan.borrower_type || 'Responsable'}</div>
+                <td class="py-4 px-6">
+                    <div class="font-extrabold text-slate-200 text-xs">${loan.borrower_name}</div>
+                    <div class="text-3xs text-slate-400 uppercase font-semibold">${loan.borrower_type || 'Responsable'}</div>
                 </td>
-                <td class="py-3.5 px-6">
-                    <div class="font-mono text-slate-700">${loan.loan_date}</div>
-                    <div class="font-bold text-amber-700 text-3xs">${loan.elapsed_time}</div>
+                <td class="py-4 px-6">
+                    <div class="font-mono text-xs font-medium text-slate-300">${loan.loan_date}</div>
+                    <div class="font-extrabold text-amber-400 text-3xs mt-0.5">${loan.elapsed_time}</div>
                 </td>
-                <td class="py-3.5 px-6">${photoHtml}</td>
-                <td class="py-3.5 px-6">${badgeStatus}</td>
-                <td class="py-3.5 px-6 text-right">
+                <td class="py-4 px-6">${photoHtml}</td>
+                <td class="py-4 px-6">${badgeStatus}</td>
+                <td class="py-4 px-6 text-right">
                     <div class="flex items-center justify-end gap-2">
                         ${isAdmin && loan.status === 'Pendiente Aprobación Admin' ? `
-                            <button onclick="approveLoanRequest(${loan.id})" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3 py-1.5 rounded-lg text-2xs transition shadow-2xs">
+                            <button onclick="approveLoanRequest(${loan.id})" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3 py-1.5 rounded-xl text-2xs transition shadow-xs">
                                 👑 Aprobar Préstamo
                             </button>
                         ` : ''}
 
                         ${loan.status === 'Prestado' ? `
-                            <button onclick="openReturnLoanModal(${loan.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-2xs transition shadow-2xs">
+                            <button onclick="openReturnLoanModal(${loan.id})" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-xl text-2xs transition shadow-xs">
                                 📸 Devolver con Foto
                             </button>
                         ` : ''}
 
                         ${isAdmin && loan.status === 'Pendiente Verificación Admin' ? `
-                            <button onclick="approveReturnLoan(${loan.id})" class="bg-orange-600 hover:bg-orange-700 text-white font-extrabold px-3 py-1.5 rounded-lg text-2xs transition shadow-2xs">
+                            <button onclick="approveReturnLoan(${loan.id})" class="bg-orange-600 hover:bg-orange-500 text-white font-extrabold px-3 py-1.5 rounded-xl text-2xs transition shadow-xs">
                                 🟢 Aprobar Devolución
                             </button>
                         ` : ''}
 
                         ${isAdmin ? `
-                            <button onclick="deleteLoanRecord(${loan.id})" class="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition" title="Eliminar registro">
+                            <button onclick="deleteLoanRecord(${loan.id})" class="text-rose-400 hover:text-rose-300 p-2 rounded-xl hover:bg-rose-500/10 transition" title="Eliminar registro">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         ` : ''}
@@ -820,6 +821,53 @@ async function approveReturnLoan(loanId) {
         alert("Error al aprobar la devolución.");
     }
 }
+
+window.deleteLoan = async function(loanId) {
+    if (!confirm('¿Estás seguro de eliminar este registro de préstamo?')) return;
+    try {
+        const res = await fetch(`/api/loans/${loanId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            await loadLoansData();
+            alert('Registro de préstamo eliminado.');
+        } else {
+            alert('Error: ' + data.message);
+        }
+    } catch (e) {
+        alert('Error al eliminar préstamo: ' + e.message);
+    }
+};
+
+window.openImageLightbox = function(src, title = 'Visualización de Evidencia') {
+    let modal = document.getElementById('lightbox-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'lightbox-modal';
+        modal.className = 'fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in no-print';
+        document.body.appendChild(modal);
+    }
+    modal.innerHTML = `
+        <div class="relative bg-[#0d1527] border border-slate-800 rounded-3xl p-5 max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+                <h4 class="font-extrabold text-sm text-white flex items-center gap-2">
+                    <i data-lucide="camera" class="w-4 h-4 text-teal-400"></i>
+                    <span>${title}</span>
+                </h4>
+                <button onclick="closeImageLightbox()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-sm">✕</button>
+            </div>
+            <div class="flex-1 overflow-hidden flex items-center justify-center rounded-2xl bg-black/60 p-2">
+                <img src="${src}" class="max-w-full max-h-[75vh] object-contain rounded-xl shadow-lg" />
+            </div>
+        </div>
+    `;
+    if (window.lucide) window.lucide.createIcons();
+    modal.classList.remove('hidden');
+};
+
+window.closeImageLightbox = function() {
+    const modal = document.getElementById('lightbox-modal');
+    if (modal) modal.remove();
+};
 
 async function deleteLoanRecord(loanId) {
     if (!confirm(`⚠️ ¿Estás seguro de eliminar el registro de préstamo #PR-${loanId}? Esta acción no se puede deshacer.`)) return;

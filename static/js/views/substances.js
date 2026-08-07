@@ -2,16 +2,22 @@ function buildGroupBadgesHtml(substance_group) {
     if (!substance_group) return '';
     const groups = substance_group.split(/[,/;|]/).map(g => g.trim()).filter(Boolean);
     return groups.map(group => {
-        let gColor = 'bg-slate-100 text-slate-700 border-slate-200';
+        let gColor = 'bg-slate-100 text-slate-900 border-slate-300 font-extrabold';
         const g = group.toLowerCase();
-        if (g.includes('inflam')) gColor = 'bg-red-50 text-red-700 border-red-200';
-        else if (g.includes('tox') || g.includes('venen')) gColor = 'bg-purple-50 text-purple-700 border-purple-200';
-        else if (g.includes('corros')) gColor = 'bg-orange-50 text-orange-700 border-orange-200';
-        else if (g.includes('explos')) gColor = 'bg-yellow-50 text-yellow-800 border-yellow-300';
-        else if (g.includes('comburent')) gColor = 'bg-pink-50 text-pink-700 border-pink-200';
-        else if (g.includes('irrit')) gColor = 'bg-teal-50 text-teal-700 border-teal-200';
-        else if (g.includes('inert')) gColor = 'bg-blue-50 text-blue-700 border-blue-200';
-        return `<span class="px-2.5 py-0.5 rounded border text-3xs font-extrabold uppercase tracking-wider ${gColor}">${group}</span>`;
+        if (g.includes('inflam')) gColor = 'bg-rose-100 text-rose-950 border-rose-300 font-extrabold';
+        else if (g.includes('tox') || g.includes('venen')) gColor = 'bg-purple-100 text-purple-950 border-purple-300 font-extrabold';
+        else if (g.includes('corros')) gColor = 'bg-amber-100 text-amber-950 border-amber-300 font-extrabold';
+        else if (g.includes('explos')) gColor = 'bg-yellow-100 text-yellow-950 border-yellow-400 font-extrabold';
+        else if (g.includes('comburent')) gColor = 'bg-pink-100 text-pink-950 border-pink-300 font-extrabold';
+        else if (g.includes('irrit')) gColor = 'bg-emerald-100 text-emerald-950 border-emerald-300 font-extrabold';
+        else if (g.includes('alcoh') || g.includes('solvent')) gColor = 'bg-sky-100 text-sky-950 border-sky-300 font-extrabold';
+        else if (g.includes('ester') || g.includes('éster')) gColor = 'bg-fuchsia-100 text-fuchsia-950 border-fuchsia-300 font-extrabold';
+        else if (g.includes('aldehid') || g.includes('aldehíd')) gColor = 'bg-violet-100 text-violet-950 border-violet-300 font-extrabold';
+        else if (g.includes('cetona')) gColor = 'bg-indigo-100 text-indigo-950 border-indigo-300 font-extrabold';
+        else if (g.includes('acid') || g.includes('ácid')) gColor = 'bg-rose-100 text-rose-950 border-rose-300 font-extrabold';
+        else if (g.includes('base') || g.includes('alcali')) gColor = 'bg-blue-100 text-blue-950 border-blue-300 font-extrabold';
+        else if (g.includes('inert') || g.includes('sal')) gColor = 'bg-cyan-100 text-cyan-950 border-cyan-300 font-extrabold';
+        return `<span class="px-3 py-1 rounded-xl border text-3xs font-extrabold uppercase tracking-wider shadow-2xs ${gColor}">${group}</span>`;
     }).join(' ');
 }
 
@@ -103,29 +109,29 @@ async function renderSubstancesList(container) {
 
     container.innerHTML = `
         <div class="space-y-6 animate-fade-in">
-            <div class="sticky -top-8 z-20 bg-slate-50/95 backdrop-blur-md py-3 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b border-slate-200/80 space-y-3 no-print shadow-xs">
+            <div class="sticky -top-8 z-20 py-2 space-y-3 no-print">
                 <!-- Fila Principal: Búsqueda y Botones -->
                 <div class="flex flex-col md:flex-row gap-3 items-center justify-between">
                     <div class="flex items-center gap-3 w-full md:w-auto flex-1 max-w-2xl">
                         <div class="relative w-full">
-                            <input id="search-substances" type="text" value="${f.search || ''}" placeholder="Buscar por CAS, nombre, grupo o ubicación..." class="w-full bg-white border border-slate-300 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:border-brand-500 outline-none transition shadow-sm font-medium text-slate-800 placeholder:text-slate-400">
+                            <input id="search-substances" type="text" value="${f.search || ''}" placeholder="Buscar por CAS, nombre, grupo o ubicación..." class="w-full bg-slate-900/70 border border-slate-700/80 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:border-brand-500 outline-none transition shadow-sm font-semibold text-white placeholder:text-slate-400">
                             <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
                         </div>
                         
-                        <button type="button" id="btn-toggle-filter-mode" onclick="toggleSubstancesFilterActiveMode()" class="px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition border shadow-sm shrink-0 ${f.areFiltersActive ? 'bg-brand-600 text-white border-brand-700 hover:bg-brand-700' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}">
-                            <i data-lucide="${f.areFiltersActive ? 'filter-check' : 'filter'}" class="w-4 h-4 text-brand-500"></i>
+                        <button type="button" id="btn-toggle-filter-mode" onclick="toggleSubstancesFilterActiveMode()" class="px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition border shadow-sm shrink-0 ${f.areFiltersActive ? 'bg-brand-600 text-white border-brand-700 hover:bg-brand-700' : 'bg-slate-900/70 text-slate-200 border-slate-700/80 hover:bg-slate-800'}">
+                            <i data-lucide="${f.areFiltersActive ? 'filter-check' : 'filter'}" class="w-4 h-4 text-brand-400"></i>
                             <span>${f.areFiltersActive ? '⚡ Activar Filtros: SÍ' : '⚡ Activar Filtros'}</span>
                         </button>
 
-                        <button type="button" id="btn-toggle-filters" onclick="toggleSubstancesFiltersPanel()" class="bg-white hover:bg-slate-100 border border-slate-300 font-semibold px-3.5 py-2.5 rounded-xl text-sm flex items-center gap-2 transition text-slate-700 shadow-sm shrink-0">
-                            <i data-lucide="sliders-horizontal" class="w-4 h-4 text-brand-600"></i>
+                        <button type="button" id="btn-toggle-filters" onclick="toggleSubstancesFiltersPanel()" class="bg-slate-900/70 hover:bg-slate-800 border border-slate-700/80 font-bold px-3.5 py-2.5 rounded-xl text-sm flex items-center gap-2 transition text-white shadow-sm shrink-0">
+                            <i data-lucide="sliders-horizontal" class="w-4 h-4 text-brand-400"></i>
                             <span>Opciones</span>
                             <span id="active-filters-badge" class="hidden bg-brand-500 text-slate-900 text-3xs font-extrabold px-2 py-0.5 rounded-full">0</span>
                         </button>
                     </div>
 
                     <div class="flex items-center gap-2.5 w-full md:w-auto justify-end">
-                        <div class="flex border border-slate-300 rounded-xl overflow-hidden shadow-sm bg-white shrink-0">
+                        <div class="flex border border-slate-700/80 rounded-xl overflow-hidden shadow-sm bg-slate-900/70 shrink-0 text-white">
                             <button onclick="setSubstancesViewMode('list')" id="btn-view-list" class="px-3.5 py-2.5 transition flex items-center justify-center font-bold text-xs" title="Vista de Lista">
                                 <i data-lucide="list" class="w-4 h-4"></i>
                             </button>
@@ -140,14 +146,14 @@ async function renderSubstancesList(container) {
                             <span class="hidden sm:inline">🖨️ Códigos QR</span>
                             <span class="sm:hidden">QR</span>
                         </button>
-                        <button onclick="exportTableToExcel('substances')" class="bg-white hover:bg-slate-50 border border-slate-300 font-semibold px-3.5 py-2.5 rounded-xl text-sm flex items-center gap-2 transition text-slate-700 shadow-sm shrink-0">
+                        <button onclick="exportTableToExcel('substances')" class="bg-slate-900/70 hover:bg-slate-800 border border-slate-700/80 font-bold px-3.5 py-2.5 rounded-xl text-sm flex items-center gap-2 transition text-white shadow-sm shrink-0">
                             <i data-lucide="download" class="w-4 h-4"></i>
                             <span class="hidden sm:inline">Exportar</span>
                         </button>
                         ` : ''}
 
                         ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
-                        <button onclick="openAddModal('substances')" class="bg-brand-600 hover:bg-brand-700 font-bold px-4 py-2.5 rounded-xl text-sm text-white flex items-center gap-2 transition shadow-lg shadow-brand-600/10 shrink-0">
+                        <button onclick="openAddModal('substances')" class="bg-teal-600 hover:bg-teal-700 font-extrabold px-4 py-2.5 rounded-xl text-sm text-white flex items-center gap-2 transition shadow-lg shrink-0">
                             <i data-lucide="plus" class="w-4 h-4"></i>
                             <span>Registrar Sustancia</span>
                         </button>
@@ -156,7 +162,7 @@ async function renderSubstancesList(container) {
                 </div>
 
                 <!-- Panel Plegable de Filtros Avanzados y Ordenamiento -->
-                <div id="substances-filters-panel" class="${f.isPanelOpen ? '' : 'hidden'} bg-white border border-slate-200 rounded-2xl p-4 shadow-lg animate-fade-in space-y-3">
+                <div id="substances-filters-panel" class="${f.isPanelOpen ? '' : 'hidden'} bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 shadow-2xl animate-fade-in space-y-3 text-white">
                     <div class="flex items-center justify-between pb-2 border-b border-slate-100">
                         <span class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                             <i data-lucide="filter" class="w-3.5 h-3.5 text-brand-600"></i>
@@ -378,12 +384,32 @@ async function renderSubstancesList(container) {
         }
     };
 
-    document.getElementById('search-substances')?.addEventListener('input', fetchAndRender);
+    let debounceTimer = null;
+    const debouncedFetch = () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            fetchAndRender();
+        }, 200);
+    };
+
+    const searchInput = document.getElementById('search-substances');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            debouncedFetch();
+        });
+    }
+
+    const locInput = document.getElementById('filter-location');
+    if (locInput) {
+        locInput.addEventListener('input', (e) => {
+            debouncedFetch();
+        });
+    }
+
     document.getElementById('sort-substances')?.addEventListener('change', fetchAndRender);
     document.getElementById('group-substances')?.addEventListener('change', fetchAndRender);
     document.getElementById('filter-state')?.addEventListener('change', fetchAndRender);
     document.getElementById('filter-completeness')?.addEventListener('change', fetchAndRender);
-    document.getElementById('filter-location')?.addEventListener('input', fetchAndRender);
 
     fetchAndRender();
 }
@@ -525,15 +551,15 @@ function renderSubstancesBlock(items, mode) {
                     const today = new Date();
                     let expBadge = '';
                     if (s.expiration_date === 'Sin caducidad' || s.expiration_date === 'No aplica') {
-                        expBadge = `<span class="absolute top-3 left-3 bg-blue-600 text-white text-3xs font-extrabold uppercase px-2 py-1 rounded-xl shadow-lg shadow-blue-600/25 z-10">Sin Caducidad</span>`;
+                        expBadge = `<span class="absolute top-3 left-3 bg-blue-600 text-white text-3xs font-extrabold uppercase px-2.5 py-1 rounded-xl shadow-md z-10">Sin Caducidad</span>`;
                     } else if (s.expiration_date) {
                         const exp = new Date(s.expiration_date);
                         if (!isNaN(exp)) {
                             const diff = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
                             if (diff < 0) {
-                                expBadge = `<span class="absolute top-3 left-3 bg-red-600 text-white text-3xs font-extrabold uppercase px-2 py-1 rounded-xl shadow-lg shadow-red-600/25 z-10">Caducado</span>`;
+                                expBadge = `<span class="absolute top-3 left-3 bg-rose-600 text-white text-3xs font-extrabold uppercase px-2.5 py-1 rounded-xl shadow-md z-10">Caducado</span>`;
                             } else if (diff <= 30) {
-                                expBadge = `<span class="absolute top-3 left-3 bg-amber-500 text-white text-3xs font-extrabold uppercase px-2 py-1 rounded-xl shadow-lg shadow-amber-500/25 z-10">Por Caducar</span>`;
+                                expBadge = `<span class="absolute top-3 left-3 bg-amber-500 text-white text-3xs font-extrabold uppercase px-2.5 py-1 rounded-xl shadow-md z-10">Por Caducar</span>`;
                             }
                         }
                     }
@@ -545,53 +571,55 @@ function renderSubstancesBlock(items, mode) {
                         try {
                             const imgs = typeof s.presentation_images === 'string' ? JSON.parse(s.presentation_images) : s.presentation_images;
                             if (Array.isArray(imgs) && imgs.length > 0) {
-                                presBadge = `<span class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-sm text-white text-3xs font-extrabold px-2 py-1 rounded-xl border border-white/20 z-10 flex items-center gap-1 shadow-sm"><i data-lucide="image" class="w-3 h-3 text-brand-300"></i> ${imgs.length + (s.image_path ? 1 : 0)} fotos</span>`;
+                                presBadge = `<span class="substance-photo-badge absolute top-3 right-3 bg-slate-900/80 backdrop-blur-sm text-white text-3xs font-extrabold px-2.5 py-1 rounded-xl border border-white/20 z-10 flex items-center gap-1 shadow-sm"><i data-lucide="image" class="w-3 h-3 text-sky-400"></i> ${imgs.length + (s.image_path ? 1 : 0)} fotos</span>`;
                             }
                         } catch(e) {}
                     }
 
                     return `
-                        <div class="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 flex flex-col group relative">
-                            <div class="relative w-full aspect-square bg-slate-50 border-b flex items-center justify-center text-slate-300 overflow-hidden shrink-0 group/img ${cardImage ? 'cursor-pointer' : ''}" ${cardImage ? `onclick="openImageViewer('${cardImage}', '${(s.name || '').replace(/'/g, "\\'")}')"` : ''}>
+                        <div class="glass-card-premium border border-slate-700/60 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl hover:-translate-y-1 transition duration-300 flex flex-col group relative bg-slate-900/90 text-white">
+                            <div class="relative w-full aspect-square bg-slate-950 border-b border-slate-800 flex items-center justify-center text-slate-300 overflow-hidden shrink-0 group/img ${cardImage ? 'cursor-pointer' : ''}" ${cardImage ? `onclick="openImageViewer('${cardImage}', '${(s.name || '').replace(/'/g, "\\'")}')"` : ''}>
                                 ${expBadge}
                                 ${presBadge}
                                 ${cardImage ? `
                                     <img src="${cardImage}" class="w-full h-full object-cover group-hover/img:scale-105 transition duration-500">
-                                    <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/img:opacity-100 transition flex items-center justify-center text-white text-xs font-bold gap-1.5 backdrop-blur-[2px]">
-                                        <i data-lucide="maximize-2" class="w-4 h-4 text-brand-400"></i>
+                                    <div class="absolute inset-0 bg-slate-950/60 opacity-0 group-hover/img:opacity-100 transition flex items-center justify-center text-white text-xs font-extrabold gap-1.5 backdrop-blur-[2px]">
+                                        <i data-lucide="maximize-2" class="w-4 h-4 text-emerald-400"></i>
                                         <span>Ver Foto Completa</span>
                                     </div>
                                 ` : `
-                                    <i data-lucide="flask-conical" class="w-12 h-12 text-slate-300"></i>
+                                    <i data-lucide="flask-conical" class="w-12 h-12 text-slate-500"></i>
                                 `}
-                                <div class="absolute bottom-3 left-3 right-3 bg-slate-900/70 backdrop-blur-md text-white text-3xs rounded-2xl p-2.5 flex justify-center items-center shadow-lg border border-white/10 z-10">
-                                    <span class="font-bold flex items-center gap-1">
-                                        <i data-lucide="scale" class="w-3.5 h-3.5 text-brand-400"></i>
+                                <div class="substance-container-badge absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-md text-slate-900 text-xs rounded-2xl p-2.5 flex justify-center items-center shadow-lg border border-slate-200/80 z-10">
+                                    <span class="font-black flex items-center gap-1.5">
+                                        <i data-lucide="scale" class="w-4 h-4 text-emerald-600"></i>
                                         <span>${s.container_content || s.unit || ''}</span>
                                     </span>
                                 </div>
                             </div>
 
                             <div class="p-5 flex-1 flex flex-col justify-between gap-4">
-                                <div class="space-y-2.5">
+                                <div class="space-y-3">
                                     <div class="flex items-center justify-between gap-2 flex-wrap">
-                                        <span class="text-3xs text-slate-400 font-bold uppercase tracking-wider">LAB-SUB-${s.id}</span>
+                                        <span class="substance-id-code text-xs font-mono font-extrabold uppercase tracking-wider text-slate-800">LAB-SUB-${s.id}</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1.5">
                                         ${groupBadgeHtml}
                                     </div>
-                                    <h4 class="font-bold text-slate-900 text-base leading-tight line-clamp-2" title="${s.name}">${s.name}</h4>
+                                    <h4 class="font-black text-white text-base leading-snug line-clamp-2" title="${s.name}">${s.name}</h4>
 
-                                    <div class="text-xs text-slate-500 space-y-1.5 pt-2 border-t border-slate-100">
-                                        <div class="flex justify-between"><span class="font-medium text-slate-400">Fórmula:</span><span class="font-semibold text-slate-800 truncate max-w-[140px]" title="${s.chemical_formula || ''}">${s.chemical_formula || '-'}</span></div>
-                                        <div class="flex justify-between"><span class="font-medium text-slate-400">CAS:</span><span class="font-semibold text-slate-800">${s.cas_number || '-'}</span></div>
-                                        <div class="flex justify-between"><span class="font-medium text-slate-400">Estado:</span><span class="font-bold text-brand-700">${s.physical_state || 'N/D'}</span></div>
-                                        <div class="flex justify-between items-center"><span class="font-medium text-slate-400">Ubicación:</span><span class="font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 text-3xs truncate max-w-[130px]" title="${s.location || 'No asignada'}">📍 ${s.location || 'No asignada'}</span></div>
-                                        <div class="flex justify-between"><span class="font-medium text-slate-400">Total Stock:</span><span class="font-bold text-slate-900">${s.quantity} ${s.unit}</span></div>
+                                    <div class="text-xs space-y-2 pt-3 border-t border-slate-800">
+                                        <div class="flex justify-between items-center"><span class="font-extrabold text-white">Fórmula:</span><span class="font-bold text-slate-100 truncate max-w-[140px]" title="${s.chemical_formula || ''}">${s.chemical_formula || '-'}</span></div>
+                                        <div class="flex justify-between items-center"><span class="font-extrabold text-white">CAS:</span><span class="font-bold text-slate-100">${s.cas_number || '-'}</span></div>
+                                        <div class="flex justify-between items-center"><span class="font-extrabold text-white">Estado:</span><span class="font-black text-emerald-400">${s.physical_state || 'N/D'}</span></div>
+                                        <div class="flex justify-between items-center"><span class="font-extrabold text-white">Ubicación:</span><span class="font-extrabold text-amber-300 bg-slate-950 px-2 py-0.5 rounded-lg border border-amber-400/50 text-3xs truncate max-w-[130px]" title="${s.location || 'No asignada'}">📍 ${s.location || 'No asignada'}</span></div>
+                                        <div class="flex justify-between items-center"><span class="font-extrabold text-white">Total Stock:</span><span class="font-black text-white">${s.quantity} ${s.unit}</span></div>
                                         ${(() => {
                                             if (!f.areFiltersActive) return '';
                                             const missing = getMissingSubstanceFields(s);
                                             return missing.length > 0 ? `
-                                                <div class="pt-1.5 border-t border-slate-100">
-                                                    <span class="bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md text-3xs font-bold block truncate" title="Faltan datos: ${missing.join(', ')}">
+                                                <div class="pt-2 border-t border-slate-800">
+                                                    <span class="bg-slate-950 text-rose-300 border border-rose-400 px-2.5 py-1 rounded-xl text-3xs font-extrabold block truncate" title="Faltan datos: ${missing.join(', ')}">
                                                         ⚠️ Falta: ${missing.join(', ')}
                                                     </span>
                                                 </div>
@@ -600,13 +628,13 @@ function renderSubstancesBlock(items, mode) {
                                     </div>
                                 </div>
 
-                                <div class="flex items-center justify-end gap-1.5 border-t border-slate-50 pt-3">
-                                    <a href="#/substances/${s.id}" class="p-2 bg-slate-50 hover:bg-brand-50 text-slate-600 hover:text-brand-700 border border-slate-200 hover:border-brand-200 rounded-xl transition shadow-2xs flex items-center gap-1 text-xs font-bold" title="Ver Detalle y Editar">
-                                        <i data-lucide="eye" class="w-4 h-4"></i>
+                                <div class="flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
+                                    <a href="#/substances/${s.id}" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-xl transition shadow-md flex items-center gap-1.5 text-xs font-extrabold" title="Ver Detalle y Editar">
+                                        <i data-lucide="eye" class="w-4 h-4 text-emerald-400"></i>
                                         <span>Ver Detalle</span>
                                     </a>
                                     ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
-                                        <button onclick="deleteItem('substances', ${s.id})" class="p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-xl transition" title="Eliminar">
+                                        <button onclick="deleteItem('substances', ${s.id})" class="p-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-xl transition" title="Eliminar">
                                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                                         </button>
                                     ` : ''}
@@ -831,19 +859,39 @@ async function submitSubstanceLoanRequest(substanceId) {
 let qrBatchModalState = {
     filterType: 'all', // 'all' | 'liquid' | 'solid' | 'gas'
     searchTerm: '',
-    selectedIds: new Set()
+    selectedIds: new Set(),
+    itemCopies: {} // { [substanceId]: number }
 };
 
-window.openQRBatchModal = function() {
+window.openQRBatchModal = async function() {
     if (!state.isLoggedIn || state.userRole !== 'admin') {
         alert('Esta función de impresión masiva de códigos QR está reservada exclusivamente para Administradores.');
         return;
+    }
+
+    // Si state.substances no está cargado aún, obtenerlo desde el backend
+    if (!state.substances || state.substances.length === 0) {
+        try {
+            const res = await fetch('/api/substances').then(r => r.json());
+            if (res.status === 'success' && Array.isArray(res.data)) {
+                state.substances = res.data;
+            } else if (Array.isArray(res)) {
+                state.substances = res;
+            }
+        } catch (e) {
+            console.warn('Error al precargar sustancias para modal QR:', e);
+        }
     }
 
     const substances = state.substances || [];
     qrBatchModalState.selectedIds = new Set(substances.map(s => s.id));
     qrBatchModalState.searchTerm = '';
     qrBatchModalState.filterType = 'all';
+    qrBatchModalState.itemCopies = {};
+    substances.forEach(s => {
+        const stockUnits = parseInt(s.stock_units, 10);
+        qrBatchModalState.itemCopies[s.id] = (isNaN(stockUnits) || stockUnits < 1) ? 1 : stockUnits;
+    });
 
     renderQRBatchModalDOM();
 };
@@ -892,6 +940,25 @@ window.toggleQRItemSelection = function(id) {
     renderQRBatchModalDOM();
 };
 
+window.changeQRCopies = function(id, delta) {
+    if (!qrBatchModalState.itemCopies) qrBatchModalState.itemCopies = {};
+    const current = qrBatchModalState.itemCopies[id] || 1;
+    const next = Math.max(1, Math.min(99, current + delta));
+    qrBatchModalState.itemCopies[id] = next;
+    if (!qrBatchModalState.selectedIds.has(id) && delta > 0) {
+        qrBatchModalState.selectedIds.add(id);
+    }
+    renderQRBatchModalDOM();
+};
+
+window.setQRCopies = function(id, val) {
+    if (!qrBatchModalState.itemCopies) qrBatchModalState.itemCopies = {};
+    const parsed = parseInt(val, 10);
+    const next = isNaN(parsed) || parsed < 1 ? 1 : Math.min(99, parsed);
+    qrBatchModalState.itemCopies[id] = next;
+    renderQRBatchModalDOM();
+};
+
 function getFilteredQRSubstances() {
     const substances = state.substances || [];
     const term = (qrBatchModalState.searchTerm || '').toLowerCase().trim();
@@ -926,105 +993,150 @@ function renderQRBatchModalDOM() {
     const solidsCount = allSubstances.filter(s => s.physical_state === 'Sólido').length;
 
     const items = getFilteredQRSubstances();
-    const selectedCount = qrBatchModalState.selectedIds.size;
+    const selectedSubstances = allSubstances.filter(s => qrBatchModalState.selectedIds.has(s.id));
+    const selectedCount = selectedSubstances.length;
 
-    existingModal.className = 'fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in no-print';
+    let totalQRLabels = 0;
+    selectedSubstances.forEach(s => {
+        const copies = (qrBatchModalState.itemCopies && qrBatchModalState.itemCopies[s.id]) || 1;
+        totalQRLabels += copies;
+    });
+
+    const listHtml = items.length === 0 ? `
+        <div class="py-12 text-center text-slate-400 font-semibold bg-[#111a2d] rounded-2xl border border-slate-800/80">
+            <i data-lucide="search-x" class="w-8 h-8 mx-auto mb-2 text-slate-500 opacity-60"></i>
+            <span>No se encontraron reactivos con el filtro o búsqueda actual.</span>
+        </div>
+    ` : items.map(s => {
+        const isChecked = qrBatchModalState.selectedIds.has(s.id);
+        const copies = (qrBatchModalState.itemCopies && qrBatchModalState.itemCopies[s.id]) || 1;
+
+        const stateBadgeClass = s.physical_state === 'Líquido' 
+            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' 
+            : (s.physical_state === 'Sólido' 
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
+                : 'bg-purple-500/20 text-purple-300 border border-purple-500/30');
+
+        const cardStyle = isChecked 
+            ? 'bg-teal-950/30 border-2 border-teal-400/80 shadow-md shadow-teal-950/40 text-slate-100' 
+            : 'bg-[#121b2d] border border-slate-800/80 hover:border-slate-700 text-slate-300';
+
+        return `
+            <div class="p-3 rounded-xl transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${cardStyle}">
+                <label class="flex items-center gap-3.5 cursor-pointer flex-1 min-w-0 w-full sm:w-auto">
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleQRItemSelection(${s.id})" class="w-5 h-5 rounded-md border-slate-700 bg-slate-900 text-teal-400 focus:ring-teal-500 focus:ring-offset-slate-900 shrink-0 cursor-pointer">
+                    ${s.qr_path ? `
+                        <img src="${s.qr_path}" class="w-11 h-11 rounded-lg border border-slate-700 bg-white object-contain p-0.5 shrink-0 shadow-sm">
+                    ` : `
+                        <div class="w-11 h-11 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-400 text-xs font-bold shrink-0">
+                            <i data-lucide="qr-code" class="w-5 h-5 text-slate-500"></i>
+                        </div>
+                    `}
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-extrabold text-white text-sm truncate">${s.name}</span>
+                            <span class="text-3xs font-mono px-2.5 py-0.5 rounded-full font-bold ${stateBadgeClass}">${s.physical_state || 'Genérico'}</span>
+                            ${s.substance_group ? `<span class="text-3xs font-bold text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700/60">🏷️ ${s.substance_group}</span>` : ''}
+                        </div>
+                        <div class="text-xs text-slate-400 flex items-center gap-3 mt-1 flex-wrap font-medium">
+                            <span>Fórmula: <strong class="text-slate-200 font-semibold">${s.chemical_formula || '-'}</strong></span>
+                            <span>CAS: <strong class="text-slate-200 font-semibold">${s.cas_number || '-'}</strong></span>
+                            <span>Stock: <strong class="text-teal-400 font-bold">${s.container_content || `${s.quantity} ${s.unit}`}</strong></span>
+                            <span class="text-3xs font-mono text-slate-500">LAB-SUB-${s.id}</span>
+                        </div>
+                    </div>
+                </label>
+
+                <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-slate-800/60 pt-2 sm:pt-0">
+                    <!-- Selector de Número de Copias por QR -->
+                    <div class="flex items-center gap-1 bg-slate-900 border border-slate-700/80 rounded-xl p-1 shrink-0" title="Número de impresiones/etiquetas para esta sustancia">
+                        <button type="button" onclick="changeQRCopies(${s.id}, -1)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs transition select-none">-</button>
+                        <input type="number" min="1" max="99" value="${copies}" onchange="setQRCopies(${s.id}, this.value)" class="w-8 text-center bg-transparent font-extrabold text-xs text-teal-300 outline-none">
+                        <button type="button" onclick="changeQRCopies(${s.id}, 1)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs transition select-none">+</button>
+                        <span class="text-3xs text-slate-400 font-bold pr-1 select-none">copia(s)</span>
+                    </div>
+
+                    ${s.qr_path ? `
+                        <button type="button" onclick="downloadSingleSubstanceQRPDF(${s.id})" class="px-3 py-1.5 bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 hover:border-teal-500/60 font-bold rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm" title="Descargar etiquetas QR de este elemento (${copies} copia/s)">
+                            <i data-lucide="download" class="w-3.5 h-3.5 text-teal-400"></i>
+                            <span>Descargar QR (${copies})</span>
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    const itemsContainer = document.getElementById('qr-modal-items-list');
+    const badgeContainer = document.getElementById('qr-selected-count-badge');
+
+    if (itemsContainer && badgeContainer) {
+        itemsContainer.innerHTML = listHtml;
+        badgeContainer.textContent = selectedCount.toString();
+        const totalBadge = document.getElementById('qr-total-labels-badge');
+        if (totalBadge) totalBadge.textContent = totalQRLabels.toString();
+        if (window.lucide) window.lucide.createIcons();
+        return;
+    }
+
+    existingModal.className = 'fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in no-print';
     existingModal.innerHTML = `
-        <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div class="bg-[#0d1527] rounded-3xl border border-slate-800 shadow-2xl shadow-cyan-950/50 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden text-slate-200 font-sans">
             <!-- Header Modal -->
-            <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+            <div class="px-6 py-4 bg-[#090d16] border-b border-slate-800 text-white flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-400 font-bold text-lg">
-                        🖨️
+                    <div class="w-10 h-10 rounded-2xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-400 font-bold text-lg shadow-inner">
+                        <i data-lucide="qr-code" class="w-5 h-5 text-teal-400"></i>
                     </div>
                     <div>
-                        <h3 class="text-lg font-extrabold text-white">Impresión y Descarga Masiva de Códigos QR</h3>
-                        <p class="text-xs text-slate-300">Exclusivo Administrador: Filtra líquidos, todos los reactivos o selecciona uno específico</p>
+                        <h3 class="text-base font-extrabold text-white tracking-wide">Impresión y Descarga Masiva de Códigos QR</h3>
+                        <p class="text-xs text-slate-400 font-medium">Exclusivo Administrador: Define el número de copias/etiquetas por cada reactivo</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeQRBatchModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition font-bold text-sm">✕</button>
+                <button type="button" onclick="closeQRBatchModal()" class="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition font-bold text-sm border border-slate-700/50">✕</button>
             </div>
 
             <!-- Toolbar Filtros Rápidos -->
-            <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
+            <div class="p-4 bg-[#111a2e] border-b border-slate-800/80 flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
                 <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500 mr-1">Filtro rápido:</span>
-                    <button type="button" onclick="setQRFilter('liquid')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'liquid' ? 'bg-cyan-600 text-white border-cyan-700 shadow-sm' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'}">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">Filtro rápido:</span>
+                    <button type="button" onclick="setQRFilter('liquid')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'liquid' ? 'bg-teal-600/30 text-teal-300 border-teal-500/50 shadow-sm shadow-teal-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
                         💧 Solo Líquidos (${liquidsCount})
                     </button>
-                    <button type="button" onclick="setQRFilter('solid')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'solid' ? 'bg-amber-600 text-white border-amber-700 shadow-sm' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'}">
+                    <button type="button" onclick="setQRFilter('solid')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'solid' ? 'bg-amber-600/30 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
                         📦 Solo Sólidos (${solidsCount})
                     </button>
-                    <button type="button" onclick="setQRFilter('all')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'all' ? 'bg-indigo-600 text-white border-indigo-700 shadow-sm' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'}">
+                    <button type="button" onclick="setQRFilter('all')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'all' ? 'bg-cyan-600/30 text-cyan-300 border-cyan-500/50 shadow-sm shadow-cyan-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
                         🧪 Todos (${allSubstances.length})
                     </button>
                 </div>
 
                 <div class="flex items-center gap-2 w-full md:w-auto">
-                    <input id="qr-modal-search" type="text" value="${qrBatchModalState.searchTerm}" oninput="handleQRSearchInput(this.value)" placeholder="Buscar por nombre, CAS o ID..." class="bg-white border border-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold outline-none focus:border-indigo-500 w-full md:w-52">
-                    <button type="button" onclick="selectAllQRItems(true)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition shrink-0">☑️ Marcar Visibles</button>
-                    <button type="button" onclick="selectAllQRItems(false)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition shrink-0">🎯 Desmarcar</button>
+                    <input id="qr-modal-search" type="text" value="${qrBatchModalState.searchTerm}" oninput="handleQRSearchInput(this.value)" placeholder="Buscar por nombre, CAS o ID..." class="bg-slate-900 border border-slate-700 px-3.5 py-1.5 rounded-xl text-xs text-slate-200 placeholder-slate-500 font-semibold outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 w-full md:w-56 transition">
+                    <button type="button" onclick="selectAllQRItems(true)" class="px-3 py-1.5 bg-teal-950/60 hover:bg-teal-900/80 text-teal-300 border border-teal-700/40 font-bold rounded-xl text-xs transition flex items-center gap-1.5 shrink-0"><i data-lucide="check-square" class="w-3.5 h-3.5"></i> Marcar Visibles</button>
+                    <button type="button" onclick="selectAllQRItems(false)" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700/60 font-bold rounded-xl text-xs transition flex items-center gap-1.5 shrink-0"><i data-lucide="square" class="w-3.5 h-3.5"></i> Desmarcar Todos</button>
                 </div>
             </div>
 
             <!-- Lista de Sustancias Seleccionables -->
-            <div class="p-4 overflow-y-auto flex-1 space-y-2 max-h-[52vh] divide-y divide-slate-100">
-                ${items.length === 0 ? `
-                    <div class="py-12 text-center text-slate-400 font-semibold">No se encontraron reactivos con el filtro o búsqueda actual.</div>
-                ` : items.map(s => {
-                    const isChecked = qrBatchModalState.selectedIds.has(s.id);
-                    const stateColor = s.physical_state === 'Líquido' ? 'bg-cyan-100 text-cyan-800' : (s.physical_state === 'Sólido' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800');
-                    return `
-                        <div class="pt-2.5 pb-2 flex items-center justify-between gap-4 hover:bg-slate-50 p-2 rounded-2xl transition">
-                            <label class="flex items-center gap-3.5 cursor-pointer flex-1 min-w-0">
-                                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleQRItemSelection(${s.id})" class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 shrink-0">
-                                ${s.qr_path ? `
-                                    <img src="${s.qr_path}" class="w-12 h-12 rounded-lg border border-slate-200 bg-white object-contain p-0.5 shrink-0">
-                                ` : `
-                                    <div class="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 text-xs font-bold shrink-0">QR</div>
-                                `}
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="font-extrabold text-slate-900 text-sm truncate">${s.name}</span>
-                                        <span class="text-3xs font-mono px-2 py-0.5 rounded ${stateColor} font-bold">${s.physical_state || 'Genérico'}</span>
-                                        ${s.substance_group ? `<span class="text-3xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">🏷️ ${s.substance_group}</span>` : ''}
-                                    </div>
-                                    <div class="text-xs text-slate-500 flex items-center gap-3 mt-0.5 flex-wrap">
-                                        <span>Fórmula: <strong class="text-slate-800">${s.chemical_formula || '-'}</strong></span>
-                                        <span>CAS: <strong class="text-slate-800">${s.cas_number || '-'}</strong></span>
-                                        <span>Stock: <strong class="text-indigo-600">${s.container_content || `${s.quantity} ${s.unit}`}</strong></span>
-                                        <span class="text-3xs font-mono text-slate-400">LAB-SUB-${s.id}</span>
-                                    </div>
-                                </div>
-                            </label>
-
-                            <div class="flex items-center gap-2 shrink-0">
-                                ${s.qr_path ? `
-                                    <a href="${s.qr_path}" download="qr_${s.name.replace(/ /g, '_')}_LAB-SUB-${s.id}.png" class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 hover:border-indigo-300 font-bold rounded-xl text-xs transition flex items-center gap-1.5" title="Descargar código QR individual de este elemento">
-                                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                                        <span>QR Solo 1</span>
-                                    </a>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
+            <div id="qr-modal-items-list" class="bg-[#0b101d] p-4 overflow-y-auto flex-1 space-y-2.5 max-h-[54vh]">
+                ${listHtml}
             </div>
 
-            <!-- Footer con Acciones de Impresión y Descargar -->
-            <div class="p-4 bg-slate-100 border-t border-slate-200 flex flex-col sm:flex-row gap-3 items-center justify-between shrink-0">
-                <div class="text-xs font-bold text-slate-600">
-                    Incluidos en este ÚNICO PDF: <span class="text-indigo-600 font-extrabold text-sm">${selectedCount}</span> de ${allSubstances.length} reactivo(s)
+            <!-- Footer con Acciones Masivas Dinámicas -->
+            <div class="p-4 bg-[#090d16] border-t border-slate-800 flex flex-col sm:flex-row gap-3 items-center justify-between shrink-0">
+                <div class="text-xs font-semibold text-slate-400">
+                    Incluidos: <span id="qr-selected-count-badge" class="text-teal-400 font-extrabold text-sm px-1.5 py-0.5 rounded bg-teal-950/60 border border-teal-800/40">${selectedCount}</span> reactivos | <span id="qr-total-labels-badge" class="text-cyan-400 font-extrabold text-sm px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/40">${totalQRLabels}</span> etiqueta(s) QR
                 </div>
 
-                <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-                    <button type="button" onclick="downloadSelectedQRPDF()" class="px-4.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs shadow-md transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
-                        <i data-lucide="file-text" class="w-4 h-4 text-emerald-200"></i>
-                        <span>📄 Descargar TODO en 1 Solo PDF (${selectedCount})</span>
+                <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <button type="button" onclick="downloadSelectedQRPDF()" class="px-4.5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-teal-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
+                        <i data-lucide="download" class="w-4 h-4 text-teal-200"></i>
+                        <span>Descargar Seleccionados (${totalQRLabels} etiq.)</span>
                     </button>
-                    <button type="button" onclick="printSelectedQRLabels()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-indigo-600/20 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
-                        <i data-lucide="printer" class="w-4 h-4 text-amber-300"></i>
-                        <span>🖨️ Imprimir Planilla en 1 Documento (${selectedCount})</span>
+                    <button type="button" onclick="printSelectedQRLabels()" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-cyan-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
+                        <i data-lucide="printer" class="w-4 h-4 text-cyan-200"></i>
+                        <span>Imprimir Planilla (${totalQRLabels} etiq.)</span>
                     </button>
                 </div>
             </div>
@@ -1034,6 +1146,96 @@ function renderQRBatchModalDOM() {
     if (window.lucide) window.lucide.createIcons();
 }
 
+window.downloadSingleSubstanceQRPDF = async function(substanceId) {
+    const allSubstances = state.substances || [];
+    const s = allSubstances.find(item => item.id === substanceId);
+    if (!s) return;
+
+    const copies = (qrBatchModalState.itemCopies && qrBatchModalState.itemCopies[s.id]) || 1;
+
+    // Si es solo 1 copia y tiene qr_path, ofrecer descarga directa del archivo PNG
+    if (copies === 1 && s.qr_path) {
+        const link = document.createElement('a');
+        link.href = s.qr_path;
+        link.download = `qr_${s.name.replace(/ /g, '_')}_LAB-SUB-${s.id}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+    }
+
+    // Si son múltiples copias (2, 3 o más), generar el documento PDF unificado de etiquetas repetidas
+    const expandedLabels = [];
+    for (let i = 0; i < copies; i++) {
+        expandedLabels.push({ substance: s, copyIndex: i + 1, totalCopies: copies });
+    }
+
+    const fileName = `etiquetas_qr_${s.name.replace(/ /g, '_')}_LAB-SUB-${s.id}_(${copies}_copias).pdf`;
+
+    const pdfContainer = document.createElement('div');
+    pdfContainer.style.padding = '12px';
+    pdfContainer.style.backgroundColor = '#ffffff';
+    pdfContainer.style.color = '#0f172a';
+    pdfContainer.style.fontFamily = 'sans-serif';
+    pdfContainer.style.width = '100%';
+    pdfContainer.style.boxSizing = 'border-box';
+
+    const headerHtml = `
+        <div style="text-align: center; margin-bottom: 12px; border-bottom: 2px solid #0f172a; padding-bottom: 6px; background-color: #ffffff;">
+            <h2 style="font-size: 15pt; font-weight: bold; margin: 0; color: #0f172a;">ETIQUETAS QR - ${s.name.toUpperCase()}</h2>
+            <p style="font-size: 8.5pt; margin: 3px 0 0 0; color: #475569;">LAB-SUB-${s.id} | Copias a imprimir: ${copies} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
+        </div>
+    `;
+
+    const labelGridHtml = `
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; box-sizing: border-box; background-color: #ffffff;">
+            ${expandedLabels.map(item => `
+                <div style="border: 1.5px dashed #475569; border-radius: 8px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; box-sizing: border-box;">
+                    <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
+                    
+                    <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>
+                    
+                    <div style="font-size: 8pt; font-weight: 700; color: #0284c7; margin-bottom: 3px;">${s.chemical_formula || ''} ${s.cas_number ? `| CAS: ${s.cas_number}` : ''}</div>
+                    
+                    ${s.qr_path ? `
+                        <img src="${s.qr_path}" style="width: 100px; height: 100px; margin: 0 auto; display: block; object-fit: contain; background-color: #ffffff;">
+                    ` : `
+                        <div style="width: 100px; height: 100px; margin: 0 auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; color: #999; background-color: #ffffff;">Sin QR</div>
+                    `}
+                    
+                    <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
+                    <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">
+                        Stock: ${s.container_content || `${s.quantity} ${s.unit}`} ${item.totalCopies > 1 ? `<span style="color:#0284c7; font-weight:800;">[Envase/Copia ${item.copyIndex}/${item.totalCopies}]</span>` : ''}
+                    </div>
+                    ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    pdfContainer.innerHTML = headerHtml + labelGridHtml;
+
+    if (window.html2pdf) {
+        const opt = {
+            margin:       [8, 8, 8, 8],
+            filename:     fileName,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+            jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+        try {
+            await window.html2pdf().set(opt).from(pdfContainer).save();
+            return;
+        } catch(e) {
+            console.warn("Fallo html2pdf individual:", e);
+        }
+    }
+
+    // Fallback nativo
+    window.print();
+};
+
 window.downloadSelectedQRPDF = async function() {
     const allSubstances = state.substances || [];
     const selectedSubstances = allSubstances.filter(s => qrBatchModalState.selectedIds.has(s.id));
@@ -1042,6 +1244,15 @@ window.downloadSelectedQRPDF = async function() {
         alert('No has seleccionado ninguna sustancia para incluir en el documento PDF.');
         return;
     }
+
+    // Expandir copias según la cantidad seleccionada por el usuario para cada sustancia
+    const expandedLabels = [];
+    selectedSubstances.forEach(s => {
+        const copies = (qrBatchModalState.itemCopies && qrBatchModalState.itemCopies[s.id]) || 1;
+        for (let i = 0; i < copies; i++) {
+            expandedLabels.push({ substance: s, copyIndex: i + 1, totalCopies: copies });
+        }
+    });
 
     const fileSuffix = qrBatchModalState.filterType === 'liquid' ? 'liquidos' : (qrBatchModalState.filterType === 'solid' ? 'solidos' : 'todos');
     const fileName = `planilla_unica_etiquetas_qr_${fileSuffix}_${new Date().toISOString().slice(0,10)}.pdf`;
@@ -1059,32 +1270,37 @@ window.downloadSelectedQRPDF = async function() {
     const headerHtml = `
         <div style="text-align: center; margin-bottom: 12px; border-bottom: 2px solid #0f172a; padding-bottom: 6px; background-color: #ffffff;">
             <h2 style="font-size: 15pt; font-weight: bold; margin: 0; color: #0f172a;">LABORATORIO DE QUÍMICA - PLANILLA UNIFICADA DE ETIQUETAS QR</h2>
-            <p style="font-size: 8.5pt; margin: 3px 0 0 0; color: #475569;">Documento Único | Reactivos incluidos: ${selectedSubstances.length} | Filtro: ${qrBatchModalState.filterType.toUpperCase()} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
+            <p style="font-size: 8.5pt; margin: 3px 0 0 0; color: #475569;">Documento Único | Sustancias: ${selectedSubstances.length} | Etiquetas Totales: ${expandedLabels.length} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
         </div>
     `;
 
     const labelGridHtml = `
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; box-sizing: border-box; background-color: #ffffff;">
-            ${selectedSubstances.map(s => `
-                <div style="border: 1.5px dashed #475569; border-radius: 8px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; box-sizing: border-box;">
-                    <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
-                    
-                    <!-- Nombre obligatorio de la sustancia -->
-                    <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>
-                    
-                    <div style="font-size: 8pt; font-weight: 700; color: #0284c7; margin-bottom: 3px;">${s.chemical_formula || ''} ${s.cas_number ? `| CAS: ${s.cas_number}` : ''}</div>
-                    
-                    ${s.qr_path ? `
-                        <img src="${s.qr_path}" style="width: 100px; height: 100px; margin: 0 auto; display: block; object-fit: contain; background-color: #ffffff;">
-                    ` : `
-                        <div style="width: 100px; height: 100px; margin: 0 auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; color: #999; background-color: #ffffff;">Sin QR</div>
-                    `}
-                    
-                    <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
-                    <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">Stock: ${s.container_content || `${s.quantity} ${s.unit}`}</div>
-                    ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
-                </div>
-            `).join('')}
+            ${expandedLabels.map(item => {
+                const s = item.substance;
+                return `
+                    <div style="border: 1.5px dashed #475569; border-radius: 8px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; box-sizing: border-box;">
+                        <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
+                        
+                        <!-- Nombre obligatorio de la sustancia -->
+                        <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>
+                        
+                        <div style="font-size: 8pt; font-weight: 700; color: #0284c7; margin-bottom: 3px;">${s.chemical_formula || ''} ${s.cas_number ? `| CAS: ${s.cas_number}` : ''}</div>
+                        
+                        ${s.qr_path ? `
+                            <img src="${s.qr_path}" style="width: 100px; height: 100px; margin: 0 auto; display: block; object-fit: contain; background-color: #ffffff;">
+                        ` : `
+                            <div style="width: 100px; height: 100px; margin: 0 auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; color: #999; background-color: #ffffff;">Sin QR</div>
+                        `}
+                        
+                        <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
+                        <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">
+                            Stock: ${s.container_content || `${s.quantity} ${s.unit}`} ${item.totalCopies > 1 ? `<span style="color:#0284c7; font-weight:800;">[Envase/Copia ${item.copyIndex}/${item.totalCopies}]</span>` : ''}
+                        </div>
+                        ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
+                    </div>
+                `;
+            }).join('')}
         </div>
     `;
 
@@ -1121,6 +1337,15 @@ window.printSelectedQRLabels = function() {
         return;
     }
 
+    // Expandir copias segun la cantidad configurada para cada sustancia
+    const expandedLabels = [];
+    selectedSubstances.forEach(s => {
+        const copies = (qrBatchModalState.itemCopies && qrBatchModalState.itemCopies[s.id]) || 1;
+        for (let i = 0; i < copies; i++) {
+            expandedLabels.push({ substance: s, copyIndex: i + 1, totalCopies: copies });
+        }
+    });
+
     let printArea = document.getElementById('qr-print-area');
     if (!printArea) {
         printArea = document.createElement('div');
@@ -1131,32 +1356,37 @@ window.printSelectedQRLabels = function() {
     const printHeaderHtml = `
         <div style="text-align: center; margin-bottom: 12px; border-bottom: 2px solid #0f172a; padding-bottom: 6px; background-color: #ffffff;" class="no-print">
             <h2 style="font-size: 16pt; font-weight: bold; margin: 0; color: #0f172a;">LABORATORIO - PLANILLA DE ETIQUETAS QR PARA RECORTAR</h2>
-            <p style="font-size: 9pt; margin: 2px 0 0 0; color: #475569;">Total de etiquetas juntas en esta planilla: ${selectedSubstances.length} | Impreso el ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
+            <p style="font-size: 9pt; margin: 2px 0 0 0; color: #475569;">Total de etiquetas QR en esta planilla: ${expandedLabels.length} (Reactivos distintos: ${selectedSubstances.length}) | Impreso el ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
         </div>
     `;
 
     // Grilla compacta de 4 columnas para recortar y pegar fácilmente (quepan de 12 a 16 por hoja)
     const labelGridHtml = `
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff;">
-            ${selectedSubstances.map(s => `
-                <div style="border: 1.5px dashed #475569; border-radius: 10px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; position: relative; box-sizing: border-box;">
-                    <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
-                    
-                    <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>
-                    
-                    <div style="font-size: 8pt; font-weight: 700; color: #0284c7; margin-bottom: 4px;">${s.chemical_formula || ''} ${s.cas_number ? `| CAS: ${s.cas_number}` : ''}</div>
-                    
-                    ${s.qr_path ? `
-                        <img src="${s.qr_path}" style="width: 95px; height: 95px; margin: 0 auto; display: block; object-fit: contain; background-color: #ffffff;">
-                    ` : `
-                        <div style="width: 95px; height: 95px; margin: 0 auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 9pt; color: #999; background-color: #ffffff;">Sin QR</div>
-                    `}
-                    
-                    <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
-                    <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">${s.container_content || `${s.quantity} ${s.unit}`}</div>
-                    ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
-                </div>
-            `).join('')}
+            ${expandedLabels.map(item => {
+                const s = item.substance;
+                return `
+                    <div style="border: 1.5px dashed #475569; border-radius: 10px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; position: relative; box-sizing: border-box;">
+                        <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
+                        
+                        <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>
+                        
+                        <div style="font-size: 8pt; font-weight: 700; color: #0284c7; margin-bottom: 4px;">${s.chemical_formula || ''} ${s.cas_number ? `| CAS: ${s.cas_number}` : ''}</div>
+                        
+                        ${s.qr_path ? `
+                            <img src="${s.qr_path}" style="width: 95px; height: 95px; margin: 0 auto; display: block; object-fit: contain; background-color: #ffffff;">
+                        ` : `
+                            <div style="width: 95px; height: 95px; margin: 0 auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 9pt; color: #999; background-color: #ffffff;">Sin QR</div>
+                        `}
+                        
+                        <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
+                        <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">
+                            ${s.container_content || `${s.quantity} ${s.unit}`} ${item.totalCopies > 1 ? `<span style="color:#0284c7; font-weight:800;">[${item.copyIndex}/${item.totalCopies}]</span>` : ''}
+                        </div>
+                        ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
+                    </div>
+                `;
+            }).join('')}
         </div>
     `;
 

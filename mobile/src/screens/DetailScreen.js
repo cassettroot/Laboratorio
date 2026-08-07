@@ -153,21 +153,21 @@ export default function DetailScreen({ route, navigation }) {
 
   const openEditModal = () => {
     setEditName(item.name || '');
-    setEditFormula(item.chemical_formula || '');
+    setEditFormula(item.chemical_formula || item.subject || '');
     setEditCas(item.cas_number || '');
-    setEditGroup(item.substance_group || '');
-    setEditContainerContent(item.container_content || '');
-    setEditPhysicalState(item.physical_state || 'Líquido');
-    setEditQuantity(item.quantity ? item.quantity.toString() : '1.0');
-    setEditUnit(item.unit || 'g');
-    setEditStockUnits(item.stock_units ? item.stock_units.toString() : '1');
+    setEditGroup(item.substance_group || item.category || item.type || '');
+    setEditContainerContent(item.container_content || item.contents || '');
+    setEditPhysicalState(item.physical_state || item.status || item.condition || 'Excelente');
+    setEditQuantity(item.quantity ? item.quantity.toString() : (item.stock ? item.stock.toString() : '1'));
+    setEditUnit(item.unit || '');
+    setEditStockUnits(item.stock_units ? item.stock_units.toString() : (item.stock ? item.stock.toString() : '1'));
     setEditLocation(item.location || '');
     setEditResponsible(item.responsible || user || '');
     setEditEntryDate(item.entry_date || '');
     setEditExpiration(item.expiration_date || '');
     setEditRisks(item.risks_warnings || '');
     setEditExternalLinks(item.external_links || '');
-    setEditObservations(item.observations || '');
+    setEditObservations(item.observations || item.notes || '');
     setEditPhotoUri(null);
     setEditModalVisible(true);
   };
@@ -222,37 +222,66 @@ export default function DetailScreen({ route, navigation }) {
         });
 
         const uploadRes = await apiService.uploadPhoto(formData);
-        if (uploadRes.status === 'success') {
+        if (uploadRes && uploadRes.status === 'success') {
           serverImagePath = uploadRes.image_path;
         }
       }
 
-      const payload = {
-        name: editName.trim(),
-        chemical_formula: editFormula.trim(),
-        cas_number: editCas.trim(),
-        substance_group: editGroup.trim(),
-        container_content: `${editStockUnits || '1'} envase(s) de ${editQuantity || '1'} ${editUnit || 'g'}`.trim(),
-        physical_state: editPhysicalState,
-        quantity: parseFloat(editQuantity) || 1.0,
-        unit: editUnit.trim() || 'g',
-        stock_units: parseInt(editStockUnits, 10) || 1,
-        location: editLocation.trim(),
-        responsible: editResponsible.trim(),
-        entry_date: editEntryDate.trim(),
-        expiration_date: editExpiration.trim(),
-        risks_warnings: editRisks.trim(),
-        external_links: editExternalLinks.trim(),
-        observations: editObservations.trim(),
-        image_path: serverImagePath
-      };
-
+      let payload;
       let res;
       if (type === 'substance' || type === 'substances') {
+        payload = {
+          name: editName.trim(),
+          chemical_formula: editFormula.trim(),
+          cas_number: editCas.trim(),
+          substance_group: editGroup.trim(),
+          container_content: `${editStockUnits || '1'} envase(s) de ${editQuantity || '1'} ${editUnit || 'g'}`.trim(),
+          physical_state: editPhysicalState,
+          quantity: parseFloat(editQuantity) || 1.0,
+          unit: editUnit.trim() || 'g',
+          stock_units: parseInt(editStockUnits, 10) || 1,
+          location: editLocation.trim(),
+          responsible: editResponsible.trim(),
+          entry_date: editEntryDate.trim(),
+          expiration_date: editExpiration.trim(),
+          risks_warnings: editRisks.trim(),
+          external_links: editExternalLinks.trim(),
+          observations: editObservations.trim(),
+          image_path: serverImagePath
+        };
         res = await apiService.updateSubstance(item.id, payload);
+      } else if (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material') {
+        payload = {
+          name: editName.trim(),
+          category: editGroup.trim(),
+          quantity: parseInt(editQuantity, 10) || 1,
+          unit: editUnit.trim(),
+          location: editLocation.trim(),
+          status: editPhysicalState,
+          responsible: editResponsible.trim(),
+          observations: editObservations.trim(),
+          image_path: serverImagePath
+        };
+        const apiRes = await apiClient.put(`/api/chemical-materials/${item.id}`, payload);
+        res = apiRes.data;
       } else {
-        const endpoint = (type === 'chemical-materials' || type === 'chemical_materials') ? `/api/chemical-materials/${item.id}` : `/api/didactic-materials/${item.id}`;
-        const apiRes = await apiClient.put(endpoint, payload);
+        payload = {
+          name: editName.trim(),
+          category: editGroup.trim(),
+          type: editGroup.trim(),
+          subject: editFormula.trim(),
+          contents: editContainerContent.trim(),
+          quantity: parseInt(editQuantity, 10) || 1,
+          stock: parseInt(editQuantity, 10) || 1,
+          location: editLocation.trim(),
+          status: editPhysicalState,
+          condition: editPhysicalState,
+          responsible: editResponsible.trim(),
+          observations: editObservations.trim(),
+          notes: editObservations.trim(),
+          image_path: serverImagePath
+        };
+        const apiRes = await apiClient.put(`/api/didactic-materials/${item.id}`, payload);
         res = apiRes.data;
       }
 
@@ -579,18 +608,12 @@ export default function DetailScreen({ route, navigation }) {
 
         <View style={styles.badgeRow}>
           <View style={styles.badgePrimary}>
-            <Text style={styles.badgePrimaryText}>📦 {item.quantity} {item.unit || 'piezas'}</Text>
+            <Text style={styles.badgePrimaryText}>📦 {item.stock_units || 1} envase(s) ({item.quantity || 1} {item.unit || 'g'})</Text>
           </View>
 
           {item.cas_number ? (
             <View style={styles.badgeSecondary}>
               <Text style={styles.badgeSecondaryText}>CAS: {item.cas_number}</Text>
-            </View>
-          ) : null}
-
-          {item.stock_units && item.stock_units > 1 ? (
-            <View style={styles.badgeUnits}>
-              <Text style={styles.badgeUnitsText}>{item.stock_units} Unidades</Text>
             </View>
           ) : null}
         </View>
