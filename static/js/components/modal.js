@@ -21,7 +21,7 @@ function openAddModal(type, prefillData = null) {
         openAuthModal();
         return;
     }
-    if (state.userRole !== 'admin' && state.userRole !== 'responsable') {
+    if (state.userRole !== 'admin' && state.userRole !== 'jefe' && state.userRole !== 'responsable') {
         alert("No tiene permisos para registrar nuevos elementos.");
         return;
     }
@@ -40,7 +40,7 @@ function openAddModal(type, prefillData = null) {
     if (prefillData && prefillData.name) {
         title.textContent = `📋 Nueva Presentación / Envase de "${prefillData.name}"`;
     } else {
-        title.textContent = `Registrar ${type === 'substances' ? 'Reactivo o Sustancia' : (type === 'chemical_materials' ? 'Material Químico' : 'Material Didáctico')}`;
+        title.textContent = `Registrar ${type === 'substances' ? 'Reactivo o Sustancia' : (type === 'chemical_materials' ? 'Material o Equipo' : (type === 'equipos' ? 'Bien o Equipo' : 'Material Didáctico'))}`;
     }
 
     formContainer.innerHTML = buildFormHtml(type, prefillData || {});
@@ -61,7 +61,7 @@ async function openEditModal(type, id) {
         openAuthModal();
         return;
     }
-    if (state.userRole !== 'admin' && state.userRole !== 'responsable') {
+    if (state.userRole !== 'admin' && state.userRole !== 'jefe' && state.userRole !== 'responsable') {
         alert("No tiene permisos para modificar elementos.");
         return;
     }
@@ -77,7 +77,7 @@ async function openEditModal(type, id) {
     const formContainer = document.getElementById('modal-form-container');
     const title = document.getElementById('modal-title');
 
-    title.textContent = `Editar ${type === 'substances' ? 'Reactivo' : (type === 'chemical_materials' ? 'Material Químico' : 'Material Didáctico')}`;
+    title.textContent = `Editar ${type === 'substances' ? 'Reactivo' : ((type === 'chemical_materials' || type === 'chemical-materials') ? 'Material / Equipo' : (type === 'equipos' ? 'Bien o Equipo' : 'Material Didáctico'))}`;
     formContainer.innerHTML = `<div class="flex justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div></div>`;
 
     modal.classList.remove('hidden');
@@ -86,7 +86,7 @@ async function openEditModal(type, id) {
         content.classList.add('scale-100', 'opacity-100');
     }, 50);
 
-    const apiPath = type === 'chemical_materials' ? 'chemical-materials' : (type === 'didactic_materials' ? 'didactic-materials' : 'substances');
+    const apiPath = (type === 'chemical_materials' || type === 'chemical-materials') ? 'chemical-materials' : ((type === 'didactic_materials' || type === 'didactic-materials') ? 'didactic-materials' : (type === 'equipos' ? 'equipos' : 'substances'));
 
     try {
         const res = await fetch(`/api/${apiPath}/${id}`).then(r => r.json());
@@ -218,12 +218,27 @@ function buildFormHtml(type, data = {}) {
                         <input type="text" id="form-risks-warnings" value="${data.risks_warnings || ''}" placeholder="Ej. Inflamable, Corrosivo" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Cantidad Total en Inventario *</label>
-                        <input type="number" step="any" id="form-quantity" value="${data.quantity || '0'}" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Número de Envases / Frascos en Stock *</label>
+                        <input type="number" min="1" id="form-stock-units" value="${data.stock_units || '1'}" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Contenido por Envase (ej. 500 ml)</label>
-                        <input type="text" id="form-container-content" value="${data.container_content || ''}" placeholder="Ej. 500 ml, 1 kg" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Capacidad / Cantidad por Envase *</label>
+                        <div class="flex gap-2">
+                            <input type="number" step="any" id="form-quantity" value="${data.quantity || '1.0'}" required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                            <select id="form-unit" class="w-24 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                                <option value="g" ${(!data.unit || data.unit === 'g') ? 'selected' : ''}>g</option>
+                                <option value="mL" ${data.unit === 'mL' ? 'selected' : ''}>mL</option>
+                                <option value="L" ${data.unit === 'L' ? 'selected' : ''}>L</option>
+                                <option value="kg" ${data.unit === 'kg' ? 'selected' : ''}>kg</option>
+                                <option value="mg" ${data.unit === 'mg' ? 'selected' : ''}>mg</option>
+                                <option value="piezas" ${data.unit === 'piezas' ? 'selected' : ''}>piezas</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Descripción de Envase / Presentación</label>
+                        <input type="text" id="form-container-content" value="${data.container_content || ''}" placeholder="Ej. Frasco de 500 mL" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                    </div>
                     <div>
                         <div class="flex items-center justify-between mb-1.5">
                             <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider">Ubicación Física</label>
@@ -289,8 +304,8 @@ function buildFormHtml(type, data = {}) {
             </form>
         `;
     }
-    else if (type === 'chemical_materials' || type === 'didactic_materials') {
-        const isDidactic = type === 'didactic_materials';
+    else if (type === 'chemical_materials' || type === 'chemical-materials' || type === 'didactic_materials' || type === 'didactic-materials') {
+        const isDidactic = (type === 'didactic_materials' || type === 'didactic-materials');
         return `
             <form id="modal-form" class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="md:col-span-1 flex flex-col gap-5">
@@ -314,44 +329,56 @@ function buildFormHtml(type, data = {}) {
                 </div>
                 <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Nombre del Material *</label>
-                        <input type="text" id="form-name" value="${data.name || ''}" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">${isDidactic ? 'Nombre del Kit / Modelo Didáctico *' : 'Descripción / Nombre del Material *'}</label>
+                        <input type="text" id="form-name" value="${data.name || ''}" required placeholder="${isDidactic ? 'Ej. Kit de Geometría Molecular / Modelo de ADN' : 'Ej. Equipo de Cómputo HP / Silla Secretarial'}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Categoría / Tipo</label>
-                        <input type="text" id="form-category" value="${data.category || ''}" placeholder="${isDidactic ? 'Ej. Modelos, Carteles' : 'Ej. Vidriería, Soporte'}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">${isDidactic ? 'Categoría / Asignatura' : 'Categoría'}</label>
+                        <input type="text" id="form-category" value="${data.category || data.subject || ''}" placeholder="${isDidactic ? 'Ej. Química Orgánica / Biología' : 'Ej. Material Químico'}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Estado de Conservación</label>
-                        <select id="form-status" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
-                            <option value="Nuevo" ${data.status === 'Nuevo' ? 'selected' : ''}>Nuevo</option>
-                            <option value="Excelente" ${data.status === 'Excelente' ? 'selected' : ''}>Excelente</option>
-                            <option value="Bueno" ${data.status === 'Bueno' ? 'selected' : ''}>Bueno</option>
-                            <option value="Dañado" ${data.status === 'Dañado' ? 'selected' : ''}>Dañado</option>
-                            <option value="Roto" ${data.status === 'Roto' ? 'selected' : ''}>Roto / Incompleto</option>
-                        </select>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Stock / Cantidad *</label>
+                        <input type="number" id="form-quantity" value="${data.quantity !== undefined && data.quantity !== null ? data.quantity : (data.stock !== undefined && data.stock !== null ? data.stock : 1)}" required min="1" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Cantidad *</label>
-                        <input type="number" id="form-quantity" value="${data.quantity || '0'}" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
-                    </div>
-                    ${isDidactic ? '' : `
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Unidad *</label>
-                            <input type="text" id="form-unit" value="${data.unit || 'piezas'}" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
-                        </div>
-                    `}
-                    <div>
+                    <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Ubicación Física</label>
-                        <input type="text" id="form-location" value="${data.location || ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                        <input type="text" id="form-location" value="${data.location || ''}" placeholder="Ej. Estante B-4 / LABORATORIO DE CIENCIAS BÁSICAS" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                    </div>
+                    ${!isDidactic ? `
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">ID Original Excel (DEPTO CB)</label>
+                            <input type="text" id="form-original-id" value="${data.original_id || ''}" placeholder="Ej. 154" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">No. Inventario</label>
+                            <input type="text" id="form-inventory-number" value="${data.inventory_number || ''}" placeholder="Ej. 115130001I51101000941309EUKVJ" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">No. Serie</label>
+                            <input type="text" id="form-serial-number" value="${data.serial_number || ''}" placeholder="Ej. 1P1822369599" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">No. SEP</label>
+                            <input type="text" id="form-no-sep" value="${data.no_sep || ''}" placeholder="Ej. 12900397" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold font-mono">
+                        </div>
+                    ` : ''}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Estado / Condición</label>
+                        <select id="form-status" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                            <option value="Excelente" ${data.status === 'Excelente' || data.condition === 'Excelente' ? 'selected' : ''}>Excelente</option>
+                            <option value="Bueno" ${data.status === 'Bueno' || data.condition === 'Bueno' || data.status === 'Buenas Condiciones' ? 'selected' : ''}>Bueno / Buenas Condiciones</option>
+                            <option value="Regular" ${data.status === 'Regular' || data.condition === 'Regular' ? 'selected' : ''}>Regular</option>
+                            <option value="Incompleto" ${data.status === 'Incompleto' || data.condition === 'Incompleto' || data.status === 'Roto' ? 'selected' : ''}>Incompleto / Roto</option>
+                            <option value="Dañado" ${data.status === 'Dañado' || data.condition === 'Dañado' ? 'selected' : ''}>Dañado</option>
+                        </select>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Responsable Custodia</label>
                         <input type="text" id="form-responsible" value="${data.responsible || getActiveUser()}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
                     </div>
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Observaciones</label>
-                        <textarea id="form-observations" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">${data.observations || ''}</textarea>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">${isDidactic ? 'Contenido del Kit / Componentes / Observaciones' : 'Observaciones'}</label>
+                        <textarea id="form-observations" rows="2" placeholder="${isDidactic ? 'Ej. 50 esferas de carbono, 30 enlaces flexibles...' : 'Detalles de ID original u observaciones...'}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">${data.observations || data.contents || data.notes || ''}</textarea>
                     </div>
                 </div>
             </form>
@@ -662,9 +689,23 @@ async function handleFormSubmit() {
         });
         payload.substance_group = checkedGroups.join(', ');
 
-        const containerContent = (document.getElementById('form-container-content') ? document.getElementById('form-container-content').value : '') || '';
-        const match = containerContent.trim().match(/[a-zA-ZáéíóúÁÉÍÓÚñÑ°%]+$/);
-        payload.unit = match ? match[0] : 'g';
+        const unitEl = document.getElementById('form-unit');
+        if (unitEl && unitEl.value) {
+            payload.unit = unitEl.value.trim();
+        }
+        const stockUnitsEl = document.getElementById('form-stock-units');
+        if (stockUnitsEl) {
+            payload.stock_units = parseInt(stockUnitsEl.value, 10) || 1;
+        }
+    } else if (currentModalType === 'didactic_materials' || currentModalType === 'didactic-materials') {
+        if (payload.quantity) {
+            payload.quantity = parseInt(payload.quantity, 10) || 1;
+        } else {
+            payload.quantity = 1;
+        }
+        if (payload.category) {
+            payload.subject = payload.category;
+        }
     }
 
     const isRequestEdit = (state.editingRequestId !== undefined && state.editingRequestId !== null);

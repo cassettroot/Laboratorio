@@ -131,3 +131,645 @@ body {
         padding: 0 !important;
     }
 }
+
+/* Adaptabilidad de Tarjetas de Reactivos en Tema Claro vs Oscuro */
+body.theme-light .substance-container-badge {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    border-color: rgba(203, 213, 225, 0.9) !important;
+    color: #0f172a !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1) !important;
+}
+
+body.theme-light .substance-container-badge span {
+    color: #0f172a !important;
+    font-weight: 900 !important;
+}
+
+body:not(.theme-light) .substance-container-badge {
+    background-color: rgba(15, 23, 42, 0.9) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+}
+
+body:not(.theme-light) .substance-container-badge span {
+    color: #ffffff !important;
+}
+
+body.theme-light .substance-id-code {
+    color: #0f172a !important;
+}
+
+body:not(.theme-light) .substance-id-code {
+    color: #fbbf24 !important;
+}
+
+body.theme-light .substance-photo-badge {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
+/* Badges SGA Adaptables para Tema Claro */
+body.theme-light .badge-inflammable { background-color: #fee2e2 !important; color: #991b1b !important; border-color: #fca5a5 !important; font-weight: 900 !important; }
+body.theme-light .badge-toxic { background-color: #f3e8ff !important; color: #581c87 !important; border-color: #d8b4fe !important; font-weight: 900 !important; }
+body.theme-light .badge-corrosive { background-color: #fef3c7 !important; color: #78350f !important; border-color: #fde68a !important; font-weight: 900 !important; }
+body.theme-light .badge-explosive { background-color: #fef9c3 !important; color: #713f12 !important; border-color: #fef08a !important; font-weight: 900 !important; }
+body.theme-light .badge-comburent { background-color: #fce7f3 !important; color: #831843 !important; border-color: #fbcfe8 !important; font-weight: 900 !important; }
+body.theme-light .badge-irritant { background-color: #d1fae5 !important; color: #064e3b !important; border-color: #6ee7b7 !important; font-weight: 900 !important; }
+body.theme-light .badge-alcohol { background-color: #cffafe !important; color: #164e63 !important; border-color: #67e8f9 !important; font-weight: 900 !important; }
+body.theme-light .badge-organic { background-color: #ede9fe !important; color: #4c1d95 !important; border-color: #ddd6fe !important; font-weight: 900 !important; }
+body.theme-light .badge-acid { background-color: #ffe4e6 !important; color: #881337 !important; border-color: #fecdd3 !important; font-weight: 900 !important; }
+body.theme-light .badge-base { background-color: #dbeafe !important; color: #1e3a8a !important; border-color: #93c5fd !important; font-weight: 900 !important; }
+
+/* Tema Claro / Modo Día (Blanco Puro y Gris Muy Claro con Sombras Suaves y Texto Carbón) */
+body.theme-light {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+}
+
+body.theme-light header {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+body.theme-light header h2,
+body.theme-light header #page-title {
+    color: #0f172a !important;
+}
+
+body.theme-light aside {
+    background-color: #ffffff !important;
+    border-color: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+body.theme-light aside nav a {
+    color: #475569 !important;
+}
+
+body.theme-light aside nav a:hover,
+body.theme-light aside nav a.bg-brand-500 {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+body.theme-light .bg-white,
+body.theme-light .glass-card-premium {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03) !important;
+}
+
+body.theme-light .bg-slate-900,
+body.theme-light .bg-slate-900\/90,
+body.theme-light .bg-slate-900\/70,
+body.theme-light .bg-slate-900\/60,
+body.theme-light .bg-slate-950,
+body.theme-light .bg-slate-800,
+body.theme-light .bg-slate-800\/80,
+body.theme-light .bg-slate-800\/90 {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
+body.theme-light h1,
+body.theme-light h2,
+body.theme-light h3,
+body.theme-light h4,
+body.theme-light h5,
+body.theme-light h6,
+body.theme-light .text-white,
+body.theme-light .text-slate-100,
+body.theme-light .text-slate-200 {
+    color: #0f172a !important;
+}
+
+body.theme-light p,
+body.theme-light label,
+body.theme-light .text-slate-300,
+body.theme-light .text-slate-400 {
+    color: #475569 !important;
+}
+
+body.theme-light input,
+body.theme-light select,
+body.theme-light textarea {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
+/* ==========================================================================
+   SISTEMA DUAL UNIFICADO (Modo Claro vs Modo Oscuro)
+   ========================================================================== */
+
+/* 1. MODO OSCURO (Dark Mode: Grafito Oscuro #0F172A / #1E293B con Texto Blanco #FFFFFF) */
+body.theme-dark,
+body:not(.theme-light) {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+}
+
+body.theme-dark aside,
+body:not(.theme-light) aside {
+    background-color: #0f172a !important;
+    border-color: #1e293b !important;
+    color: #ffffff !important;
+}
+
+body.theme-dark aside nav a,
+body:not(.theme-light) aside nav a {
+    color: #cbd5e1 !important;
+}
+
+body.theme-dark aside nav a:hover,
+body.theme-dark aside nav a.bg-brand-500,
+body:not(.theme-light) aside nav a:hover,
+body:not(.theme-light) aside nav a.bg-brand-500 {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+}
+
+body.theme-dark header,
+body:not(.theme-light) header {
+    background-color: #0f172a !important;
+    border-color: #1e293b !important;
+    color: #ffffff !important;
+}
+
+body.theme-dark header h2,
+body:not(.theme-light) header h2 {
+    color: #ffffff !important;
+}
+
+body.theme-dark .bg-white,
+body.theme-dark .glass-card-premium,
+body:not(.theme-light) .bg-white,
+body:not(.theme-light) .glass-card-premium {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    border: 1px solid #334155 !important;
+}
+
+body.theme-dark .bg-slate-50,
+body.theme-dark .bg-slate-100,
+body:not(.theme-light) .bg-slate-50,
+body:not(.theme-light) .bg-slate-100 {
+    background-color: #0f172a !important;
+    color: #cbd5e1 !important;
+}
+
+body.theme-dark h1, body.theme-dark h2, body.theme-dark h3, body.theme-dark h4, body.theme-dark h5, body.theme-dark h6,
+body:not(.theme-light) h1, body:not(.theme-light) h2, body:not(.theme-light) h3, body:not(.theme-light) h4, body:not(.theme-light) h5, body:not(.theme-light) h6 {
+    color: #ffffff !important;
+}
+
+body.theme-dark p, body.theme-dark label,
+body:not(.theme-light) p, body:not(.theme-light) label {
+    color: #94a3b8 !important;
+}
+
+body.theme-dark input, body.theme-dark select, body.theme-dark textarea,
+body:not(.theme-light) input, body:not(.theme-light) select, body:not(.theme-light) textarea {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    border-color: #334155 !important;
+}
+
+/* Filas de Tabla en Modo Oscuro */
+body.theme-dark table tbody tr:hover,
+body.theme-dark table tbody tr.selected,
+body:not(.theme-light) table tbody tr:hover,
+body:not(.theme-light) table tbody tr.selected {
+    background-color: #1e293b !important;
+    border-left: 4px solid #10b981 !important;
+}
+
+body.theme-dark table tbody tr:hover td,
+body.theme-dark table tbody tr.selected td,
+body.theme-dark table tbody tr:hover a,
+body.theme-dark table tbody tr.selected a,
+body.theme-dark table tbody tr:hover span,
+body.theme-dark table tbody tr.selected span,
+body:not(.theme-light) table tbody tr:hover td,
+body:not(.theme-light) table tbody tr.selected td,
+body:not(.theme-light) table tbody tr:hover a,
+body:not(.theme-light) table tbody tr.selected a,
+body:not(.theme-light) table tbody tr:hover span,
+body:not(.theme-light) table tbody tr.selected span {
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   REGLAS GLOBALES DE ALTO CONTRASTE Y LEGIBILIDAD ABSOLUTA (WCAG AAA)
+   ========================================================================== */
+body:not(.theme-light) {
+    background-color: #0b0f19 !important;
+    color: #ffffff !important;
+}
+
+body:not(.theme-light) .bg-white {
+    background-color: #1e293b !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+}
+
+body:not(.theme-light) table th {
+    color: #ffffff !important;
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+body:not(.theme-light) td {
+    color: #f1f5f9 !important;
+}
+
+/* Forzar todo el texto principal a blanco puro o gris ultra claro en modos oscuros */
+body:not(.theme-light) h1,
+body:not(.theme-light) h2,
+body:not(.theme-light) h3,
+body:not(.theme-light) h4,
+body:not(.theme-light) h5,
+body:not(.theme-light) h6,
+body:not(.theme-light) .text-slate-900,
+body:not(.theme-light) .text-slate-800,
+body:not(.theme-light) .text-slate-700,
+body:not(.theme-light) .text-slate-600,
+body:not(.theme-light) .text-emerald-950,
+body:not(.theme-light) .text-emerald-900,
+body:not(.theme-light) .text-emerald-800,
+body:not(.theme-light) .text-teal-950,
+body:not(.theme-light) .text-teal-900,
+body:not(.theme-light) .text-teal-800,
+body:not(.theme-light) .text-blue-950,
+body:not(.theme-light) .text-blue-900,
+body:not(.theme-light) .text-blue-800,
+body:not(.theme-light) .text-brand-700,
+body:not(.theme-light) .text-brand-800,
+body:not(.theme-light) .text-brand-900 {
+    color: #ffffff !important;
+}
+
+/* Texto secundario claro con contraste garantizado 7:1 */
+body:not(.theme-light) p,
+body:not(.theme-light) span:not([class*="text-emerald"]):not([class*="text-teal"]):not([class*="text-sky"]):not([class*="text-amber"]):not([class*="text-rose"]):not([class*="text-purple"]):not([class*="text-indigo"]),
+body:not(.theme-light) label,
+body:not(.theme-light) .text-slate-500,
+body:not(.theme-light) .text-slate-400,
+body:not(.theme-light) .text-slate-300 {
+    color: #cbd5e1 !important;
+}
+
+/* Sincronización de Barra Lateral (aside) y Lucide Icons */
+body.theme-itma aside {
+    background-color: #0f1d18 !important;
+    border-color: #1a382e !important;
+    color: #ffffff !important;
+}
+body.theme-itma aside nav a {
+    color: #a7f3d0 !important;
+}
+body.theme-itma aside nav a:hover,
+body.theme-itma aside nav a.bg-brand-500 {
+    background-color: #153a2e !important;
+    color: #ffffff !important;
+}
+
+/* Anulaciones para evitar bloques de fondo menta o verde claro en temas oscuros */
+body:not(.theme-light) .bg-brand-50,
+body:not(.theme-light) .bg-emerald-50,
+body:not(.theme-light) .bg-teal-50,
+body:not(.theme-light) .bg-green-50,
+body:not(.theme-light) .bg-emerald-100/20 {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+    border-color: rgba(16, 185, 129, 0.25) !important;
+    color: #a7f3d0 !important;
+}
+
+body.theme-dark aside {
+    background-color: #0f172a !important;
+    border-color: #1e293b !important;
+    color: #f8fafc !important;
+}
+body.theme-neon aside {
+    background-color: #2e1065 !important;
+    border-color: #4c1d95 !important;
+    color: #f8fafc !important;
+}
+body.theme-ocean aside {
+    background-color: #064e3b !important;
+    border-color: #0f766e !important;
+    color: #ffffff !important;
+}
+body.theme-sunset aside {
+    background-color: #451a03 !important;
+    border-color: #78350f !important;
+    color: #ffffff !important;
+}
+body.theme-emerald aside {
+    background-color: #022c22 !important;
+    border-color: #064e3b !important;
+    color: #ecfdf5 !important;
+}
+body.theme-cyberpunk aside {
+    background-color: #09090b !important;
+    border-color: #27272a !important;
+    color: #facc15 !important;
+}
+body.theme-amethyst aside {
+    background-color: #31103f !important;
+    border-color: #581c87 !important;
+    color: #f5d0fe !important;
+}
+body.theme-cosmos aside {
+    background-color: #030712 !important;
+    border-color: #1f2937 !important;
+    color: #fef08a !important;
+}
+
+/* Lucide Icons adaptación dinámica a color de texto */
+svg.lucide {
+    stroke: currentColor !important;
+}
+
+/* Insignias SGA y Etiquetas: Garantizar alto contraste (claros u oscuros) */
+span[class*="bg-slate-100"],
+span[class*="bg-blue-50"],
+span[class*="bg-emerald-50"],
+span[class*="bg-amber-50"],
+span[class*="bg-teal-50"],
+span[class*="bg-purple-50"],
+span[class*="bg-red-50"],
+span[class*="bg-fuchsia-50"],
+span[class*="bg-slate-200"],
+span[class*="bg-slate-50"] {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+}
+
+/* Fuerza de contraste para texto en insignias SGA */
+.text-red-950, .text-red-900 { color: #450a0a !important; }
+.text-purple-950, .text-purple-900 { color: #3b0764 !important; }
+.text-amber-950, .text-amber-900 { color: #451a03 !important; }
+.text-yellow-950, .text-yellow-900 { color: #422006 !important; }
+.text-pink-950, .text-pink-900 { color: #500724 !important; }
+.text-emerald-950, .text-emerald-900 { color: #022c22 !important; }
+.text-sky-950, .text-sky-900 { color: #082f49 !important; }
+.text-fuchsia-950, .text-fuchsia-900 { color: #701a75 !important; }
+.text-violet-950, .text-violet-900 { color: #2e1065 !important; }
+.text-indigo-950, .text-indigo-900 { color: #1e1b4b !important; }
+.text-rose-950, .text-rose-900 { color: #4c0519 !important; }
+.text-blue-950, .text-blue-900 { color: #172554 !important; }
+.text-cyan-950, .text-cyan-900 { color: #083344 !important; }
+.text-slate-950, .text-slate-900 { color: #09090b !important; }
+
+/* Estilos de Alta Fidelidad para Tablas, Insignias y Contenedores de Evidencias */
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+table tbody tr {
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+table th {
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+table td {
+    vertical-align: middle;
+    line-height: 1.5;
+}
+
+/* 1. RESALTE DE FILA SELECCIONADA / HOVER EN TEMA CLARO (Azul Pastel #E0F2FE / Menta Suave con Borde Lateral de 4px) */
+body.theme-light table tbody tr:hover,
+body.theme-light table tbody tr.selected,
+body.theme-light table tbody tr.active-row {
+    background-color: #e0f2fe !important;
+    border-left: 4px solid #10b981 !important;
+}
+
+body.theme-light table tbody tr:hover td,
+body.theme-light table tbody tr.selected td,
+body.theme-light table tbody tr:hover a,
+body.theme-light table tbody tr.selected a,
+body.theme-light table tbody tr:hover span,
+body.theme-light table tbody tr.selected span {
+    color: #1e293b !important;
+}
+
+/* Encabezados y Divisores de Tabla en Tema Claro */
+body.theme-light table th {
+    background-color: #f1f5f9 !important;
+    color: #334155 !important;
+    font-weight: 800 !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+}
+
+body.theme-light table td {
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #1e293b !important;
+}
+
+/* 2. CORRECCIÓN DE CONTRASTE PARA IDs Y PROVISIONALES (WCAG AAA sobre Claro) */
+body.theme-light .text-amber-400,
+body.theme-light .text-amber-300,
+body.theme-light .text-amber-500,
+body.theme-light .text-amber-700,
+body.theme-light .text-yellow-400,
+body.theme-light .text-yellow-500 {
+    color: #c2410c !important; /* Naranja quemado de alto contraste sobre fondo claro */
+    font-weight: 800 !important;
+}
+
+/* 3. TOOLTIPS Y CUADROS FLOTANTES SOBRE CELDAS TRUNCADAS */
+[title] {
+    position: relative;
+}
+
+.tooltip-card {
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #0f172a;
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    z-index: 50;
+    pointer-events: none;
+}
+
+/* Insignias de Estado Nítidas y Legibles */
+.badge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    line-height: 1.25;
+    white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Tarjeta Glassmorphism Mate de Alta Gama */
+.glass-card-premium {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}
+
+body.theme-itma .glass-card-premium {
+    background: rgba(15, 29, 24, 0.9);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* ==========================================================================
+   REDISEÑO Y ADAPTABILIDAD DUAL: LIENZO BLANCO / COMPACTO & ELEVACIONES
+   ========================================================================== */
+
+/* 1. Integración de Contenedores y Lienzo Blanco (Sin Bloques Oscuros Rígidos) */
+body.theme-light .bg-gradient-to-r,
+body.theme-light [class*="from-slate-9"],
+body.theme-light [class*="via-slate-8"],
+body.theme-light [class*="to-slate-9"],
+body.theme-light .bg-slate-900,
+body.theme-light .bg-slate-950,
+body.theme-light .bg-slate-800,
+body.theme-light .bg-slate-800\/90,
+body.theme-light .bg-slate-800\/80,
+body.theme-light .bg-slate-900\/90,
+body.theme-light .bg-slate-950\/60,
+body.theme-light .bg-slate-950\/80,
+body.theme-light .bg-slate-950\/90 {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03) !important;
+}
+
+body.theme-light .bg-gradient-to-r h1,
+body.theme-light .bg-gradient-to-r h2,
+body.theme-light .bg-gradient-to-r h3,
+body.theme-light .bg-gradient-to-r h4,
+body.theme-light .bg-slate-900 h1,
+body.theme-light .bg-slate-900 h2,
+body.theme-light .bg-slate-900 h3,
+body.theme-light .bg-slate-900 h4,
+body.theme-light .bg-slate-950 h1,
+body.theme-light .bg-slate-950 h2,
+body.theme-light .bg-slate-950 h3,
+body.theme-light .bg-slate-950 h4,
+body.theme-light .text-white,
+body.theme-light .text-slate-100,
+body.theme-light .text-slate-200 {
+    color: #0f172a !important;
+}
+
+body.theme-light .text-slate-300,
+body.theme-light .text-slate-400 {
+    color: #475569 !important;
+}
+
+/* Sustitución de texto menta o deslavado */
+body.theme-light .text-brand-400,
+body.theme-light .text-brand-300,
+body.theme-light .text-emerald-400,
+body.theme-light .text-emerald-300,
+body.theme-light .text-teal-400,
+body.theme-light .text-teal-300,
+body.theme-light .text-sky-400,
+body.theme-light .text-sky-300 {
+    color: #0d9488 !important;
+    font-weight: 800 !important;
+}
+
+/* Badges y Píldoras de Estado Adaptables */
+body.theme-light .bg-brand-500\/20,
+body.theme-light .bg-emerald-500\/20,
+body.theme-light .bg-amber-500\/20,
+body.theme-light .bg-purple-500\/20,
+body.theme-light .bg-blue-500\/20,
+body.theme-light .bg-cyan-500\/20 {
+    background-color: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+}
+
+body.theme-light .bg-brand-500\/20 span,
+body.theme-light .bg-emerald-500\/20 span,
+body.theme-light .bg-amber-500\/20 span,
+body.theme-light .bg-purple-500\/20 span,
+body.theme-light .bg-blue-500\/20 span,
+body.theme-light .bg-cyan-500\/20 span {
+    color: #0f172a !important;
+    font-weight: 900 !important;
+}
+
+/* 2. Modales Flotantes Adaptables a Tema Activo */
+body.theme-light #auth-modal #auth-modal-content,
+body.theme-light #responsible-modal #responsible-modal-content,
+body.theme-light #delete-modal #delete-modal-content,
+body.theme-light #space-select-modal > div,
+body.theme-light #consulta-modal > div,
+body.theme-light #camera-modal > div {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 20px !important;
+}
+
+body.theme-light #space-select-modal header,
+body.theme-light #space-select-modal .bg-gradient-to-r,
+body.theme-light #space-select-modal .bg-slate-950\/60,
+body.theme-light #space-select-modal .bg-slate-900 {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #e2e8f0 !important;
+}
+
+body.theme-light #space-select-modal .text-slate-400,
+body.theme-light #space-select-modal .text-slate-300 {
+    color: #64748b !important;
+}
+
+body.theme-light #space-select-modal .bg-slate-800\/80 {
+    background-color: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+}
+
+body:not(.theme-light) #auth-modal #auth-modal-content,
+body:not(.theme-light) #responsible-modal #responsible-modal-content,
+body:not(.theme-light) #delete-modal #delete-modal-content,
+body:not(.theme-light) #space-select-modal > div,
+body:not(.theme-light) #consulta-modal > div,
+body:not(.theme-light) #camera-modal > div {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    border: 1px solid #334155 !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
+    border-radius: 20px !important;
+}
+
+body:not(.theme-light) #auth-modal input,
+body:not(.theme-light) #responsible-modal input,
+body:not(.theme-light) #delete-modal input,
+body:not(.theme-light) #space-select-modal input {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    border-color: #334155 !important;
+}
+

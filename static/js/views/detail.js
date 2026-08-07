@@ -8,13 +8,13 @@ async function renderItemDetail(container, typePath, itemId) {
         <div class="flex justify-center items-center py-12"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500"></div></div>
     `;
 
-    const apiPath = typePath === 'chemical-materials' ? 'chemical-materials' : (typePath === 'didactic-materials' ? 'didactic-materials' : 'substances');
-    const dbTable = typePath === 'chemical-materials' ? 'chemical_materials' : (typePath === 'didactic-materials' ? 'didactic_materials' : 'substances');
+    const apiPath = typePath === 'chemical-materials' ? 'chemical-materials' : (typePath === 'didactic-materials' ? 'didactic-materials' : (typePath === 'equipos' ? 'equipos' : 'substances'));
+    const dbTable = typePath === 'chemical-materials' ? 'chemical_materials' : (typePath === 'didactic-materials' ? 'didactic_materials' : (typePath === 'equipos' ? 'equipos' : 'substances'));
 
     try {
         const itemRes = await fetch(`/api/${apiPath}/${itemId}`).then(r => r.json());
         if (itemRes.status === 'error') {
-            container.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">${itemRes.message}</div>`;
+            container.innerHTML = `<div class="p-8 text-center text-red-500 font-bold">${itemRes.message || 'Elemento no encontrado'}</div>`;
             return;
         }
 
@@ -53,7 +53,7 @@ async function renderItemDetail(container, typePath, itemId) {
         const fromWarehouse = sessionStorage.getItem('last_navigation_source') === 'warehouse';
         const savedLevel = sessionStorage.getItem('warehouse_selected_level');
 
-        let backPath = typePath === 'substances' ? '#/substances' : (typePath === 'chemical-materials' ? '#/chemical-materials' : '#/didactic-materials');
+        let backPath = typePath === 'substances' ? '#/substances' : (typePath === 'chemical-materials' ? '#/chemical-materials' : (typePath === 'equipos' ? '#/equipos' : '#/didactic-materials'));
         let backText = 'Volver al listado';
 
         if (typePath === 'substances' && fromWarehouse) {
@@ -71,7 +71,7 @@ async function renderItemDetail(container, typePath, itemId) {
                     ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
                         <button onclick="openEditModal('${typePath}', ${item.id})" class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-md transition">
                             <i data-lucide="edit-3" class="w-4 h-4"></i>
-                            <span>✏️ Editar ${typePath === 'substances' ? 'Sustancia' : 'Elemento'}</span>
+                            <span>✏️ Editar ${typePath === 'substances' ? 'Sustancia' : (typePath === 'equipos' ? 'Equipo / Bien' : 'Material')}</span>
                         </button>
                     ` : ''}
                 </div>
@@ -79,9 +79,10 @@ async function renderItemDetail(container, typePath, itemId) {
                     <div class="flex-1 space-y-4">
                         <div class="flex flex-wrap items-center gap-3">
                             <span class="px-3 py-1 rounded-xl text-xs font-bold bg-brand-100 text-brand-800 uppercase tracking-wider no-print">
-                                ${typePath === 'substances' ? 'Sustancia Química' : (typePath === 'chemical-materials' ? 'Material Químico' : 'Material Didáctico')}
+                                ${typePath === 'substances' ? 'Sustancia Química' : (typePath === 'chemical-materials' ? 'Material / Equipo' : (typePath === 'equipos' ? 'Bien o Equipo de Sistemas' : 'Material Didáctico'))}
                             </span>
-                            <span class="text-xs text-slate-400 font-bold">Código de Inventario: LAB-${dbTable.toUpperCase().substring(0,3)}-${item.id}</span>
+                            <span class="text-xs text-slate-500 font-bold bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200">ID Lab: #${item.id}</span>
+                            ${item.original_id ? `<span class="text-xs text-amber-800 font-extrabold bg-amber-50 px-2.5 py-0.5 rounded-lg border border-amber-200">ID Excel DEPTO CB: #${item.original_id}</span>` : ''}
                         </div>
                         <h2 class="text-3xl font-extrabold text-slate-900 leading-tight border-b pb-2 border-slate-100">${item.name}</h2>
 
@@ -98,17 +99,23 @@ async function renderItemDetail(container, typePath, itemId) {
                             </div>
                         ` : `
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3.5 text-sm pt-2">
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Categoría</span><span class="font-bold text-slate-800 text-base">${item.category || 'General'}</span></div>
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Estado de conservación</span><span class="font-bold">${item.status || 'N/D'}</span></div>
+                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">ID Original Excel (DEPTO CB)</span><span class="font-bold text-amber-700 font-mono text-base">${item.original_id ? '#' + item.original_id : 'N/D'}</span></div>
+                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Estado de conservación</span><span class="font-bold">${item.status || 'Buenas Condiciones'}</span></div>
+                                ${item.inventory_number ? `<div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">No. Inventario</span><span class="font-bold text-amber-700 font-mono">${item.inventory_number}</span></div>` : ''}
+                                ${item.serial_number ? `<div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">No. Serie</span><span class="font-bold text-blue-700 font-mono">${item.serial_number}</span></div>` : ''}
+                                ${item.no_sep ? `<div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">No. SEP</span><span class="font-bold text-emerald-700 font-mono">${item.no_sep}</span></div>` : ''}
                             </div>
                         `}
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3.5 text-sm pt-3 border-t border-slate-100">
                             <div>
                                 <span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Stock Disponible</span>
-                                <span class="text-xl font-bold text-brand-600">${item.quantity} ${item.unit || 'uds'}</span>
+                                <div class="flex items-baseline gap-2 mt-0.5">
+                                    <span class="text-xl font-bold text-brand-600">${item.stock_units || 1} envase(s)</span>
+                                    <span class="text-sm font-semibold text-slate-600">(${item.quantity} ${item.unit || 'g'} c/u)</span>
+                                </div>
                                 ${typePath === 'substances' && item.container_content ? `
-                                    <div class="text-2xs text-slate-400 font-bold mt-0.5">Contenido por envase: ${item.container_content}</div>
+                                    <div class="text-2xs text-slate-500 font-medium mt-1">Presentación: ${item.container_content}</div>
                                 ` : ''}
                             </div>
                             <div>

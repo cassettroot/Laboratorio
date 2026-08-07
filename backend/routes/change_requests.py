@@ -1,5 +1,4 @@
 import json
-import sqlite3
 from flask import Blueprint, request, jsonify, session
 from backend.database import get_db_connection
 from backend.history_logger import log_creation, log_updates, log_deletion

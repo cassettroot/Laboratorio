@@ -334,7 +334,70 @@ async function renderWarehouseView(container) {
 
                     </div>
 
-                    <!-- 3. ÁREA DE PISO -->
+                    <!-- 3. ORGANIZADOR 2X3 (GAVETERO PLÁSTICO DE 6 COMPARTIMENTOS) -->
+                    <div class="bg-slate-950/80 p-5 rounded-2xl border border-cyan-500/30 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-xs font-extrabold text-cyan-300 uppercase tracking-wider flex items-center gap-2">
+                                <span>📦 ORGANIZADOR 2X3 (GAVETERO DE PLÁSTICO - 6 GAVETAS)</span>
+                            </h4>
+                            <span class="text-3xs font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2.5 py-0.5 rounded-full">6 Módulos Organizados (2x3)</span>
+                        </div>
+
+                        <!-- CUADRÍCULA 2 FILAS X 3 COLUMNAS -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <!-- Fila 1: C1, C2, C3 -->
+                            <div id="shelf-C1" class="shelf-box p-3 rounded-xl border border-cyan-500/40 bg-slate-900 transition cursor-pointer hover:border-cyan-400" onclick="selectAndNavigateZone('C1')">
+                                <div class="flex justify-between items-center text-3xs font-extrabold uppercase mb-1">
+                                    <span class="text-cyan-300">Gaveta 1 (A-1)</span>
+                                    <span class="status-pill bg-cyan-500/20 text-cyan-300" id="pill-C1">Viales / Frascos</span>
+                                </div>
+                                <div class="text-xs text-slate-300 font-sans" id="content-C1">🧪 Muestras y Microvolúmenes</div>
+                            </div>
+
+                            <div id="shelf-C2" class="shelf-box p-3 rounded-xl border border-cyan-500/40 bg-slate-900 transition cursor-pointer hover:border-cyan-400" onclick="selectAndNavigateZone('C2')">
+                                <div class="flex justify-between items-center text-3xs font-extrabold uppercase mb-1">
+                                    <span class="text-cyan-300">Gaveta 2 (A-2)</span>
+                                    <span class="status-pill bg-cyan-500/20 text-cyan-300" id="pill-C2">Goteros & Puntas</span>
+                                </div>
+                                <div class="text-xs text-slate-300 font-sans" id="content-C2">💧 Goteros de Vidrio y Pipetas</div>
+                            </div>
+
+                            <div id="shelf-C3" class="shelf-box p-3 rounded-xl border border-cyan-500/40 bg-slate-900 transition cursor-pointer hover:border-cyan-400" onclick="selectAndNavigateZone('C3')">
+                                <div class="flex justify-between items-center text-3xs font-extrabold uppercase mb-1">
+                                    <span class="text-cyan-300">Gaveta 3 (A-3)</span>
+                                    <span class="status-pill bg-cyan-500/20 text-cyan-300" id="pill-C3">Indicadores & pH</span>
+                                </div>
+                                <div class="text-xs text-slate-300 font-sans" id="content-C3">📄 Tiras Reactivas pH & Papel Filtro</div>
+                            </div>
+
+                            <!-- Fila 2: C4, C5, C6 -->
+                            <div id="shelf-C4" class="shelf-box p-3 rounded-xl border border-cyan-500/40 bg-slate-900 transition cursor-pointer hover:border-cyan-400" onclick="selectAndNavigateZone('C4')">
+                                <div class="flex justify-between items-center text-3xs font-extrabold uppercase mb-1">
+                                    <span class="text-cyan-300">Gaveta 4 (B-1)</span>
+                                    <span class="status-pill bg-cyan-500/20 text-cyan-300" id="pill-C4">Micro-Reactivos</span>
+                                </div>
+                                <div class="text-xs text-slate-300 font-sans" id="content-C4">⚗️ Reactivos de Alta Pureza</div>
+                            </div>
+
+                            <div id="shelf-C5" class="shelf-box p-3 rounded-xl border border-cyan-500/40 bg-slate-900 transition cursor-pointer hover:border-cyan-400" onclick="selectAndNavigateZone('C5')">
+                                <div class="flex justify-between items-center text-3xs font-extrabold uppercase mb-1">
+                                    <span class="text-cyan-300">Gaveta 5 (B-2)</span>
+                                    <span class="status-pill bg-cyan-500/20 text-cyan-300" id="pill-C5">Tapones & Filtros</span>
+                                </div>
+                                <div class="text-xs text-slate-300 font-sans" id="content-C5">🔌 Tapones de Hule & Membranas</div>
+                            </div>
+
+                            <div id="shelf-C6" class="shelf-box p-3 rounded-xl border border-cyan-500/40 bg-slate-900 transition cursor-pointer hover:border-cyan-400" onclick="selectAndNavigateZone('C6')">
+                                <div class="flex justify-between items-center text-3xs font-extrabold uppercase mb-1">
+                                    <span class="text-cyan-300">Gaveta 6 (B-3)</span>
+                                    <span class="status-pill bg-cyan-500/20 text-cyan-300" id="pill-C6">Accesorios Varios</span>
+                                </div>
+                                <div class="text-xs text-slate-300 font-sans" id="content-C6">🛠️ Mangueras, Pinzas & Adaptadores</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. ÁREA DE PISO -->
                     <div id="zone-floor" class="bg-red-950/30 border border-red-500/40 rounded-2xl p-4 cursor-pointer hover:border-red-400 transition" onclick="selectAndNavigateZone('piso')">
                         <div class="flex items-center justify-between text-xs font-bold text-red-300 uppercase mb-2">
                             <span>🚨 ÁREA DE PISO Y PASILLO DE ALMACÉN</span>
@@ -837,6 +900,54 @@ function getShelvesConfig() {
             badgeBg: 'bg-purple-100 text-purple-900 border-purple-300',
             description: 'Garrafas de Agua Destilada, Solución Amoniacal, Soluciones acuosas preparadas y Caja PHYWE con equipos.',
             filterMatch: (s) => s.name.includes('Agua Destilada') || s.name.includes('Amoniacal') || s.name.includes('Solución') || s.name.includes('Yeso') || s.unit === 'kg' || s.unit === 'L'
+        },
+        {
+            id: 'C1',
+            title: '📦 Organizador 2x3 - Gaveta 1 (A-1: Viales y Microvolúmenes)',
+            badge: '🗄️ ORGANIZADOR 2X3',
+            badgeBg: 'bg-cyan-100 text-cyan-900 border-cyan-300',
+            description: 'Viales de vidrio, muestras analíticas y frascos de reactivos de microvolumen.',
+            filterMatch: (s) => (s.location || '').toLowerCase().includes('c1') || (s.location || '').toLowerCase().includes('gaveta 1') || (s.location || '').toLowerCase().includes('organizador')
+        },
+        {
+            id: 'C2',
+            title: '📦 Organizador 2x3 - Gaveta 2 (A-2: Goteros y Pipetas)',
+            badge: '🗄️ ORGANIZADOR 2X3',
+            badgeBg: 'bg-cyan-100 text-cyan-900 border-cyan-300',
+            description: 'Goteros de cristal, pipetas Pasteur y puntas de dosificación.',
+            filterMatch: (s) => (s.location || '').toLowerCase().includes('c2') || (s.location || '').toLowerCase().includes('gaveta 2')
+        },
+        {
+            id: 'C3',
+            title: '📦 Organizador 2x3 - Gaveta 3 (A-3: Indicadores y pH)',
+            badge: '🗄️ ORGANIZADOR 2X3',
+            badgeBg: 'bg-cyan-100 text-cyan-900 border-cyan-300',
+            description: 'Tiras reactivas de pH, tiras de prueba rápida y papel filtro cualitativo.',
+            filterMatch: (s) => (s.location || '').toLowerCase().includes('c3') || (s.location || '').toLowerCase().includes('gaveta 3')
+        },
+        {
+            id: 'C4',
+            title: '📦 Organizador 2x3 - Gaveta 4 (B-1: Micro-Reactivos de Alta Pureza)',
+            badge: '🗄️ ORGANIZADOR 2X3',
+            badgeBg: 'bg-cyan-100 text-cyan-900 border-cyan-300',
+            description: 'Frascos pequeños de patrones primarios y reactivos finos de laboratorio.',
+            filterMatch: (s) => (s.location || '').toLowerCase().includes('c4') || (s.location || '').toLowerCase().includes('gaveta 4')
+        },
+        {
+            id: 'C5',
+            title: '📦 Organizador 2x3 - Gaveta 5 (B-2: Tapones y Filtros)',
+            badge: '🗄️ ORGANIZADOR 2X3',
+            badgeBg: 'bg-cyan-100 text-cyan-900 border-cyan-300',
+            description: 'Tapones de hule, corchos, membranas de filtración y juntas esmeriladas.',
+            filterMatch: (s) => (s.location || '').toLowerCase().includes('c5') || (s.location || '').toLowerCase().includes('gaveta 5')
+        },
+        {
+            id: 'C6',
+            title: '📦 Organizador 2x3 - Gaveta 6 (B-3: Accesorios y Mangueras)',
+            badge: '🗄️ ORGANIZADOR 2X3',
+            badgeBg: 'bg-cyan-100 text-cyan-900 border-cyan-300',
+            description: 'Mangueras de silicón/látex, conectores de vidrio y pinzas pequeñas.',
+            filterMatch: (s) => (s.location || '').toLowerCase().includes('c6') || (s.location || '').toLowerCase().includes('gaveta 6')
         }
     ];
 }

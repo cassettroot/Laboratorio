@@ -3,7 +3,30 @@ import os
 import base64
 import hashlib
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'inventario.db')
+# Directorio raíz del proyecto (donde viven las .db)
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Inventarios permitidos y sus archivos de base de datos
+_INVENTORY_DB_MAP = {
+    'inventario': 'inventario.db',
+    'oficina':    'oficina.db',
+    'sistemas':   'sistemas.db',
+}
+
+# DB_PATH siempre apunta al laboratorio principal (para compatibilidad con tools.py / backup)
+DB_PATH = os.path.join(_BASE_DIR, 'inventario.db')
+
+
+def _get_db_path() -> str:
+    """Devuelve la ruta de la BD según el header X-Inventory-Id del request actual."""
+    try:
+        from flask import request as _req
+        inv_id = _req.headers.get('X-Inventory-Id', 'inventario')
+    except RuntimeError:
+        # Fuera de contexto de Flask (ej. init_db al arrancar)
+        inv_id = 'inventario'
+    db_file = _INVENTORY_DB_MAP.get(inv_id, 'inventario.db')
+    return os.path.join(_BASE_DIR, db_file)
 
 SECRET_CIPHER_KEY = "itma2-super-secret-key-laboratorio"
 
@@ -27,12 +50,22 @@ def decrypt_username(encrypted_username: str) -> str:
         return encrypted_username
 
 def get_db_connection():
+    """Conecta a la base de datos del inventario indicado en X-Inventory-Id."""
+    db_path = _get_db_path()
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def get_users_db_connection():
+    """Conecta SIEMPRE a la base de datos principal (inventario.db) donde residen las cuentas de usuario."""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 def get_user_by_username(username):
-    conn = get_db_connection()
+    """Busca un usuario SIEMPRE en inventario.db (BD principal donde viven los usuarios)."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     enc_username = encrypt_username(username)
     cursor.execute('SELECT * FROM users WHERE username = ?', (enc_username,))
@@ -41,7 +74,9 @@ def get_user_by_username(username):
     return user
 
 def init_db():
-    conn = get_db_connection()
+    """Inicializa SIEMPRE inventario.db (BD principal)."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
     # 1. Tabla de Sustancias Químicas
@@ -93,6 +128,9 @@ def init_db():
             image_path TEXT,
             qr_path TEXT,
             qr_content TEXT,
+            inventory_number TEXT,
+            serial_number TEXT,
+            no_sep TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
@@ -169,6 +207,22 @@ def init_db():
             data TEXT,
             status TEXT DEFAULT 'PENDIENTE',
             feedback TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # 7. Tabla de Equipos y Bienes Muebles
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS equipos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            caracteristicas_bien TEXT,
+            no_inventario TEXT,
+            marca TEXT,
+            modelo TEXT,
+            serie TEXT,
+            valor TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
@@ -522,6 +576,19 @@ def init_db():
             ("white", "ALK", "Base fuerte", "Puede causar quemaduras químicas graves.")
         ]
         cursor.executemany("INSERT INTO consulta_nfpa (quad, level, label, desc) VALUES (?, ?, ?, ?)", nfpa)
+
+    # Migraciones para chemical_materials
+    for col in ['inventory_number', 'serial_number', 'no_sep']:
+        try:
+            cursor.execute(f"ALTER TABLE chemical_materials ADD COLUMN {col} TEXT")
+        except sqlite3.OperationalError:
+            pass
+
+    # Migración de columna assigned_labs en la tabla users
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN assigned_labs TEXT DEFAULT 'all'")
+    except sqlite3.OperationalError:
+        pass
 
     conn.commit()
     conn.close()

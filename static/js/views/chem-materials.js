@@ -1,38 +1,41 @@
 async function renderChemicalMaterialsList(container) {
     container.innerHTML = `
-        <div class="space-y-6 animate-fade-in">
-            <div class="sticky -top-8 z-20 bg-slate-50/95 backdrop-blur-md py-3 -mx-4 px-4 sm:-mx-8 sm:px-8 border-b border-slate-200/80 flex flex-col md:flex-row gap-4 items-center justify-between no-print shadow-xs">
-                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    <div class="relative w-full md:w-64">
-                        <input id="search-materials" type="text" placeholder="Buscar material (nombre, ubicación)..." class="w-full bg-white border border-slate-300 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:border-brand-500 outline-none transition shadow-sm">
+        <div class="space-y-6 animate-fade-in text-white">
+            <!-- Barra de Filtros y Búsqueda (Fila Compacta y Elegante) -->
+            <div class="sticky -top-8 z-20 py-2 space-y-3 no-print flex flex-col md:flex-row gap-3 items-center justify-between">
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto flex-1 max-w-3xl">
+                    <div class="relative w-full md:w-80">
+                        <input id="search-materials" type="text" placeholder="🔍 Buscar ID, Descripción, Inventario, Serie, SEP..." class="w-full bg-slate-900/80 border border-slate-700/80 pl-10 pr-4 py-2.5 rounded-xl text-sm focus:border-teal-500 outline-none transition shadow-sm font-semibold text-white placeholder:text-slate-400">
                         <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
                     </div>
-                    <select id="sort-materials" class="bg-white border border-slate-300 px-3 py-2.5 rounded-xl text-sm outline-none transition shadow-sm focus:border-brand-500 font-semibold text-slate-700">
-                        <option value="name_asc">🔤 Orden: Nombre (A - Z)</option>
-                        <option value="name_desc">🔤 Orden: Nombre (Z - A)</option>
-                        <option value="quantity_desc">📦 Orden: Stock (Mayor a Menor)</option>
-                        <option value="quantity_asc">📦 Orden: Stock (Menor a Mayor)</option>
-                        <option value="id_desc">🆕 Orden: Registro (Recientes)</option>
-                        <option value="id_asc">⌛ Orden: Registro (Antiguos)</option>
+                    <select id="filter-status" class="bg-slate-900/80 border border-slate-700/80 px-3.5 py-2.5 rounded-xl text-sm outline-none transition shadow-sm focus:border-teal-500 font-semibold text-white cursor-pointer">
+                        <option value="">🛡️ -- Estado --</option>
+                        <option value="Buenas Condiciones">Buenas Condiciones</option>
+                        <option value="Nuevo">Nuevo</option>
+                        <option value="Excelente">Excelente</option>
+                        <option value="Bueno">Bueno</option>
+                        <option value="Dañado">Dañado</option>
+                        <option value="Roto">Roto / Incompleto</option>
                     </select>
-                    <select id="filter-category" class="bg-white border border-slate-300 px-3 py-2.5 rounded-xl text-sm outline-none transition shadow-sm focus:border-brand-500">
-                        <option value="">-- Categoría --</option>
-                        <option value="Vidriería">Vidriería</option>
-                        <option value="Metal">Metal</option>
-                        <option value="Porcelana">Porcelana</option>
-                        <option value="Plástico">Plástico</option>
-                        <option value="Soporte">Soporte</option>
+                    <select id="sort-materials" class="bg-slate-900/80 border border-slate-700/80 px-3.5 py-2.5 rounded-xl text-sm outline-none transition shadow-sm focus:border-teal-500 font-semibold text-white cursor-pointer">
+                        <option value="id_asc">🆔 Orden: ID (Menor a Mayor)</option>
+                        <option value="id_desc">🆔 Orden: ID (Mayor a Menor)</option>
+                        <option value="name_asc">🔤 Orden: Descripción (A - Z)</option>
+                        <option value="name_desc">🔤 Orden: Descripción (Z - A)</option>
+                        <option value="inventory_asc">🏷️ Orden: No. Inventario</option>
+                        <option value="serial_asc">🔢 Orden: No. Serie</option>
+                        <option value="sep_asc">🏛️ Orden: No. SEP</option>
                     </select>
                 </div>
                 <div class="flex items-center gap-3 w-full md:w-auto justify-end">
                     ${(state.isLoggedIn && state.userRole === 'admin') ? `
-                    <button onclick="exportTableToExcel('chemical_materials')" class="bg-white hover:bg-slate-50 border border-slate-300 font-semibold px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 transition text-slate-700 shadow-sm">
-                        <i data-lucide="download" class="w-4 h-4"></i>
+                    <button onclick="exportTableToExcel('chemical_materials')" class="bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 font-extrabold px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 transition text-white shadow-sm">
+                        <i data-lucide="download" class="w-4 h-4 text-teal-400"></i>
                         <span>Exportar Excel</span>
                     </button>
                     ` : ''}
-                    ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
-                    <button onclick="openAddModal('chemical_materials')" class="bg-brand-600 hover:bg-brand-700 font-bold px-5 py-2.5 rounded-xl text-sm text-white flex items-center gap-2 transition shadow-lg shadow-brand-600/10">
+                    ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'jefe' || state.userRole === 'responsable')) ? `
+                    <button onclick="openAddModal('chemical_materials')" class="bg-teal-600 hover:bg-teal-700 font-extrabold px-5 py-2.5 rounded-xl text-sm text-white flex items-center gap-2 transition shadow-lg">
                         <i data-lucide="plus" class="w-4 h-4"></i>
                         <span>Registrar Material</span>
                     </button>
@@ -40,23 +43,26 @@ async function renderChemicalMaterialsList(container) {
                 </div>
             </div>
 
-            <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <!-- Tabla de Datos Refinada (Diseño de Alta Fidelidad) -->
+            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase tracking-wider text-xs">
-                                <th class="py-4 px-6">Material</th>
-                                <th class="py-4 px-6">Categoría</th>
-                                <th class="py-4 px-6">Estado</th>
-                                <th class="py-4 px-6">Cantidad</th>
-                                <th class="py-4 px-6">Ubicación</th>
-                                <th class="py-4 px-6">Responsable</th>
-                                <th class="py-4 px-6 no-print text-right">Acciones</th>
+                            <tr class="bg-slate-950 border-b border-slate-800 text-slate-300 font-extrabold uppercase tracking-wider text-xs">
+                                <th class="py-4 px-4 text-center w-16">ID Lab</th>
+                                <th class="py-4 px-4 text-center w-20">ID Excel</th>
+                                <th class="py-4 px-4">Ubicación</th>
+                                <th class="py-4 px-6">Descripción / Material</th>
+                                <th class="py-4 px-4">No. Inventario</th>
+                                <th class="py-4 px-4">No. Serie</th>
+                                <th class="py-4 px-4">No. SEP</th>
+                                <th class="py-4 px-4">Estado</th>
+                                <th class="py-4 px-4 no-print text-right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody id="materials-table-body" class="divide-y divide-slate-100 text-slate-700 font-medium">
+                        <tbody id="materials-table-body" class="divide-y divide-slate-800/70 text-slate-200 font-medium">
                             <tr>
-                                <td colspan="7" class="py-12 text-center text-slate-400">Cargando materiales químicos...</td>
+                                <td colspan="9" class="py-12 text-center text-slate-400 font-bold">Cargando materiales químicos...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -68,77 +74,81 @@ async function renderChemicalMaterialsList(container) {
     if (window.lucide) window.lucide.createIcons();
 
     const fetchAndRender = async () => {
-        const search = document.getElementById('search-materials').value;
-        const category = document.getElementById('filter-category').value;
         const body = document.getElementById('materials-table-body');
+        if (!body) return;
 
         try {
+            const search = document.getElementById('search-materials').value;
+            const status = document.getElementById('filter-status').value;
+
             const url = new URL('/api/chemical-materials', window.location.origin);
             if (search) url.searchParams.append('search', search);
-            if (category) url.searchParams.append('category', category);
+            if (status) url.searchParams.append('status', status);
 
             const res = await fetch(url).then(r => r.json());
             let materialsList = res.data || [];
 
             const sortBy = document.getElementById('sort-materials').value;
             materialsList.sort((a, b) => {
-                if (sortBy === 'name_asc') return (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' });
-                if (sortBy === 'name_desc') return (b.name || '').localeCompare(a.name || '', 'es', { sensitivity: 'base' });
-                if (sortBy === 'quantity_desc') return (b.quantity || 0) - (a.quantity || 0);
-                if (sortBy === 'quantity_asc') return (a.quantity || 0) - (b.quantity || 0);
                 if (sortBy === 'id_asc') return a.id - b.id;
                 if (sortBy === 'id_desc') return b.id - a.id;
-                return (a.name || '').localeCompare(b.name || '', 'es');
+                if (sortBy === 'name_asc') return (a.name || '').localeCompare(b.name || '', 'es', { sensitivity: 'base' });
+                if (sortBy === 'name_desc') return (b.name || '').localeCompare(a.name || '', 'es', { sensitivity: 'base' });
+                if (sortBy === 'inventory_asc') return (a.inventory_number || '').localeCompare(b.inventory_number || '', 'es');
+                if (sortBy === 'serial_asc') return (a.serial_number || '').localeCompare(b.serial_number || '', 'es');
+                if (sortBy === 'sep_asc') return (a.no_sep || '').localeCompare(b.no_sep || '', 'es');
+                return a.id - b.id;
             });
 
             state.chemMaterials = materialsList;
 
             if (state.chemMaterials.length === 0) {
-                body.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-slate-400">No se encontraron materiales químicos.</td></tr>`;
+                body.innerHTML = `<tr><td colspan="9" class="py-12 text-center text-slate-400 font-bold">No se encontraron materiales con los filtros aplicados.</td></tr>`;
                 return;
             }
 
-            const isLogged = state.isLoggedIn;
-
             body.innerHTML = state.chemMaterials.map(m => {
-                let statusColor = 'bg-slate-100 text-slate-700';
-                if (m.status === 'Excelente' || m.status === 'Nuevo') statusColor = 'bg-emerald-50 text-emerald-700';
-                if (m.status === 'Dañado' || m.status === 'Roto') statusColor = 'bg-red-50 text-red-700';
-                if (m.status === 'Bueno') statusColor = 'bg-blue-50 text-blue-700';
+                let statusBadge = `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-extrabold px-3 py-1 rounded-lg text-2xs inline-block shadow-2xs">Buenas Condiciones</span>`;
+                const st = (m.status || '').toLowerCase();
+                if (st.includes('excelente') || st.includes('nuevo')) {
+                    statusBadge = `<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-extrabold px-3 py-1 rounded-lg text-2xs inline-block shadow-2xs">${m.status}</span>`;
+                } else if (st.includes('dañado') || st.includes('roto') || st.includes('inoperativo')) {
+                    statusBadge = `<span class="bg-rose-500/20 text-rose-400 border border-rose-500/40 font-extrabold px-3 py-1 rounded-lg text-2xs inline-block shadow-2xs">${m.status}</span>`;
+                } else if (st.includes('bueno') || st.includes('regular') || st.includes('mantenimiento')) {
+                    statusBadge = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 font-extrabold px-3 py-1 rounded-lg text-2xs inline-block shadow-2xs">${m.status}</span>`;
+                }
 
                 return `
-                    <tr class="hover:bg-slate-50/50 transition">
+                    <tr class="hover:bg-slate-800/60 transition border-b border-slate-800/60">
+                        <td class="py-4 px-4 text-center font-mono font-extrabold text-slate-800 text-xs">${m.id}</td>
+                        <td class="py-4 px-4 text-center font-mono font-extrabold text-amber-700 text-xs">${m.original_id ? '#' + m.original_id + ' (PROVISIONAL)' : '-'}</td>
+                        <td class="py-4 px-4 text-xs font-bold text-slate-700 uppercase max-w-[180px] truncate" title="${m.location || ''}">${m.location || '-'}</td>
                         <td class="py-4 px-6">
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden border border-slate-200/50 shrink-0">
-                                    ${m.image_path ? `<img src="${m.image_path}" class="w-full h-full object-cover">` : `<i data-lucide="droplet" class="w-5 h-5"></i>`}
+                                <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden border border-slate-200 shrink-0">
+                                    ${m.image_path ? `<img src="${m.image_path}" class="w-full h-full object-cover">` : `<i data-lucide="droplet" class="w-4 h-4 text-teal-600"></i>`}
                                 </div>
                                 <div>
-                                    <a href="#/chemical-materials/${m.id}" class="text-sm font-bold text-slate-900 hover:text-brand-600 transition block">${m.name}</a>
-                                    <span class="text-3xs text-slate-400 uppercase tracking-wider">ID: LAB-CHM-${m.id}</span>
+                                    <a href="#/chemical-materials/${m.id}" class="text-sm font-extrabold text-slate-900 hover:text-brand-600 transition block leading-snug">${m.name}</a>
                                 </div>
                             </div>
                         </td>
-                        <td class="py-4 px-6 text-slate-600 font-semibold">${m.category || '-'}</td>
-                        <td class="py-4 px-6">
-                            <span class="px-2.5 py-0.5 rounded-md text-2xs font-bold ${statusColor}">${m.status || 'N/D'}</span>
+                        <td class="py-4 px-4 text-xs font-mono font-bold text-slate-800">${m.inventory_number || '-'}</td>
+                        <td class="py-4 px-4 text-xs font-mono font-bold text-blue-800">${m.serial_number || '-'}</td>
+                        <td class="py-4 px-4 text-xs font-mono font-bold text-emerald-800">${m.no_sep || '-'}</td>
+                        <td class="py-4 px-4">
+                            ${statusBadge}
                         </td>
-                        <td class="py-4 px-6">
-                            <span class="text-sm font-bold text-slate-900">${m.quantity}</span>
-                            <span class="text-xs text-slate-500">${m.unit}</span>
-                        </td>
-                        <td class="py-4 px-6 text-slate-600">${m.location || '-'}</td>
-                        <td class="py-4 px-6 text-slate-500 text-xs">${m.responsible || '-'}</td>
-                        <td class="py-4 px-6 no-print text-right">
+                        <td class="py-4 px-4 no-print text-right">
                             <div class="flex items-center justify-end gap-1.5">
-                                <a href="#/chemical-materials/${m.id}" class="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition">
+                                <a href="#/chemical-materials/${m.id}" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 transition shadow-2xs" title="Ver Ficha Detallada">
                                     <i data-lucide="eye" class="w-4 h-4"></i>
                                 </a>
-                                ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
-                                <button onclick="openEditModal('chemical_materials', ${m.id})" class="p-2 hover:bg-slate-100 text-slate-500 hover:text-slate-800 rounded-lg transition">
+                                ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'jefe' || state.userRole === 'responsable')) ? `
+                                <button onclick="openEditModal('chemical_materials', ${m.id})" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 transition shadow-2xs" title="Editar Material">
                                     <i data-lucide="edit-3" class="w-4 h-4"></i>
                                 </button>
-                                <button onclick="deleteItem('chemical_materials', ${m.id})" class="p-2 hover:bg-red-50 text-red-500 rounded-lg transition">
+                                <button onclick="deleteItem('chemical_materials', ${m.id})" class="p-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-xl transition shadow-2xs" title="Eliminar Material">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
                                 ` : ''}
@@ -149,12 +159,12 @@ async function renderChemicalMaterialsList(container) {
             }).join('');
             if (window.lucide) window.lucide.createIcons();
         } catch (err) {
-            body.innerHTML = `<tr><td colspan="7" class="py-12 text-center text-red-500 font-bold">Error al cargar datos.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="9" class="py-12 text-center text-rose-400 font-bold">Error al cargar datos.</td></tr>`;
         }
     };
 
     document.getElementById('search-materials').addEventListener('input', fetchAndRender);
     document.getElementById('sort-materials').addEventListener('change', fetchAndRender);
-    document.getElementById('filter-category').addEventListener('change', fetchAndRender);
+    document.getElementById('filter-status').addEventListener('change', fetchAndRender);
     fetchAndRender();
 }

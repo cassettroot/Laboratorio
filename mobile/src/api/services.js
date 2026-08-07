@@ -65,9 +65,19 @@ export const apiService = {
     return response.data;
   },
 
+  createChemicalMaterial: async (data) => {
+    const response = await apiClient.post('/api/chemical-materials', data);
+    return response.data;
+  },
+
   // Materiales Didácticos
   getDidacticMaterials: async () => {
     const response = await apiClient.get('/api/didactic-materials');
+    return response.data;
+  },
+
+  createDidacticMaterial: async (data) => {
+    const response = await apiClient.post('/api/didactic-materials', data);
     return response.data;
   },
 
@@ -89,7 +99,7 @@ export const apiService = {
 
   // Escaneo de QR
   scanQR: async (qrContent) => {
-    const response = await apiClient.post('/api/scan-qr', { qr_content: qrContent });
+    const response = await apiClient.post('/api/scan-qr', { qr_content: qrContent, qr_code: qrContent });
     return response.data;
   },
 
@@ -107,5 +117,14 @@ export const apiService = {
   rejectRequest: async (reqId, feedback) => {
     const response = await apiClient.post(`/api/change-requests/${reqId}/reject`, { feedback });
     return response.data;
-  }
+  },
+
+  // Bienes y Equipos
+  getEquipos: async () => {
+    const response = await apiClient.get('/api/equipos');
+    return response.data;
+  },
+  
+  // Expose raw client for direct use
+  client: apiClient
 };
