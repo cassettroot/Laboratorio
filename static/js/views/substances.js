@@ -1,17 +1,27 @@
-function buildGroupBadgesHtml(substance_group) {
-    if (!substance_group) return '';
-    const groups = substance_group.split(/[,/;|]/).map(g => g.trim()).filter(Boolean);
+function buildGroupBadgesHtml(substance_group, risks_warnings) {
+    const rawGroups = [];
+    if (substance_group) rawGroups.push(...substance_group.split(/[,/;|]/).map(g => g.trim()));
+    if (risks_warnings) rawGroups.push(...risks_warnings.split(/[,;|]/).map(g => g.trim()));
+    
+    const groups = [...new Set(rawGroups)].filter(Boolean);
+    if (groups.length === 0) return '';
+    
     return groups.map(group => {
+        // Ignorar textos muy largos que no son etiquetas
+        if (group.length > 40) return '';
+        
         let gColor = 'bg-slate-100 text-slate-700 border-slate-200';
         const g = group.toLowerCase();
         if (g.includes('inflam')) gColor = 'bg-red-50 text-red-700 border-red-200';
         else if (g.includes('tox') || g.includes('venen')) gColor = 'bg-purple-50 text-purple-700 border-purple-200';
         else if (g.includes('corros')) gColor = 'bg-orange-50 text-orange-700 border-orange-200';
         else if (g.includes('explos')) gColor = 'bg-yellow-50 text-yellow-800 border-yellow-300';
-        else if (g.includes('comburent')) gColor = 'bg-pink-50 text-pink-700 border-pink-200';
-        else if (g.includes('irrit')) gColor = 'bg-teal-50 text-teal-700 border-teal-200';
-        else if (g.includes('inert')) gColor = 'bg-blue-50 text-blue-700 border-blue-200';
-        return `<span class="px-2.5 py-0.5 rounded border text-3xs font-extrabold uppercase tracking-wider ${gColor}">${group}</span>`;
+        else if (g.includes('comburent') || g.includes('oxidant')) gColor = 'bg-pink-50 text-pink-700 border-pink-200';
+        else if (g.includes('irrit') || g.includes('nocivo')) gColor = 'bg-teal-50 text-teal-700 border-teal-200';
+        else if (g.includes('medio ambiente')) gColor = 'bg-green-50 text-green-700 border-green-200';
+        else if (g.includes('salud')) gColor = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+        
+        return `<span class="px-2.5 py-0.5 rounded border text-3xs font-extrabold uppercase tracking-wider ${gColor} mb-1 inline-block">${group}</span>`;
     }).join(' ');
 }
 
@@ -36,6 +46,7 @@ function toggleSubstancesFilterActiveMode() {
     } else {
         state.substancesFilters.isPanelOpen = false;
         state.substancesFilters.completeness = '';
+        state.substancesFilters.risk = '';
     }
     if (window._triggerSubstancesFetch) window._triggerSubstancesFetch();
 }
@@ -67,6 +78,7 @@ function resetSubstancesFilters() {
     const group = document.getElementById('group-substances');
     const stateFilter = document.getElementById('filter-state');
     const completeness = document.getElementById('filter-completeness');
+    const risk = document.getElementById('filter-risk');
     const loc = document.getElementById('filter-location');
 
     if (search) search.value = '';
@@ -74,6 +86,7 @@ function resetSubstancesFilters() {
     if (group) group.value = '';
     if (stateFilter) stateFilter.value = '';
     if (completeness) completeness.value = '';
+    if (risk) risk.value = '';
     if (loc) loc.value = '';
 
     const badge = document.getElementById('active-filters-badge');
@@ -91,8 +104,8 @@ async function renderSubstancesList(container) {
             search: '',
             sort: 'name_asc',
             group: '',
-            physical_state: '',
             completeness: '',
+            risk: '',
             location: '',
             isPanelOpen: false,
             areFiltersActive: false
@@ -168,7 +181,7 @@ async function renderSubstancesList(container) {
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                         <div>
                             <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ordenar por</label>
                             <select id="sort-substances" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
@@ -218,6 +231,19 @@ async function renderSubstancesList(container) {
                         </div>
 
                         <div>
+                            <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Peligrosidad (SGA)</label>
+                            <select id="filter-risk" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
+                                <option value="" ${!f.risk ? 'selected' : ''}>-- Todos --</option>
+                                <option value="corrosive" ${f.risk === 'corrosive' ? 'selected' : ''}>⚠️ Corrosivos</option>
+                                <option value="toxic" ${f.risk === 'toxic' ? 'selected' : ''}>☠️ Tóxicos</option>
+                                <option value="flammable" ${f.risk === 'flammable' ? 'selected' : ''}>🔥 Inflamables</option>
+                                <option value="explosive" ${f.risk === 'explosive' ? 'selected' : ''}>💥 Explosivos</option>
+                                <option value="oxidizing" ${f.risk === 'oxidizing' ? 'selected' : ''}>⭕🔥 Comburentes</option>
+                                <option value="irritant" ${f.risk === 'irritant' ? 'selected' : ''}>❗ Irritantes</option>
+                            </select>
+                        </div>
+
+                        <div>
                             <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ubicación</label>
                             <input id="filter-location" type="text" value="${f.location || ''}" placeholder="Ej. Estante 1..." class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
                         </div>
@@ -243,6 +269,7 @@ async function renderSubstancesList(container) {
         const sortVal = document.getElementById('sort-substances')?.value || 'name_asc';
         const groupVal = document.getElementById('group-substances')?.value || '';
         const completenessVal = f.areFiltersActive ? (document.getElementById('filter-completeness')?.value || '') : '';
+        const riskVal = f.areFiltersActive ? (document.getElementById('filter-risk')?.value || '') : '';
 
         // Persistir en objeto de estado global
         if (!state.substancesFilters) state.substancesFilters = {};
@@ -252,6 +279,7 @@ async function renderSubstancesList(container) {
         state.substancesFilters.sort = sortVal;
         state.substancesFilters.group = groupVal;
         state.substancesFilters.completeness = completenessVal;
+        state.substancesFilters.risk = riskVal;
 
         // Contador de Filtros Activos
         let activeCount = 0;
@@ -259,6 +287,7 @@ async function renderSubstancesList(container) {
         if (groupVal) activeCount++;
         if (physical_state) activeCount++;
         if (completenessVal) activeCount++;
+        if (riskVal) activeCount++;
         if (location && location.trim() !== '') activeCount++;
 
         const badge = document.getElementById('active-filters-badge');
@@ -310,6 +339,21 @@ async function renderSubstancesList(container) {
                 substancesList = substancesList.filter(s => !s.pdf_path || !s.pdf_path.trim());
             } else if (completeness === 'missing_links') {
                 substancesList = substancesList.filter(s => !s.external_links || !s.external_links.trim());
+            }
+
+            const risk = f.areFiltersActive ? (document.getElementById('filter-risk')?.value || '') : '';
+            if (risk) {
+                substancesList = substancesList.filter(s => {
+                    const n = (s.name || '').toLowerCase();
+                    const r = (s.risks_warnings || '').toLowerCase();
+                    if (risk === 'corrosive') return n.includes('sulfúrico') || n.includes('clorhídrico') || n.includes('fórmico') || n.includes('fosfórico') || n.includes('propiónico') || n.includes('butírico') || n.includes('hidróxido') || n.includes('cal sodada') || r.includes('corrosiv') || r.includes('ghs05');
+                    if (risk === 'toxic') return r.includes('tóxic') || r.includes('toxic') || r.includes('veneno') || r.includes('ghs06');
+                    if (risk === 'flammable') return r.includes('inflamable') || r.includes('combustible') || r.includes('ghs02');
+                    if (risk === 'explosive') return r.includes('explosiv') || r.includes('ghs01');
+                    if (risk === 'oxidizing') return r.includes('comburente') || r.includes('oxidante') || r.includes('ghs03');
+                    if (risk === 'irritant') return r.includes('irritan') || r.includes('nocivo') || r.includes('ghs07');
+                    return true;
+                });
             }
 
             const sortBy = document.getElementById('sort-substances')?.value || 'name_asc';
@@ -383,6 +427,7 @@ async function renderSubstancesList(container) {
     document.getElementById('group-substances')?.addEventListener('change', fetchAndRender);
     document.getElementById('filter-state')?.addEventListener('change', fetchAndRender);
     document.getElementById('filter-completeness')?.addEventListener('change', fetchAndRender);
+    document.getElementById('filter-risk')?.addEventListener('change', fetchAndRender);
     document.getElementById('filter-location')?.addEventListener('input', fetchAndRender);
 
     fetchAndRender();
@@ -468,8 +513,8 @@ function renderSubstancesBlock(items, mode) {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="py-4 px-6">
-                                            ${buildGroupBadgesHtml(s.substance_group) || '-'}
+                                        <td class="py-4 px-6 flex flex-wrap gap-1">
+                                            ${buildGroupBadgesHtml(s.substance_group, s.risks_warnings) || '<span class="text-xs text-slate-400">Sin grupo</span>'}
                                         </td>
                                         <td class="py-4 px-6">
                                             <div class="text-sm text-slate-800 font-semibold">${s.chemical_formula || '-'}</div>
@@ -539,7 +584,7 @@ function renderSubstancesBlock(items, mode) {
                     }
 
                     const cardImage = getSubstanceMainImage(s);
-                    let groupBadgeHtml = buildGroupBadgesHtml(s.substance_group);
+                    let groupBadgeHtml = buildGroupBadgesHtml(s.substance_group, s.risks_warnings);
                     let presBadge = '';
                     if (s.presentation_images) {
                         try {
@@ -831,7 +876,14 @@ async function submitSubstanceLoanRequest(substanceId) {
 let qrBatchModalState = {
     filterType: 'all', // 'all' | 'liquid' | 'solid' | 'gas'
     searchTerm: '',
-    selectedIds: new Set()
+    selectedIds: new Set(),
+    copies: {},
+    initialized: false
+};
+
+window.updateQRCopies = function(id, val) {
+    qrBatchModalState.copies[id] = parseInt(val) || 1;
+    renderQRBatchModalDOM();
 };
 
 window.openQRBatchModal = function() {
@@ -841,9 +893,13 @@ window.openQRBatchModal = function() {
     }
 
     const substances = state.substances || [];
-    qrBatchModalState.selectedIds = new Set(substances.map(s => s.id));
-    qrBatchModalState.searchTerm = '';
-    qrBatchModalState.filterType = 'all';
+    
+    // Solo seleccionar todos por defecto la primera vez que se abre en la sesión
+    if (!qrBatchModalState.initialized) {
+        qrBatchModalState.selectedIds = new Set(substances.map(s => s.id));
+        qrBatchModalState.initialized = true;
+    }
+    // No reseteamos el searchTerm ni filterType para preservar exactamente donde se quedó el usuario
 
     renderQRBatchModalDOM();
 };
@@ -906,7 +962,8 @@ function getFilteredQRSubstances() {
             const matchName = (s.name || '').toLowerCase().includes(term);
             const matchCas = (s.cas_number || '').toLowerCase().includes(term);
             const matchFormula = (s.chemical_formula || '').toLowerCase().includes(term);
-            const matchId = `LAB-SUB-${s.id}`.toLowerCase().includes(term);
+            const idStr = s.id.toString();
+            const matchId = idStr === term || idStr.includes(term.replace(/[^0-9]/g, '')) && term.replace(/[^0-9]/g, '').length > 0;
             return matchName || matchCas || matchFormula || matchId;
         }
         return true;
@@ -919,6 +976,13 @@ function renderQRBatchModalDOM() {
         existingModal = document.createElement('div');
         existingModal.id = 'qr-batch-modal';
         document.body.appendChild(existingModal);
+    }
+
+    // Guardar estado del foco antes de reescribir el DOM
+    const activeId = document.activeElement ? document.activeElement.id : null;
+    let cursorPosition = null;
+    if (activeId === 'qr-modal-search' && document.activeElement.selectionStart !== undefined) {
+        cursorPosition = document.activeElement.selectionStart;
     }
 
     const allSubstances = state.substances || [];
@@ -960,8 +1024,8 @@ function renderQRBatchModalDOM() {
                     </button>
                 </div>
 
-                <div class="flex items-center gap-2 w-full md:w-auto">
-                    <input id="qr-modal-search" type="text" value="${qrBatchModalState.searchTerm}" oninput="handleQRSearchInput(this.value)" placeholder="Buscar por nombre, CAS o ID..." class="bg-white border border-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold outline-none focus:border-indigo-500 w-full md:w-52">
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <input id="qr-modal-search" type="text" value="${qrBatchModalState.searchTerm}" oninput="handleQRSearchInput(this.value)" placeholder="Buscar por nombre, CAS o ID..." class="bg-white border border-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold outline-none focus:border-indigo-500 flex-1 min-w-[140px] md:w-52">
                     <button type="button" onclick="selectAllQRItems(true)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition shrink-0">☑️ Marcar Visibles</button>
                     <button type="button" onclick="selectAllQRItems(false)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition shrink-0">🎯 Desmarcar</button>
                 </div>
@@ -998,7 +1062,11 @@ function renderQRBatchModalDOM() {
                                 </div>
                             </label>
 
-                            <div class="flex items-center gap-2 shrink-0">
+                            <div class="flex items-center gap-4 shrink-0">
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-3xs font-bold text-slate-400 uppercase">Copias</span>
+                                    <input type="number" min="1" max="99" value="${qrBatchModalState.copies[s.id] || 1}" onchange="updateQRCopies(${s.id}, this.value)" class="w-14 px-2 py-1 rounded border border-slate-300 text-xs text-center font-bold text-slate-700 outline-none focus:border-indigo-500">
+                                </div>
                                 ${s.qr_path ? `
                                     <a href="${s.qr_path}" download="qr_${s.name.replace(/ /g, '_')}_LAB-SUB-${s.id}.png" class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 hover:border-indigo-300 font-bold rounded-xl text-xs transition flex items-center gap-1.5" title="Descargar código QR individual de este elemento">
                                         <i data-lucide="download" class="w-3.5 h-3.5"></i>
@@ -1032,11 +1100,32 @@ function renderQRBatchModalDOM() {
     `;
 
     if (window.lucide) window.lucide.createIcons();
+
+    // Restaurar foco si estaba en algún elemento (ej. buscador)
+    if (activeId) {
+        setTimeout(() => {
+            const el = document.getElementById(activeId);
+            if (el) {
+                el.focus();
+                if (cursorPosition !== null && el.setSelectionRange) {
+                    el.setSelectionRange(cursorPosition, cursorPosition);
+                }
+            }
+        }, 0);
+    }
 }
 
 window.downloadSelectedQRPDF = async function() {
     const allSubstances = state.substances || [];
-    const selectedSubstances = allSubstances.filter(s => qrBatchModalState.selectedIds.has(s.id));
+    let selectedSubstances = [];
+    allSubstances.forEach(s => {
+        if (qrBatchModalState.selectedIds.has(s.id)) {
+            const copies = qrBatchModalState.copies[s.id] || 1;
+            for (let i = 0; i < copies; i++) {
+                selectedSubstances.push(s);
+            }
+        }
+    });
 
     if (selectedSubstances.length === 0) {
         alert('No has seleccionado ninguna sustancia para incluir en el documento PDF.');
@@ -1064,9 +1153,9 @@ window.downloadSelectedQRPDF = async function() {
     `;
 
     const labelGridHtml = `
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; box-sizing: border-box; background-color: #ffffff;">
+        <div style="width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff; font-size: 0; text-align: center;">
             ${selectedSubstances.map(s => `
-                <div style="border: 1.5px dashed #475569; border-radius: 8px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; box-sizing: border-box;">
+                <div style="display: inline-block; width: 31%; margin: 1%; border: 1.5px dashed #475569; border-radius: 8px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; box-sizing: border-box; vertical-align: top; font-size: initial;">
                     <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
                     
                     <!-- Nombre obligatorio de la sustancia -->
@@ -1114,7 +1203,15 @@ window.downloadSelectedQRPDF = async function() {
 
 window.printSelectedQRLabels = function() {
     const allSubstances = state.substances || [];
-    const selectedSubstances = allSubstances.filter(s => qrBatchModalState.selectedIds.has(s.id));
+    let selectedSubstances = [];
+    allSubstances.forEach(s => {
+        if (qrBatchModalState.selectedIds.has(s.id)) {
+            const copies = qrBatchModalState.copies[s.id] || 1;
+            for (let i = 0; i < copies; i++) {
+                selectedSubstances.push(s);
+            }
+        }
+    });
 
     if (selectedSubstances.length === 0) {
         alert('No has seleccionado ninguna sustancia para imprimir su código QR.');
@@ -1135,11 +1232,11 @@ window.printSelectedQRLabels = function() {
         </div>
     `;
 
-    // Grilla compacta de 4 columnas para recortar y pegar fácilmente (quepan de 12 a 16 por hoja)
+    // Layout usando inline-block en lugar de grid para mejor manejo de saltos de página y espacios
     const labelGridHtml = `
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff;">
+        <div style="width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff; font-size: 0; text-align: center;">
             ${selectedSubstances.map(s => `
-                <div style="border: 1.5px dashed #475569; border-radius: 10px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; position: relative; box-sizing: border-box;">
+                <div style="display: inline-block; width: 23%; margin: 1%; border: 1.5px dashed #475569; border-radius: 10px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; box-sizing: border-box; vertical-align: top; font-size: initial;">
                     <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
                     
                     <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>

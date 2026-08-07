@@ -505,6 +505,39 @@ export default function DetailScreen({ route, navigation }) {
   const safePhotoIndex = allDetailImages.length > 0 ? Math.max(0, Math.min(activePhotoIndex, allDetailImages.length - 1)) : 0;
   const currentDetailImg = allDetailImages[safePhotoIndex];
 
+  const renderRiskBadges = () => {
+    if (!item) return null;
+    const name = (item.name || '').toLowerCase();
+    const risks = (item.risks_warnings || '').toLowerCase();
+    
+    const isCorrosive = name.includes('sulfúrico') || name.includes('clorhídrico') || name.includes('fórmico') || name.includes('fosfórico') || name.includes('propiónico') || name.includes('butírico') || name.includes('hidróxido') || name.includes('cal sodada') || risks.includes('corrosiv') || risks.includes('ghs05');
+    const isToxic = risks.includes('tóxic') || risks.includes('toxic') || risks.includes('veneno') || risks.includes('ghs06');
+    const isFlammable = risks.includes('inflamable') || risks.includes('combustible') || risks.includes('ghs02');
+    const isExplosive = risks.includes('explosiv') || risks.includes('ghs01');
+    const isOxidizing = risks.includes('comburente') || risks.includes('oxidante') || risks.includes('ghs03');
+
+    const badges = [];
+    if (isCorrosive) badges.push({ id: 'corrosive', label: 'CORROSIVO', color: '#ef4444', icon: '⚠️' });
+    if (isToxic) badges.push({ id: 'toxic', label: 'TÓXICO', color: '#b91c1c', icon: '☠️' });
+    if (isFlammable) badges.push({ id: 'flammable', label: 'INFLAMABLE', color: '#f97316', icon: '🔥' });
+    if (isExplosive) badges.push({ id: 'explosive', label: 'EXPLOSIVO', color: '#ea580c', icon: '💥' });
+    if (isOxidizing) badges.push({ id: 'oxidizing', label: 'COMBURENTE', color: '#fbbf24', icon: '⭕🔥' });
+
+    if (badges.length === 0) return null;
+
+    return (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, marginBottom: 4 }}>
+        {badges.map(b => (
+          <View key={b.id} style={{ backgroundColor: b.color + '20', borderColor: b.color, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 16 }}>{b.icon}</Text>
+            <Text style={{ color: b.color, fontWeight: 'bold', fontSize: 14 }}>{b.label}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 50 }}>
       {/* VISOR Y GALERÍA MULTI-IMAGEN DE LA SUSTANCIA */}
@@ -605,6 +638,8 @@ export default function DetailScreen({ route, navigation }) {
             ))}
           </View>
         ) : null}
+
+        {renderRiskBadges()}
       </View>
 
       {/* SECCIÓN 1: INVENTARIO Y CUSTODIA */}
