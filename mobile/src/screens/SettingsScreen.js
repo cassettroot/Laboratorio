@@ -45,19 +45,30 @@ export default function SettingsScreen() {
                 style={[
                   styles.themePill,
                   {
-                    backgroundColor: t.bg,
-                    borderColor: isSelected ? t.brand : 'rgba(0,0,0,0.1)',
-                    borderWidth: isSelected ? 2 : 1
+                    backgroundColor: t.cardBg,
+                    borderColor: isSelected ? '#10b981' : t.cardBorder,
+                    borderWidth: isSelected ? 2 : 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    padding: 14,
+                    gap: 10,
+                    borderRadius: 16,
+                    width: '48%'
                   }
                 ]}
                 onPress={() => changeTheme(t.id)}
               >
-                <View style={[styles.colorDot, { backgroundColor: t.brand }]} />
-                <Text style={{ color: t.text, fontWeight: '800', fontSize: 11 }} numberOfLines={1}>
-                  {t.name}
-                </Text>
+                <View style={[styles.colorDot, { backgroundColor: t.id === 'light' ? '#f8fafc' : '#0f172a', borderColor: '#10b981', borderWidth: 2 }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: t.text, fontWeight: '900', fontSize: 13 }}>
+                    {t.name}
+                  </Text>
+                  <Text style={{ color: t.subtext, fontSize: 10 }}>
+                    {t.id === 'light' ? 'Lienzo blanco' : 'Grafito noche'}
+                  </Text>
+                </View>
                 {isSelected && (
-                  <Text style={{ color: t.brand, fontWeight: '900', fontSize: 11 }}>✓</Text>
+                  <Text style={{ color: '#10b981', fontWeight: '900', fontSize: 14 }}>✓</Text>
                 )}
               </TouchableOpacity>
             );

@@ -430,6 +430,50 @@ export default function SubstancesScreen({ route, navigation }) {
     }
   };
 
+  const renderSgaBadgesMobile = (substanceGroup) => {
+    if (!substanceGroup) return null;
+    const isDark = theme.id !== 'light';
+    const groups = substanceGroup.split(/[,/;|]/).map(g => g.trim()).filter(Boolean);
+    return (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginVertical: 4 }}>
+        {groups.map((group, idx) => {
+          const g = group.toLowerCase();
+          let bg = isDark ? 'rgba(6, 182, 212, 0.2)' : '#cffafe';
+          let border = isDark ? 'rgba(6, 182, 212, 0.5)' : '#67e8f9';
+          let textColor = isDark ? '#2dd4bf' : '#164e63';
+
+          if (g.includes('inflam')) {
+            bg = isDark ? 'rgba(239, 68, 68, 0.2)' : '#fee2e2';
+            border = isDark ? 'rgba(239, 68, 68, 0.5)' : '#fca5a5';
+            textColor = isDark ? '#f87171' : '#991b1b';
+          } else if (g.includes('tox') || g.includes('venen')) {
+            bg = isDark ? 'rgba(168, 85, 247, 0.2)' : '#f3e8ff';
+            border = isDark ? 'rgba(168, 85, 247, 0.5)' : '#d8b4fe';
+            textColor = isDark ? '#c084fc' : '#581c87';
+          } else if (g.includes('corros')) {
+            bg = isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7';
+            border = isDark ? 'rgba(245, 158, 11, 0.5)' : '#fde68a';
+            textColor = isDark ? '#fbbf24' : '#78350f';
+          } else if (g.includes('irrit')) {
+            bg = isDark ? 'rgba(16, 185, 129, 0.2)' : '#d1fae5';
+            border = isDark ? 'rgba(16, 185, 129, 0.5)' : '#6ee7b7';
+            textColor = isDark ? '#34d399' : '#064e3b';
+          } else if (g.includes('alcoh') || g.includes('solvent')) {
+            bg = isDark ? 'rgba(6, 182, 212, 0.2)' : '#cffafe';
+            border = isDark ? 'rgba(6, 182, 212, 0.5)' : '#67e8f9';
+            textColor = isDark ? '#38bdf8' : '#164e63';
+          }
+
+          return (
+            <View key={idx} style={{ backgroundColor: bg, borderColor: border, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+              <Text style={{ color: textColor, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' }}>{group}</Text>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
   const renderItem = ({ item }) => {
     let mainPhotoPath = item.image_path || item.photo || item.image;
     if (!mainPhotoPath && item.presentation_images) {
@@ -442,6 +486,7 @@ export default function SubstancesScreen({ route, navigation }) {
     }
     const photoUri = getImageUri(mainPhotoPath);
     const formattedFormula = formatChemicalFormula(item.chemical_formula);
+    const isNoExp = item.expiration_date === 'Sin caducidad' || item.expiration_date === 'No aplica';
 
     return (
       <TouchableOpacity
@@ -458,10 +503,16 @@ export default function SubstancesScreen({ route, navigation }) {
                 <Text style={{ fontSize: 26 }}>🧪</Text>
               </View>
             )}
+            {isNoExp ? (
+              <View style={{ position: 'absolute', top: 4, left: 4, backgroundColor: '#0ea5e9', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6 }}>
+                <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900', textTransform: 'uppercase' }}>Sin Caducidad</Text>
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.cardDetails}>
             <View style={styles.cardHeader}>
+              <Text style={{ color: theme.id === 'light' ? '#c2410c' : '#fbbf24', fontSize: 10, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: '900' }}>LAB-SUB-{item.id}</Text>
               <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>{item.name}</Text>
             </View>
 
@@ -473,15 +524,11 @@ export default function SubstancesScreen({ route, navigation }) {
               <Text style={[styles.meta, { color: theme.subtext }]}>CAS: {item.cas_number}</Text>
             ) : null}
 
-            {item.substance_group ? (
-              <View style={[styles.groupBadgeTag, { backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: 'rgba(56, 189, 248, 0.35)' }]}>
-                <Text style={[styles.groupBadgeTagText, { color: '#38bdf8' }]} numberOfLines={1}>🏷️ {item.substance_group}</Text>
-              </View>
-            ) : null}
+            {renderSgaBadgesMobile(item.substance_group)}
 
             <View style={styles.cardFooter}>
-              <View style={[styles.quantityBadge, { backgroundColor: theme.accentBg || 'rgba(16, 185, 129, 0.15)', borderColor: theme.brand }]}>
-                <Text style={[styles.quantityText, { color: theme.brand }]}>📦 {item.stock_units || 1} envase(s) ({item.quantity || 1} {item.unit || 'g'})</Text>
+              <View style={[styles.quantityBadge, { backgroundColor: theme.id === 'light' ? '#f1f5f9' : 'rgba(15, 23, 42, 0.9)', borderColor: theme.cardBorder }]}>
+                <Text style={[styles.quantityText, { color: theme.text }]}>📦 {item.container_content || `${item.stock_units || 1} envase(s) (${item.quantity || 1} ${item.unit || 'g'})`}</Text>
               </View>
             </View>
           </View>
