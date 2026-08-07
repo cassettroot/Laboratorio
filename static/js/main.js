@@ -134,7 +134,7 @@ function router() {
     }
     else if (state.activeRoute === '#/cabinet') {
         setActiveTab('nav-cabinet');
-        titleEl.textContent = "Organizador de Reactivos (Gabinete 2x3)";
+        titleEl.textContent = "Almacén";
         if (typeof renderCabinetView === 'function') {
             renderCabinetView(mainEl);
         } else {

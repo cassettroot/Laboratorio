@@ -100,9 +100,9 @@ window.renderCabinetView = async function(container) {
                     <i data-lucide="grid-3x3" class="w-7 h-7"></i>
                 </div>
                 <div>
-                    <h2 class="text-xl font-black text-white mb-1">Organizador de Reactivos 2x3</h2>
+                    <h2 class="text-xl font-black text-white mb-1">Almacén</h2>
                     <p class="text-xs text-slate-400 leading-relaxed max-w-3xl">
-                        Visualización de la distribución segura de sustancias químicas en el gabinete de 6 secciones basada en clasificación SGA, compatibilidad química y grado de peligrosidad.
+                        Visualización de la distribución segura de sustancias químicas en el almacén basada en clasificación SGA, compatibilidad química y grado de peligrosidad.
                     </p>
                 </div>
             </div>

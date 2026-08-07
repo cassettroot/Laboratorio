@@ -488,7 +488,7 @@ export default function DetailScreen({ route, navigation }) {
     
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📍 Ubicación: Organizador 2x3</Text>
+        <Text style={styles.sectionTitle}>📍 Ubicación: Almacén</Text>
         <View style={{ backgroundColor: '#f1f5f9', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
           {rows.map(r => (
             <View key={r} style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
