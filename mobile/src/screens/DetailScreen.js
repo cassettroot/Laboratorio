@@ -475,6 +475,65 @@ export default function DetailScreen({ route, navigation }) {
     }
   };
 
+  const renderCabinetGrid = () => {
+    if (type !== 'substance') return null;
+    if (!item.location || !/^[1-3]-[AB]$/.test(item.location)) return null;
+    
+    const [rowStr, colStr] = item.location.split('-');
+    const itemRow = parseInt(rowStr);
+    const itemCol = colStr;
+    
+    const rows = [1, 2, 3];
+    const cols = ['A', 'B'];
+    
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📍 Ubicación: Organizador 2x3</Text>
+        <View style={{ backgroundColor: '#f1f5f9', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+          {rows.map(r => (
+            <View key={r} style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+              {cols.map(c => {
+                const isTarget = (r === itemRow && c === itemCol);
+                return (
+                  <View key={c} style={{
+                    flex: 1,
+                    height: 48,
+                    borderRadius: 8,
+                    borderWidth: 2,
+                    borderColor: isTarget ? '#10b981' : '#cbd5e1',
+                    backgroundColor: isTarget ? '#d1fae5' : '#ffffff',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    shadowColor: isTarget ? '#10b981' : 'transparent',
+                    shadowOpacity: isTarget ? 0.3 : 0,
+                    shadowRadius: 4,
+                    elevation: isTarget ? 3 : 0
+                  }}>
+                    <Text style={{ 
+                      fontSize: 16, 
+                      fontWeight: 'bold', 
+                      color: isTarget ? '#047857' : '#94a3b8'
+                    }}>
+                      {r}-{c}
+                    </Text>
+                    {isTarget && (
+                      <View style={{ position: 'absolute', top: -10, right: -10, backgroundColor: '#10b981', width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}>
+                         <Text style={{fontSize: 12}}>📍</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          ))}
+          <Text style={{ textAlign: 'center', fontSize: 11, color: '#64748b', marginTop: 4 }}>
+            El reactivo se encuentra en la posición resaltada en verde.
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   if (!item) {
     return (
       <View style={styles.emptyContainer}>
@@ -533,6 +592,39 @@ export default function DetailScreen({ route, navigation }) {
 
   const safePhotoIndex = allDetailImages.length > 0 ? Math.max(0, Math.min(activePhotoIndex, allDetailImages.length - 1)) : 0;
   const currentDetailImg = allDetailImages[safePhotoIndex];
+
+  const renderRiskBadges = () => {
+    if (!item) return null;
+    const name = (item.name || '').toLowerCase();
+    const risks = (item.risks_warnings || '').toLowerCase();
+    
+    const isCorrosive = name.includes('sulfúrico') || name.includes('clorhídrico') || name.includes('fórmico') || name.includes('fosfórico') || name.includes('propiónico') || name.includes('butírico') || name.includes('hidróxido') || name.includes('cal sodada') || risks.includes('corrosiv') || risks.includes('ghs05');
+    const isToxic = risks.includes('tóxic') || risks.includes('toxic') || risks.includes('veneno') || risks.includes('ghs06');
+    const isFlammable = risks.includes('inflamable') || risks.includes('combustible') || risks.includes('ghs02');
+    const isExplosive = risks.includes('explosiv') || risks.includes('ghs01');
+    const isOxidizing = risks.includes('comburente') || risks.includes('oxidante') || risks.includes('ghs03');
+
+    const badges = [];
+    if (isCorrosive) badges.push({ id: 'corrosive', label: 'CORROSIVO', color: '#ef4444', icon: '⚠️' });
+    if (isToxic) badges.push({ id: 'toxic', label: 'TÓXICO', color: '#b91c1c', icon: '☠️' });
+    if (isFlammable) badges.push({ id: 'flammable', label: 'INFLAMABLE', color: '#f97316', icon: '🔥' });
+    if (isExplosive) badges.push({ id: 'explosive', label: 'EXPLOSIVO', color: '#ea580c', icon: '💥' });
+    if (isOxidizing) badges.push({ id: 'oxidizing', label: 'COMBURENTE', color: '#fbbf24', icon: '⭕🔥' });
+
+    if (badges.length === 0) return null;
+
+    return (
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12, marginBottom: 4 }}>
+        {badges.map(b => (
+          <View key={b.id} style={{ backgroundColor: b.color + '20', borderColor: b.color, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontSize: 16 }}>{b.icon}</Text>
+            <Text style={{ color: b.color, fontWeight: 'bold', fontSize: 14 }}>{b.label}</Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 50 }}>
@@ -628,6 +720,8 @@ export default function DetailScreen({ route, navigation }) {
             ))}
           </View>
         ) : null}
+
+        {renderRiskBadges()}
       </View>
 
       {/* SECCIÓN 1: INVENTARIO Y CUSTODIA */}
@@ -733,6 +827,9 @@ export default function DetailScreen({ route, navigation }) {
           ) : null}
         </>
       ) : null}
+
+      {/* UBICACIÓN EN ORGANIZADOR (2x6) */}
+      {renderCabinetGrid()}
 
       {/* SECCIÓN 3: OBSERVACIONES */}
       {item.observations ? (
