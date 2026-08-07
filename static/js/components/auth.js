@@ -127,13 +127,13 @@ async function checkSessionStatus() {
 
             if (container) {
                 container.innerHTML = `
-                    <span class="text-xs font-extrabold bg-slate-800 text-white border border-slate-700 px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
+                    <span class="text-xs font-extrabold bg-slate-900 text-white border border-slate-700 px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
                         <i data-lucide="user" class="w-3.5 h-3.5 text-emerald-400"></i>
                         <span>Sesión: <strong class="font-extrabold text-white">${res.user}</strong></span>
                     </span>
-                    <button onclick="handleLogout()" class="bg-slate-800 hover:bg-rose-500/20 text-white hover:text-rose-300 font-extrabold text-xs px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 border border-slate-700 hover:border-rose-500/40 shadow-sm cursor-pointer">
+                    <button onclick="handleLogout()" class="bg-slate-900 hover:bg-rose-950/40 text-rose-400 hover:text-rose-300 font-extrabold text-xs px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 border border-rose-500/30 hover:border-rose-400 shadow-md cursor-pointer">
                         <i data-lucide="log-out" class="w-3.5 h-3.5 text-rose-400"></i>
-                        <span>Cerrar Sesión</span>
+                        <span>🚪 Cerrar Sesión</span>
                     </button>
                 `;
             }
@@ -146,13 +146,13 @@ async function checkSessionStatus() {
 
             if (container) {
                 container.innerHTML = `
-                    <span class="text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
+                    <span class="text-xs font-bold bg-slate-900 text-slate-300 border border-slate-700 px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
                         <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-300"></i>
                         <span>Modo Lectura</span>
                     </span>
-                    <button onclick="openAuthModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-md cursor-pointer">
-                        <i data-lucide="log-in" class="w-3.5 h-3.5"></i>
-                        <span>Iniciar Sesión</span>
+                    <button onclick="openAuthModal()" class="bg-slate-900 hover:bg-emerald-500 hover:text-slate-950 text-white font-extrabold text-xs px-3.5 py-1.5 rounded-xl transition flex items-center gap-1.5 border border-emerald-500/50 shadow-md cursor-pointer">
+                        <i data-lucide="log-in" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span>Iniciar Sesión &rarr;</span>
                     </button>
                 `;
             }
