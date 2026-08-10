@@ -377,7 +377,7 @@ window.showQrPairingModal = async function() {
                             <p class="text-xs text-slate-400">Escanea este código desde la aplicación móvil de Laboratorio ITMA II para vincularla al servidor.</p>
                             
                             <div class="bg-white p-4 rounded-2xl shadow-inner inline-block mt-4">
-                                <img src="/api/auth/qr-image" alt="Código QR" class="w-48 h-48 mx-auto">
+                                <img src="/api/auth/qr-image?t=${Date.now()}" alt="Código QR" class="w-48 h-48 mx-auto">
                             </div>
                             
                             <p class="text-3xs text-slate-500 font-mono mt-2 break-all bg-slate-800 p-2 rounded-lg">
