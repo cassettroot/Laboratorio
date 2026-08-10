@@ -169,6 +169,96 @@ window.renderSettings = function(container) {
                     </div>
                 </div>
                 ` : ''}
+                
+                ${userRole === 'admin' ? `
+                <!-- Panel de Respaldos y Bases de Datos -->
+                <div class="glass-card-premium rounded-3xl p-6 border border-slate-700/60 shadow-xl space-y-4 md:col-span-2 mt-4">
+                    <div class="flex items-center gap-3 pb-3 border-b border-slate-700/60">
+                        <div class="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center justify-center shadow-md">
+                            <i data-lucide="database-backup" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-extrabold text-white tracking-tight">Gestión de Respaldos y Bases de Datos</h3>
+                            <p class="text-xs text-slate-300 font-medium">Configura copias de seguridad automáticas y elimina bases de datos actuales</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Configuración Automática -->
+                        <div class="space-y-3">
+                            <h4 class="text-sm font-bold text-slate-200">Configuración Automática</h4>
+                            <div class="flex items-center justify-between p-3 bg-slate-900/50 border border-slate-700 rounded-xl">
+                                <span class="text-xs font-semibold text-slate-300">Habilitar respaldos automáticos</span>
+                                <input type="checkbox" id="backup-enabled" class="w-4 h-4 text-brand-500 bg-slate-800 border-slate-600 rounded">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-xs font-semibold text-slate-400">Ruta del Directorio de Respaldos (Absoluta)</label>
+                                <input type="text" id="backup-dir" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-500" placeholder="/ruta/a/tus/respaldos">
+                            </div>
+                            <div class="flex gap-2">
+                                <div class="flex-1 space-y-1">
+                                    <label class="text-xs font-semibold text-slate-400">Frecuencia</label>
+                                    <select id="backup-freq-type" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-500">
+                                        <option value="startup">Al iniciar el programa</option>
+                                        <option value="days">Cada X días</option>
+                                        <option value="months">Cada X meses</option>
+                                    </select>
+                                </div>
+                                <div class="w-20 space-y-1">
+                                    <label class="text-xs font-semibold text-slate-400">Valor (X)</label>
+                                    <input type="number" id="backup-freq-val" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-500" min="1" value="1">
+                                </div>
+                            </div>
+                            <button onclick="saveBackupConfig()" class="w-full py-2 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 border border-indigo-500/40 rounded-xl text-xs font-bold transition">Guardar Configuración</button>
+                        </div>
+                        
+                        <!-- Gestión Manual y Archivos -->
+                        <div class="space-y-3 flex flex-col">
+                            <h4 class="text-sm font-bold text-slate-200">Gestión Manual</h4>
+                            <div class="flex gap-2">
+                                <button onclick="createManualBackup()" class="flex-1 py-2 bg-brand-500 hover:bg-brand-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-md">
+                                    <i data-lucide="download" class="w-4 h-4"></i> Crear Respaldo Ahora
+                                </button>
+                            </div>
+                            <div class="flex items-center gap-2 mt-2">
+                                <input type="file" id="backup-file" class="hidden" accept=".zip" onchange="document.getElementById('backup-filename').textContent = this.files[0]?.name || 'Ningún archivo seleccionado'">
+                                <button onclick="document.getElementById('backup-file').click()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-600 text-xs transition">Seleccionar ZIP</button>
+                                <button onclick="restoreBackup()" class="flex-1 py-2 bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 border border-rose-500/40 rounded-xl text-xs font-bold transition">Restaurar BD</button>
+                            </div>
+                            <p id="backup-filename" class="text-2xs text-slate-400 text-center truncate">Ningún archivo seleccionado</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-slate-700/60">
+                        <!-- Limpieza de Datos Actuales -->
+                        <div class="space-y-3">
+                            <h4 class="text-sm font-bold text-rose-400">Limpieza de Datos del Inventario Actual</h4>
+                            <p class="text-xs text-slate-400">Selecciona qué secciones deseas vaciar por completo. Se creará un respaldo antes de borrarlas.</p>
+                            <div class="space-y-2 grid grid-cols-2 gap-2" id="wipe-tables-container">
+                                <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" value="substances" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-500"> Reactivos y Sustancias</label>
+                                <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" value="chemical_materials" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-500"> Materiales Químicos</label>
+                                <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" value="didactic_materials" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-500"> Materiales Didácticos</label>
+                                <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" value="equipos" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-500"> Bienes y Equipos</label>
+                                <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" value="loans" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-500"> Préstamos</label>
+                                <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" value="change_history" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-500"> Historial y Solicitudes</label>
+                            </div>
+                            <button onclick="wipeCurrentTables()" class="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-md mt-2">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i> Vaciar Secciones Seleccionadas
+                            </button>
+                        </div>
+                        
+                        <!-- Lista de Respaldos (Archivos) -->
+                        <div class="space-y-3">
+                            <h4 class="text-sm font-bold text-slate-200">Archivos de Respaldo Guardados</h4>
+                            <div id="backup-list-container" class="space-y-2 max-h-48 overflow-y-auto pr-2 no-scrollbar">
+                                <p class="text-xs text-slate-400 italic text-center py-4">Cargando respaldos...</p>
+                            </div>
+                            <button onclick="deleteSelectedBackups()" class="w-full py-2 bg-slate-800 hover:bg-rose-500/20 text-rose-400 border border-slate-700 hover:border-rose-500/50 rounded-xl text-xs font-bold transition">Eliminar Archivos Seleccionados</button>
+                        </div>
+                    </div>
+
+                </div>
+                ` : ''}
                 ` : ''}
 
             </div>
@@ -179,6 +269,11 @@ window.renderSettings = function(container) {
     
     if (userRole === 'admin' || userRole === 'jefe') {
         setTimeout(window.loadNetworkDevices, 100);
+    }
+    
+    if (userRole === 'admin') {
+        setTimeout(window.loadBackupConfig, 100);
+        setTimeout(window.loadBackupList, 100);
     }
 };
 
@@ -304,5 +399,172 @@ window.showQrPairingModal = async function() {
         }
     } catch (err) {
         if (typeof showToast === 'function') showToast('Error al obtener datos del QR', 'error');
+    }
+};
+
+// --- LOGICA DE RESPALDOS ---
+
+window.loadBackupConfig = async function() {
+    try {
+        const res = await fetch('/api/backup/config').then(r => r.json());
+        if (res.status === 'success' && res.data) {
+            document.getElementById('backup-enabled').checked = res.data.enabled;
+            document.getElementById('backup-dir').value = res.data.directory || '';
+            document.getElementById('backup-freq-type').value = res.data.frequency_type || 'startup';
+            document.getElementById('backup-freq-val').value = res.data.frequency_value || 1;
+        }
+    } catch (err) {
+        console.error('Error loading backup config', err);
+    }
+};
+
+window.saveBackupConfig = async function() {
+    const data = {
+        enabled: document.getElementById('backup-enabled').checked,
+        directory: document.getElementById('backup-dir').value,
+        frequency_type: document.getElementById('backup-freq-type').value,
+        frequency_value: parseInt(document.getElementById('backup-freq-val').value)
+    };
+    try {
+        const res = await fetch('/api/backup/config', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        }).then(r => r.json());
+        
+        if (typeof showToast === 'function') {
+            showToast(res.message, res.status);
+        } else {
+            alert(res.message);
+        }
+    } catch (err) {
+        alert('Error al guardar configuración');
+    }
+};
+
+window.createManualBackup = async function() {
+    if (typeof showToast === 'function') showToast("Creando respaldo...", "info");
+    try {
+        const res = await fetch('/api/backup/create', { method: 'POST' }).then(r => r.json());
+        if (res.status === 'success') {
+            if (typeof showToast === 'function') showToast(res.message, "success");
+            window.loadBackupList();
+        } else {
+            alert(res.message);
+        }
+    } catch (err) {
+        alert('Error al crear respaldo');
+    }
+};
+
+window.loadBackupList = async function() {
+    const container = document.getElementById('backup-list-container');
+    if (!container) return;
+    
+    try {
+        const res = await fetch('/api/backup/list').then(r => r.json());
+        if (res.status === 'success') {
+            const files = res.data || [];
+            if (files.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic py-2 text-center">No hay respaldos guardados.</p>`;
+                return;
+            }
+            container.innerHTML = files.map(f => {
+                const dateStr = new Date(f.created_at).toLocaleString();
+                const sizeMb = (f.size_bytes / 1024 / 1024).toFixed(2);
+                return `
+                    <div class="flex items-center justify-between p-2 bg-slate-900/50 border border-slate-700 rounded-lg">
+                        <label class="flex items-center gap-2 flex-1 min-w-0 cursor-pointer">
+                            <input type="checkbox" value="${f.filename}" class="backup-checkbox w-4 h-4 rounded border-slate-600 bg-slate-800 text-indigo-500">
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-slate-200 truncate">${f.filename}</p>
+                                <p class="text-3xs text-slate-400">${dateStr} · ${sizeMb} MB</p>
+                            </div>
+                        </label>
+                        <a href="/api/backup/download/${f.filename}" download class="p-1.5 bg-slate-800 hover:bg-brand-500/20 text-slate-300 hover:text-brand-400 rounded-lg transition ml-2 shrink-0">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                        </a>
+                    </div>
+                `;
+            }).join('');
+            if (window.lucide) window.lucide.createIcons();
+        }
+    } catch (err) {
+        container.innerHTML = `<p class="text-xs text-rose-400 py-2 text-center">Error al cargar respaldos</p>`;
+    }
+};
+
+window.deleteSelectedBackups = async function() {
+    const checkboxes = document.querySelectorAll('.backup-checkbox:checked');
+    const filenames = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (filenames.length === 0) return alert("Selecciona al menos un respaldo.");
+    if (!confirm(`¿Estás seguro de eliminar ${filenames.length} archivos de respaldo de forma permanente?`)) return;
+    
+    try {
+        const res = await fetch('/api/backup/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ filenames })
+        }).then(r => r.json());
+        
+        if (typeof showToast === 'function') showToast(res.message, res.status);
+        window.loadBackupList();
+    } catch (err) {
+        alert("Error al eliminar respaldos.");
+    }
+};
+
+window.wipeCurrentTables = async function() {
+    const container = document.getElementById('wipe-tables-container');
+    const checkboxes = container.querySelectorAll('input[type="checkbox"]:checked');
+    const tables = Array.from(checkboxes).map(cb => cb.value);
+    const tableNames = Array.from(checkboxes).map(cb => cb.parentElement.textContent.trim());
+    
+    if (tables.length === 0) return alert("Selecciona al menos una sección para vaciar.");
+    if (!confirm(`⚠️ CUIDADO: Estás a punto de vaciar por completo las siguientes secciones:\n\n- ${tableNames.join('\n- ')}\n\nSe creará un respaldo de seguridad primero, pero todos los registros de estas secciones serán borrados. ¿Deseas continuar?`)) return;
+    
+    try {
+        if (typeof showToast === 'function') showToast("Iniciando borrado y respaldo. Espera...", "info");
+        const res = await fetch('/api/backup/wipe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Inventory-Id': localStorage.getItem('inventory_id') || 'inventario'
+            },
+            body: JSON.stringify({ tables })
+        }).then(r => r.json());
+        
+        alert(res.message);
+        if (res.status === 'success') {
+            window.location.reload();
+        }
+    } catch (err) {
+        alert("Error crítico al intentar vaciar las tablas.");
+    }
+};
+
+window.restoreBackup = async function() {
+    const fileInput = document.getElementById('backup-file');
+    const file = fileInput.files[0];
+    if (!file) return alert("Primero selecciona un archivo .zip para restaurar.");
+    if (!confirm(`CUIDADO: Esto sobreescribirá las bases de datos actuales con las que contenga el archivo ZIP. Perderás los datos actuales si no hiciste un respaldo reciente. ¿Deseas continuar?`)) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        if (typeof showToast === 'function') showToast("Restaurando respaldo...", "info");
+        const res = await fetch('/api/backup/restore', {
+            method: 'POST',
+            body: formData
+        }).then(r => r.json());
+        
+        alert(res.message);
+        if (res.status === 'success') {
+            window.location.reload();
+        }
+    } catch (err) {
+        alert("Error al restaurar respaldo.");
     }
 };

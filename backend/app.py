@@ -15,10 +15,15 @@ from backend.routes.change_requests import change_requests_bp
 from backend.routes.loans import loans_bp
 from backend.routes.equipos import equipos_bp
 from backend.routes.inventory_check import inventory_check_bp
+from backend.routes.backup import backup_bp
 
+from backend.backup_manager import check_and_run_auto_backup
 def create_app():
     # Asegurar que la base de datos esté inicializada
     init_db()
+    
+    # Ejecutar rutina de respaldo automático si está habilitada
+    check_and_run_auto_backup()
 
     # Directorio de archivos estáticos
     static_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static')
@@ -233,6 +238,7 @@ def create_app():
     app.register_blueprint(loans_bp)
     app.register_blueprint(equipos_bp)
     app.register_blueprint(inventory_check_bp)
+    app.register_blueprint(backup_bp)
 
     # Ruta raíz: sirve el archivo index.html del frontend
     @app.route('/')
