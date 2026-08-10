@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from backend.utils.auth_helpers import safe_db_error
 from backend.database import get_db_connection
 
 history_bp = Blueprint('history', __name__)

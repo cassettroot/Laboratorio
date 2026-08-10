@@ -84,6 +84,10 @@
                 <i data-lucide="qr-code" class="w-5 h-5"></i>
                 <span>Escanear QR</span>
             </a>
+            <a href="#/inventory-check" id="nav-inventory-check" class="flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium hover:bg-slate-800 hover:text-white">
+                <i data-lucide="clipboard-check" class="w-5 h-5 text-brand-400"></i>
+                <span>Chequeo de Inventario</span>
+            </a>
             <a href="#/loans" id="nav-loans" class="flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium hover:bg-slate-800 hover:text-white">
                 <i data-lucide="handshake" class="w-5 h-5 text-amber-400"></i>
                 <span>Préstamos & Devoluciones</span>
@@ -262,15 +266,9 @@
                         selectSpace(val);
                     }
                 </script>
-            <!-- Acceso Directo a Configuración / Ajustes -->
-            <div class="flex items-center gap-2.5">
-                <a href="#/settings" class="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 text-xs font-extrabold px-3.5 py-1.5 rounded-xl transition flex items-center gap-2 shadow-sm cursor-pointer">
-                    <i data-lucide="settings" class="w-4 h-4 text-amber-400"></i>
-                    <span>Ajustes</span>
-                </a>
-                <div id="user-auth-control" class="flex items-center gap-2.5">
-                    <!-- Se inyecta dinámicamente por JS: botón de Iniciar Sesión o nombre de usuario + Cerrar Sesión -->
-                </div>
+            <!-- Control de sesión de usuario -->
+            <div id="user-auth-control" class="flex items-center gap-2.5">
+                <!-- Se inyecta dinámicamente por JS: botón de Iniciar Sesión o nombre de usuario + Cerrar Sesión -->
             </div>
 
             <script>
@@ -804,6 +802,7 @@
     <script src="/js/views/detail.js"></script>
     <script src="/js/views/history.js"></script>
     <script src="/js/views/scan-qr.js"></script>
+    <script src="/js/views/inventory-check.js"></script>
     <script src="/js/views/backup.js"></script>
     <script src="/js/views/users.js"></script>
     <script src="/js/views/account.js"></script>
@@ -820,6 +819,7 @@
     <script src="/js/consulta/data/glossary.js"></script>
     <script src="/js/consulta/sections.js"></script>
     <script src="/js/consulta/main.js"></script>
+    <script src="/js/utils.js"></script>
     <script src="/js/main.js"></script>
 </body>
 </html>

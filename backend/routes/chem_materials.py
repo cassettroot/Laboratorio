@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from backend.utils.auth_helpers import safe_db_error
 from backend.database import get_db_connection
 from backend.history_logger import log_creation, log_deletion, log_updates
 from backend.routes.tools import generate_qr
@@ -89,6 +90,54 @@ def get_material(item_id):
 
     return jsonify({"status": "success", "data": dict(row)})
 
+
+@chem_materials_bp.route('/api/chemical-materials/<int:item_id>/siblings', methods=['GET'])
+def get_material_siblings(item_id):
+    """
+    Devuelve todas las unidades físicas del mismo artículo (mismo nombre),
+    incluyendo el ítem actual, ordenadas por No. Inventario.
+    Útil para artículos con múltiples copias en inventario (mismo modelo, distinto No. Inventario / SEP).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Obtener el artículo base para conocer su nombre
+    cursor.execute('SELECT id, name FROM chemical_materials WHERE id = ?', (item_id,))
+    base = cursor.fetchone()
+    if not base:
+        conn.close()
+        return jsonify({"status": "error", "message": "Material no encontrado"}), 404
+
+    # Buscar TODOS los artículos con el mismo nombre (TRIM para evitar espacios)
+    cursor.execute('''
+        SELECT id, name, inventory_number, serial_number, no_sep,
+               status, location, quantity, unit, observations, qr_content, updated_at
+        FROM chemical_materials
+        WHERE TRIM(LOWER(name)) = TRIM(LOWER(?))
+        ORDER BY inventory_number ASC, id ASC
+    ''', (base['name'],))
+    rows = cursor.fetchall()
+    conn.close()
+
+    siblings = [dict(r) for r in rows]
+    total = len(siblings)
+
+    # Resumen de estados
+    status_summary = {}
+    for s in siblings:
+        st = s.get('status') or 'Sin estado'
+        status_summary[st] = status_summary.get(st, 0) + 1
+
+    return jsonify({
+        "status": "success",
+        "current_id": item_id,
+        "total": total,
+        "status_summary": status_summary,
+        "data": siblings
+    })
+
+
+
 @chem_materials_bp.route('/api/chemical-materials', methods=['POST'])
 def create_material():
     from backend.routes.change_requests import check_and_queue_request
@@ -153,7 +202,7 @@ def create_material():
     except Exception as e:
         conn.rollback()
         conn.close()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 @chem_materials_bp.route('/api/chemical-materials/<int:item_id>', methods=['PUT'])
 def update_material(item_id):
@@ -235,7 +284,7 @@ def update_material(item_id):
     except Exception as e:
         conn.rollback()
         conn.close()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 @chem_materials_bp.route('/api/chemical-materials/<int:item_id>', methods=['DELETE'])
 def delete_material(item_id):
@@ -265,4 +314,4 @@ def delete_material(item_id):
     except Exception as e:
         conn.rollback()
         conn.close()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)

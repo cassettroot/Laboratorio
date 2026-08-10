@@ -124,7 +124,30 @@ export const apiService = {
     const response = await apiClient.get('/api/equipos');
     return response.data;
   },
-  
+
+  // Chequeo de Inventario
+  getCheckList: async (category) => {
+    const response = await apiClient.get(`/api/inventory-check/list?category=${category}`);
+    return response.data;
+  },
+
+  resolveCheckScan: async (qrCode) => {
+    const response = await apiClient.post('/api/inventory-check/scan', { qr_code: qrCode });
+    return response.data;
+  },
+
+  addCheckStock: async (table, id, increment = 1) => {
+    const response = await apiClient.post('/api/inventory-check/add-stock', { table, id, increment });
+    return response.data;
+  },
+
+  saveCheckSession: async (category, total, checked, missingIds) => {
+    const response = await apiClient.post('/api/inventory-check/save-session', {
+      category, total, checked, missing_ids: missingIds
+    });
+    return response.data;
+  },
+
   // Expose raw client for direct use
   client: apiClient
 };

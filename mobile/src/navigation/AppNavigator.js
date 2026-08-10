@@ -17,6 +17,7 @@ import RequestsScreen from '../screens/RequestsScreen';
 import LoansScreen from '../screens/LoansScreen';
 import EquiposScreen from '../screens/EquiposScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import InventoryCheckScreen from '../screens/InventoryCheckScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -52,6 +53,7 @@ function MainTabs() {
           else if (route.name === 'Materiales') icon = '📦';
           else if (route.name === 'Prestamos') icon = '🤝';
           else if (route.name === 'Solicitudes') icon = '📋';
+          else if (route.name === 'Chequeo')     icon = '📋✅';
           else if (route.name === 'Ajustes') icon = '⚙️';
           return (
             <Text style={{ fontSize: 19, opacity: focused ? 1 : 0.6 }}>
@@ -71,6 +73,9 @@ function MainTabs() {
       ) : null}
       {role !== 'estudiante' ? (
         <Tab.Screen name="Solicitudes" component={RequestsScreen} options={{ title: 'Solicitudes' }} />
+      ) : null}
+      {role !== 'estudiante' ? (
+        <Tab.Screen name="Chequeo" component={InventoryCheckScreen} options={{ title: 'Chequeo' }} />
       ) : null}
       <Tab.Screen name="Ajustes" component={SettingsScreen} options={{ title: 'Ajustes' }} />
     </Tab.Navigator>

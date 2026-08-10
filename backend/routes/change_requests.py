@@ -1,5 +1,6 @@
 import json
 from flask import Blueprint, request, jsonify, session
+from backend.utils.auth_helpers import safe_db_error
 from backend.database import get_db_connection
 from backend.history_logger import log_creation, log_updates, log_deletion
 from backend.routes.tools import generate_qr
@@ -102,7 +103,7 @@ def approve_change_request(req_id):
         return jsonify({"status": "success", "message": f"Solicitud aprobada por {admin_username} y cambios aplicados exitosamente.", "target_id": applied_id})
     except Exception as e:
         conn.rollback()
-        return jsonify({"status": "error", "message": f"Error al procesar la aprobación: {str(e)}"}), 500
+        return safe_db_error(e)
     finally:
         conn.close()
 
@@ -150,7 +151,7 @@ def reject_change_request(req_id):
         return jsonify({"status": "success", "message": "Solicitud devuelta para corrección."})
     except Exception as e:
         conn.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
     finally:
         conn.close()
 
@@ -184,7 +185,7 @@ def update_change_request(req_id):
         return jsonify({"status": "success", "message": "Solicitud modificada y re-enviada al administrador."})
     except Exception as e:
         conn.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
     finally:
         conn.close()
 

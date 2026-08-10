@@ -2,6 +2,7 @@ import os
 import json
 from datetime import datetime
 from flask import Blueprint, request, jsonify, session
+from backend.utils.auth_helpers import safe_db_error
 from backend.database import get_db_connection, get_user_by_username, decrypt_username
 
 loans_bp = Blueprint('loans', __name__, url_prefix='/api/loans')

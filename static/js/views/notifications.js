@@ -141,7 +141,7 @@ async function fetchAndRenderNotifications() {
                     <i data-lucide="message-square-warning" class="w-5 h-5 text-rose-400 shrink-0 mt-0.5"></i>
                     <div>
                         <span class="text-2xs font-extrabold uppercase tracking-wider text-rose-300 block">Retroalimentación del Administrador</span>
-                        <p class="text-xs mt-1 text-slate-100 font-medium leading-relaxed">${req.feedback}</p>
+                        <p class="text-xs mt-1 text-slate-100 font-medium leading-relaxed">${escHtml(req.feedback)}</p>
                     </div>
                 </div>
             ` : '';
@@ -164,11 +164,12 @@ async function fetchAndRenderNotifications() {
                         </button>
                         <div id="details-container-${req.id}" class="hidden mt-3 text-xs space-y-2 border-t border-slate-800 pt-3 max-h-60 overflow-y-auto">
                             ${Object.entries(payload).map(([k, v]) => {
-                                const friendlyKey = k.replace(/_/g, ' ').toUpperCase();
+                                const friendlyKey = escHtml(k.replace(/_/g, ' ').toUpperCase());
+                                const displayVal = v === null ? '-' : (typeof v === 'object' ? escHtml(JSON.stringify(v)) : escHtml(v));
                                 return `
                                     <div class="flex justify-between items-start gap-4 p-2 rounded-xl bg-slate-900/80 border border-slate-800/80">
                                         <span class="font-extrabold text-slate-300 shrink-0">${friendlyKey}:</span>
-                                        <span class="font-bold text-white break-all text-right">${v === null ? '-' : (typeof v === 'object' ? JSON.stringify(v) : v)}</span>
+                                        <span class="font-bold text-white break-all text-right">${displayVal}</span>
                                     </div>
                                 `;
                             }).join('')}
@@ -191,11 +192,11 @@ async function fetchAndRenderNotifications() {
 
                     <div class="mt-2">
                         <h4 class="font-extrabold text-white text-base">
-                            ${req.action} de ${typeLabel}
+                            ${escHtml(req.action)} de ${escHtml(typeLabel)}
                         </h4>
                         <p class="text-xs text-slate-300 font-medium mt-1">
-                            Elemento: <strong class="text-white font-extrabold">${req.target_name || `ID ${req.target_id || '-'}`}</strong>
-                            ${state.userRole === 'admin' ? ` | Solicitado por: <strong class="text-emerald-300 font-extrabold">${req.requester_username}</strong>` : ''}
+                            Elemento: <strong class="text-white font-extrabold">${escHtml(req.target_name || `ID ${req.target_id || '-'}`)}</strong>
+                            ${state.userRole === 'admin' ? ` | Solicitado por: <strong class="text-emerald-300 font-extrabold">${escHtml(req.requester_username)}</strong>` : ''}
                         </p>
                     </div>
 

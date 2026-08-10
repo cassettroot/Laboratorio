@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from backend.utils.auth_helpers import safe_db_error
 from backend.database import get_db_connection
 
 equipos_bp = Blueprint('equipos', __name__)
@@ -45,7 +46,7 @@ def add_equipo():
         return jsonify({"status": "success", "message": "Elemento registrado exitosamente."})
     except Exception as e:
         conn.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
     finally:
         conn.close()
 
@@ -111,7 +112,7 @@ def update_equipo(item_id):
         return jsonify({"status": "success", "message": "Elemento actualizado exitosamente."})
     except Exception as e:
         conn.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
     finally:
         conn.close()
 
@@ -132,6 +133,6 @@ def delete_equipo(item_id):
         return jsonify({"status": "success", "message": "Elemento eliminado exitosamente."})
     except Exception as e:
         conn.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
     finally:
         conn.close()

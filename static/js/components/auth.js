@@ -576,8 +576,8 @@ async function loadSpaceUsersList() {
 
                 return `
                 <tr class="hover:bg-slate-50 transition">
-                    <td class="p-3 font-bold text-slate-900">${u.username}</td>
-                    <td class="p-3 text-slate-500">${u.email || '-'}</td>
+                    <td class="p-3 font-bold text-slate-900">${escHtml(u.username)}</td>
+                    <td class="p-3 text-slate-500">${escHtml(u.email || '-')}</td>
                     <td class="p-3">
                         <span class="px-2 py-0.5 rounded-lg text-2xs font-bold border ${badgeClass}">
                             ${badgeText}
@@ -585,7 +585,7 @@ async function loadSpaceUsersList() {
                     </td>
                     <td class="p-3 text-slate-600">
                         <span class="px-2 py-0.5 rounded-lg text-2xs font-bold bg-slate-100 border border-slate-200">
-                            ${labsNames[u.assigned_labs] || u.assigned_labs || 'Todos'}
+                            ${escHtml(labsNames[u.assigned_labs] || u.assigned_labs || 'Todos')}
                         </span>
                     </td>
                     <td class="p-3 text-center">

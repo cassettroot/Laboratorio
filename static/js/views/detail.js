@@ -50,6 +50,19 @@ async function renderItemDetail(container, typePath, itemId) {
         const simRes = await fetch(`/api/${apiPath}?similar_to=${item.id}`).then(r => r.json());
         const similars = simRes.data || [];
 
+        // Para materiales quimicos: cargar todas las unidades del mismo articulo (mismo nombre)
+        let siblings = [];
+        let siblingsTotal = 0;
+        let siblingsStatusSummary = {};
+        if (typePath === 'chemical-materials') {
+            const sibRes = await fetch(`/api/chemical-materials/${itemId}/siblings`).then(r => r.json());
+            if (sibRes.status === 'success') {
+                siblings = sibRes.data || [];
+                siblingsTotal = sibRes.total || 0;
+                siblingsStatusSummary = sibRes.status_summary || {};
+            }
+        }
+
         const fromWarehouse = sessionStorage.getItem('last_navigation_source') === 'warehouse';
         const savedLevel = sessionStorage.getItem('warehouse_selected_level');
 
@@ -329,6 +342,107 @@ async function renderItemDetail(container, typePath, itemId) {
                         ` : ''}
                     </div>
                 ` : ''}
+
+                ${typePath === 'chemical-materials' && siblings.length > 0 ? `
+                    <!-- UNIDADES EN EXISTENCIA (mismo articulo, diferentes No. Inventario) -->
+                    <div class="border-t border-slate-100 pt-8 no-print">
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+                            <h3 class="font-bold text-slate-900 flex items-center gap-2 text-base">
+                                <i data-lucide="package-check" class="text-emerald-600 w-5 h-5"></i>
+                                <span>Unidades en Existencia
+                                    <span class="ml-2 px-2.5 py-0.5 rounded-full text-xs font-extrabold
+                                        ${siblingsTotal > 1 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'}">
+                                        ${siblingsTotal} unidad${siblingsTotal !== 1 ? 'es' : ''}
+                                    </span>
+                                </span>
+                            </h3>
+                            <div class="flex flex-wrap gap-2">
+                                ${Object.entries(siblingsStatusSummary).map(([st, cnt]) => `
+                                    <span class="text-2xs font-bold px-2.5 py-1 rounded-lg border
+                                        ${st === 'Buenas Condiciones' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                          st === 'Malas Condiciones'  ? 'bg-red-50 text-red-700 border-red-200' :
+                                          'bg-amber-50 text-amber-700 border-amber-200'}">
+                                        ${cnt} · ${st}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200">
+                                        <th class="px-4 py-3 text-left font-extrabold text-slate-500 uppercase tracking-wider">ID Lab</th>
+                                        <th class="px-4 py-3 text-left font-extrabold text-slate-500 uppercase tracking-wider">No. Inventario</th>
+                                        <th class="px-4 py-3 text-left font-extrabold text-slate-500 uppercase tracking-wider">No. SEP</th>
+                                        <th class="px-4 py-3 text-left font-extrabold text-slate-500 uppercase tracking-wider">No. Serie</th>
+                                        <th class="px-4 py-3 text-left font-extrabold text-slate-500 uppercase tracking-wider">Estado</th>
+                                        <th class="px-4 py-3 text-left font-extrabold text-slate-500 uppercase tracking-wider">Ubicación</th>
+                                        <th class="px-4 py-3 text-center font-extrabold text-slate-500 uppercase tracking-wider">Ver</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    ${siblings.map(sib => {
+                                        const isCurrent = sib.id === item.id;
+                                        const statusClass = (sib.status || '').includes('Buenas') ? 'text-emerald-700 bg-emerald-50 border-emerald-200' :
+                                                            (sib.status || '').includes('Malas')  ? 'text-red-700 bg-red-50 border-red-200' :
+                                                            'text-amber-700 bg-amber-50 border-amber-200';
+                                        const noSep = sib.no_sep && sib.no_sep !== 'SIN NUMERO DE SEP' ? sib.no_sep : '—';
+                                        const noSerie = sib.serial_number && sib.serial_number !== 'SIN NUMERO DE SERIE' ? sib.serial_number : '—';
+                                        return `
+                                            <tr class="transition ${
+                                                isCurrent
+                                                ? 'bg-brand-50 border-l-4 border-l-brand-500'
+                                                : 'hover:bg-slate-50'
+                                            }">
+                                                <td class="px-4 py-3">
+                                                    <span class="font-mono font-extrabold ${
+                                                        isCurrent ? 'text-brand-700' : 'text-slate-500'
+                                                    }">#${sib.id}</span>
+                                                    ${isCurrent ? '<span class="ml-1.5 text-3xs bg-brand-500 text-white px-1.5 py-0.5 rounded font-bold uppercase">Este</span>' : ''}
+                                                </td>
+                                                <td class="px-4 py-3 font-mono font-bold text-amber-800 max-w-[200px]">
+                                                    <span class="block truncate" title="${escHtml(sib.inventory_number || '')}">${
+                                                        sib.inventory_number || '—'
+                                                    }</span>
+                                                </td>
+                                                <td class="px-4 py-3 font-mono text-emerald-700 font-bold">${noSep}</td>
+                                                <td class="px-4 py-3 font-mono text-blue-700">${noSerie}</td>
+                                                <td class="px-4 py-3">
+                                                    <span class="px-2 py-0.5 rounded-lg border text-2xs font-bold ${statusClass}">
+                                                        ${sib.status || 'Sin estado'}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3 text-slate-700 font-medium">${escHtml(sib.location || '—')}</td>
+                                                <td class="px-4 py-3 text-center">
+                                                    ${isCurrent
+                                                        ? '<span class="text-brand-500 font-extrabold text-2xs">Aquí</span>'
+                                                        : `<a href="#/chemical-materials/${sib.id}" class="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded-lg text-2xs font-bold text-slate-600 hover:text-brand-700 transition">
+                                                                <i data-lucide="external-link" class="w-3 h-3"></i> Ver
+                                                            </a>`
+                                                    }
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        ${siblingsTotal > 10 ? `
+                            <p class="text-2xs text-slate-400 italic mt-3 text-center">
+                                Mostrando ${siblingsTotal} unidades registradas del mismo artículo.
+                            </p>
+                        ` : ''}
+                    </div>
+                ` : (typePath === 'chemical-materials' ? `
+                    <div class="border-t border-slate-100 pt-8 no-print">
+                        <p class="text-sm text-slate-400 italic flex items-center gap-2">
+                            <i data-lucide="package" class="w-4 h-4"></i>
+                            Este artículo tiene 1 unidad registrada en el inventario.
+                        </p>
+                    </div>
+                ` : '')}
 
                 <div class="border-t border-slate-100 pt-8 no-print">
                     <h3 class="font-bold text-slate-900 flex items-center gap-2 mb-4 text-base">

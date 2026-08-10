@@ -1,2 +1,4 @@
 __pycache__
 ANALISIS.md
+.app_token
+.flask_secret

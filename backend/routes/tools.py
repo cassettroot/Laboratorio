@@ -3,6 +3,7 @@ import uuid
 import base64
 import qrcode
 from flask import Blueprint, request, jsonify
+from backend.utils.auth_helpers import safe_db_error
 from backend.database import get_db_connection
 
 tools_bp = Blueprint('tools', __name__)
@@ -83,7 +84,7 @@ def upload_photo():
                 
         return jsonify({"status": "error", "message": "No se recibió ninguna imagen válida"}), 400
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 @tools_bp.route('/api/upload-pdf', methods=['POST'])
 def upload_pdf():
@@ -109,7 +110,7 @@ def upload_pdf():
                 
         return jsonify({"status": "error", "message": "No se recibió ningún archivo PDF válido"}), 400
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 @tools_bp.route('/api/scan-qr', methods=['POST'])
 def scan_qr():
@@ -206,7 +207,7 @@ def export_database():
     try:
         return send_from_directory(os.path.dirname(DB_PATH), os.path.basename(DB_PATH), as_attachment=True, download_name='inventario_backup.db')
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 @tools_bp.route('/api/database/import', methods=['POST'])
 def import_database():
@@ -262,4 +263,4 @@ def import_database():
         
         return jsonify({"status": "success", "message": "Base de datos importada exitosamente"})
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)

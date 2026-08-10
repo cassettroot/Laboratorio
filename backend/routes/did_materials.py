@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from backend.utils.auth_helpers import safe_db_error
 from backend.database import get_db_connection
 from backend.history_logger import log_creation, log_deletion, log_updates
 from backend.routes.tools import generate_qr
@@ -146,7 +147,7 @@ def create_material():
     except Exception as e:
         conn.rollback()
         conn.close()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 @did_materials_bp.route('/api/didactic-materials/<int:item_id>', methods=['PUT'])
 def update_material(item_id):
@@ -223,7 +224,7 @@ def update_material(item_id):
     except Exception as e:
         conn.rollback()
         conn.close()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 @did_materials_bp.route('/api/didactic-materials/<int:item_id>', methods=['DELETE'])
 def delete_material(item_id):
@@ -253,4 +254,4 @@ def delete_material(item_id):
     except Exception as e:
         conn.rollback()
         conn.close()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)

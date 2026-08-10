@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 function formatChemicalFormulaHtml(formula) {
     if (!formula) return '-';
     return formula.replace(/([A-Za-z\)])(\d+)/g, '$1<sub>$2</sub>');
@@ -32,32 +31,6 @@ function buildGroupBadgesHtml(substance_group) {
             gColor = 'badge-base bg-blue-500/20 text-blue-300 border-blue-500/50 font-black shadow-[0_0_12px_rgba(59,130,246,0.25)]';
         }
         return `<span class="px-3 py-1 rounded-xl border text-3xs font-black uppercase tracking-wider ${gColor}">${group}</span>`;
-=======
-function buildGroupBadgesHtml(substance_group, risks_warnings) {
-    const rawGroups = [];
-    if (substance_group) rawGroups.push(...substance_group.split(/[,/;|]/).map(g => g.trim()));
-    if (risks_warnings) rawGroups.push(...risks_warnings.split(/[,;|]/).map(g => g.trim()));
-    
-    const groups = [...new Set(rawGroups)].filter(Boolean);
-    if (groups.length === 0) return '';
-    
-    return groups.map(group => {
-        // Ignorar textos muy largos que no son etiquetas
-        if (group.length > 40) return '';
-        
-        let gColor = 'bg-slate-100 text-slate-700 border-slate-200';
-        const g = group.toLowerCase();
-        if (g.includes('inflam')) gColor = 'bg-red-50 text-red-700 border-red-200';
-        else if (g.includes('tox') || g.includes('venen')) gColor = 'bg-purple-50 text-purple-700 border-purple-200';
-        else if (g.includes('corros')) gColor = 'bg-orange-50 text-orange-700 border-orange-200';
-        else if (g.includes('explos')) gColor = 'bg-yellow-50 text-yellow-800 border-yellow-300';
-        else if (g.includes('comburent') || g.includes('oxidant')) gColor = 'bg-pink-50 text-pink-700 border-pink-200';
-        else if (g.includes('irrit') || g.includes('nocivo')) gColor = 'bg-teal-50 text-teal-700 border-teal-200';
-        else if (g.includes('medio ambiente')) gColor = 'bg-green-50 text-green-700 border-green-200';
-        else if (g.includes('salud')) gColor = 'bg-indigo-50 text-indigo-700 border-indigo-200';
-        
-        return `<span class="px-2.5 py-0.5 rounded border text-3xs font-extrabold uppercase tracking-wider ${gColor} mb-1 inline-block">${group}</span>`;
->>>>>>> origin/lavextra
     }).join(' ');
 }
 
@@ -484,11 +457,8 @@ async function renderSubstancesList(container) {
     document.getElementById('group-substances')?.addEventListener('change', fetchAndRender);
     document.getElementById('filter-state')?.addEventListener('change', fetchAndRender);
     document.getElementById('filter-completeness')?.addEventListener('change', fetchAndRender);
-<<<<<<< HEAD
-=======
     document.getElementById('filter-risk')?.addEventListener('change', fetchAndRender);
     document.getElementById('filter-location')?.addEventListener('input', fetchAndRender);
->>>>>>> origin/lavextra
 
     fetchAndRender();
 }
@@ -939,18 +909,9 @@ let qrBatchModalState = {
     filterType: 'all', // 'all' | 'liquid' | 'solid' | 'gas'
     searchTerm: '',
     selectedIds: new Set(),
-<<<<<<< HEAD
     itemCopies: {} // { [substanceId]: number }
-=======
-    copies: {},
-    initialized: false
 };
 
-window.updateQRCopies = function(id, val) {
-    qrBatchModalState.copies[id] = parseInt(val) || 1;
-    renderQRBatchModalDOM();
->>>>>>> origin/lavextra
-};
 
 window.openQRBatchModal = async function() {
     if (!state.isLoggedIn || state.userRole !== 'admin') {
@@ -973,7 +934,6 @@ window.openQRBatchModal = async function() {
     }
 
     const substances = state.substances || [];
-<<<<<<< HEAD
     qrBatchModalState.selectedIds = new Set(substances.map(s => s.id));
     qrBatchModalState.searchTerm = '';
     qrBatchModalState.filterType = 'all';
@@ -982,15 +942,7 @@ window.openQRBatchModal = async function() {
         const stockUnits = parseInt(s.stock_units, 10);
         qrBatchModalState.itemCopies[s.id] = (isNaN(stockUnits) || stockUnits < 1) ? 1 : stockUnits;
     });
-=======
-    
-    // Solo seleccionar todos por defecto la primera vez que se abre en la sesión
-    if (!qrBatchModalState.initialized) {
-        qrBatchModalState.selectedIds = new Set(substances.map(s => s.id));
-        qrBatchModalState.initialized = true;
-    }
-    // No reseteamos el searchTerm ni filterType para preservar exactamente donde se quedó el usuario
->>>>>>> origin/lavextra
+
 
     renderQRBatchModalDOM();
 };
@@ -1218,25 +1170,14 @@ function renderQRBatchModalDOM() {
                     </button>
                 </div>
 
-<<<<<<< HEAD
-                <div class="flex items-center gap-2 w-full md:w-auto">
-                    <input id="qr-modal-search" type="text" value="${qrBatchModalState.searchTerm}" oninput="handleQRSearchInput(this.value)" placeholder="Buscar por nombre, CAS o ID..." class="bg-slate-900 border border-slate-700 px-3.5 py-1.5 rounded-xl text-xs text-slate-200 placeholder-slate-500 font-semibold outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 w-full md:w-56 transition">
-                    <button type="button" onclick="selectAllQRItems(true)" class="px-3 py-1.5 bg-teal-950/60 hover:bg-teal-900/80 text-teal-300 border border-teal-700/40 font-bold rounded-xl text-xs transition flex items-center gap-1.5 shrink-0"><i data-lucide="check-square" class="w-3.5 h-3.5"></i> Marcar Visibles</button>
-                    <button type="button" onclick="selectAllQRItems(false)" class="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700/60 font-bold rounded-xl text-xs transition flex items-center gap-1.5 shrink-0"><i data-lucide="square" class="w-3.5 h-3.5"></i> Desmarcar Todos</button>
-=======
                 <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
                     <input id="qr-modal-search" type="text" value="${qrBatchModalState.searchTerm}" oninput="handleQRSearchInput(this.value)" placeholder="Buscar por nombre, CAS o ID..." class="bg-white border border-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold outline-none focus:border-indigo-500 flex-1 min-w-[140px] md:w-52">
                     <button type="button" onclick="selectAllQRItems(true)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition shrink-0">☑️ Marcar Visibles</button>
                     <button type="button" onclick="selectAllQRItems(false)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition shrink-0">🎯 Desmarcar</button>
->>>>>>> origin/lavextra
                 </div>
             </div>
 
             <!-- Lista de Sustancias Seleccionables -->
-<<<<<<< HEAD
-            <div id="qr-modal-items-list" class="bg-[#0b101d] p-4 overflow-y-auto flex-1 space-y-2.5 max-h-[54vh]">
-                ${listHtml}
-=======
             <div class="p-4 overflow-y-auto flex-1 space-y-2 max-h-[52vh] divide-y divide-slate-100">
                 ${items.length === 0 ? `
                     <div class="py-12 text-center text-slate-400 font-semibold">No se encontraron reactivos con el filtro o búsqueda actual.</div>
@@ -1282,8 +1223,6 @@ function renderQRBatchModalDOM() {
                         </div>
                     `;
                 }).join('')}
->>>>>>> origin/lavextra
-            </div>
 
             <!-- Footer con Acciones Masivas Dinámicas -->
             <div class="p-4 bg-[#090d16] border-t border-slate-800 flex flex-col sm:flex-row gap-3 items-center justify-between shrink-0">
@@ -1458,7 +1397,6 @@ window.downloadSelectedQRPDF = async function() {
     `;
 
     const labelGridHtml = `
-<<<<<<< HEAD
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; box-sizing: border-box; background-color: #ffffff;">
             ${expandedLabels.map(item => {
                 const s = item.substance;
@@ -1485,30 +1423,6 @@ window.downloadSelectedQRPDF = async function() {
                     </div>
                 `;
             }).join('')}
-=======
-        <div style="width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff; font-size: 0; text-align: center;">
-            ${selectedSubstances.map(s => `
-                <div style="display: inline-block; width: 31%; margin: 1%; border: 1.5px dashed #475569; border-radius: 8px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; box-sizing: border-box; vertical-align: top; font-size: initial;">
-                    <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
-                    
-                    <!-- Nombre obligatorio de la sustancia -->
-                    <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>
-                    
-                    <div style="font-size: 8pt; font-weight: 700; color: #0284c7; margin-bottom: 3px;">${s.chemical_formula || ''} ${s.cas_number ? `| CAS: ${s.cas_number}` : ''}</div>
-                    
-                    ${s.qr_path ? `
-                        <img src="${s.qr_path}" style="width: 100px; height: 100px; margin: 0 auto; display: block; object-fit: contain; background-color: #ffffff;">
-                    ` : `
-                        <div style="width: 100px; height: 100px; margin: 0 auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; color: #999; background-color: #ffffff;">Sin QR</div>
-                    `}
-                    
-                    <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
-                    <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">Stock: ${s.container_content || `${s.quantity} ${s.unit}`}</div>
-                    ${s.location ? `<div style="font-size: 8pt; font-weight: bold; color: #e11d48; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">📍 Org: ${s.location}</div>` : ''}
-                    ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
-                </div>
-            `).join('')}
->>>>>>> origin/lavextra
         </div>
     `;
 
@@ -1578,7 +1492,6 @@ window.printSelectedQRLabels = function() {
 
     // Layout usando inline-block en lugar de grid para mejor manejo de saltos de página y espacios
     const labelGridHtml = `
-<<<<<<< HEAD
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff;">
             ${expandedLabels.map(item => {
                 const s = item.substance;
@@ -1604,29 +1517,6 @@ window.printSelectedQRLabels = function() {
                     </div>
                 `;
             }).join('')}
-=======
-        <div style="width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff; font-size: 0; text-align: center;">
-            ${selectedSubstances.map(s => `
-                <div style="display: inline-block; width: 23%; margin: 1%; border: 1.5px dashed #475569; border-radius: 10px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; box-sizing: border-box; vertical-align: top; font-size: initial;">
-                    <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
-                    
-                    <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>
-                    
-                    <div style="font-size: 8pt; font-weight: 700; color: #0284c7; margin-bottom: 4px;">${s.chemical_formula || ''} ${s.cas_number ? `| CAS: ${s.cas_number}` : ''}</div>
-                    
-                    ${s.qr_path ? `
-                        <img src="${s.qr_path}" style="width: 95px; height: 95px; margin: 0 auto; display: block; object-fit: contain; background-color: #ffffff;">
-                    ` : `
-                        <div style="width: 95px; height: 95px; margin: 0 auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 9pt; color: #999; background-color: #ffffff;">Sin QR</div>
-                    `}
-                    
-                    <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
-                    <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">${s.container_content || `${s.quantity} ${s.unit}`}</div>
-                    ${s.location ? `<div style="font-size: 8pt; font-weight: bold; color: #e11d48; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">📍 Org: ${s.location}</div>` : ''}
-                    ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
-                </div>
-            `).join('')}
->>>>>>> origin/lavextra
         </div>
     `;
 

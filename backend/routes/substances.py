@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from backend.utils.auth_helpers import safe_db_error
 from backend.database import get_db_connection
 from backend.history_logger import log_creation, log_deletion, log_updates
 from backend.routes.tools import generate_qr
@@ -253,7 +254,7 @@ def create_substance():
     except Exception as e:
         conn.rollback()
         conn.close()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 @substances_bp.route('/api/substances/<int:item_id>', methods=['PUT'])
 def update_substance(item_id):
@@ -388,7 +389,7 @@ def update_substance(item_id):
     except Exception as e:
         conn.rollback()
         conn.close()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 @substances_bp.route('/api/substances/<int:item_id>', methods=['DELETE'])
 def delete_substance(item_id):
@@ -422,7 +423,7 @@ def delete_substance(item_id):
     except Exception as e:
         conn.rollback()
         conn.close()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 
 @substances_bp.route('/api/substances/<int:item_id>/presentation-images', methods=['POST'])
@@ -474,7 +475,7 @@ def add_presentation_image(item_id):
     except Exception as e:
         conn.rollback()
         conn.close()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 
 @substances_bp.route('/api/substances/<int:item_id>/presentation-images/<int:img_idx>', methods=['DELETE'])

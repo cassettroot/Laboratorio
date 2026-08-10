@@ -1,5 +1,6 @@
 import json
 from flask import Blueprint, request, jsonify
+from backend.utils.auth_helpers import safe_db_error
 from backend.database import get_db_connection
 
 consulta_bp = Blueprint('consulta', __name__)
@@ -60,7 +61,7 @@ def get_consulta_section(section):
             
         return jsonify({"status": "success", "data": data})
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 @consulta_bp.route('/api/consulta/<section>', methods=['POST'])
 def add_consulta_item(section):
@@ -182,7 +183,7 @@ def add_consulta_item(section):
         
         return jsonify({"status": "success", "id": new_id or data.get('id')})
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 @consulta_bp.route('/api/consulta/<section>/<item_id>', methods=['PUT'])
 def update_consulta_item(section, item_id):
@@ -311,7 +312,7 @@ def update_consulta_item(section, item_id):
         
         return jsonify({"status": "success"})
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)
 
 @consulta_bp.route('/api/consulta/<section>/<item_id>', methods=['DELETE'])
 def delete_consulta_item(section, item_id):
@@ -346,4 +347,4 @@ def delete_consulta_item(section, item_id):
         
         return jsonify({"status": "success"})
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return safe_db_error(e)

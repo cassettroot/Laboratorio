@@ -62,7 +62,7 @@ function router() {
         if(navEquipos) navEquipos.classList.add('hidden');
     }
 
-    // Redirección y validación de permisos de rutas
+    // Rutas accesibles sin iniciar sesión (solo lectura)
     const allowedLoggedOutRoutes = [
         '#/substances',
         '#/chemical-materials',
@@ -72,6 +72,7 @@ function router() {
         '#/warehouse',
         '#/loans',
         '#/settings'
+        // NOTA: '#/inventory-check' NO está aquí — requiere sesión activa
     ];
 
     if (!state.isLoggedIn) {
@@ -104,6 +105,16 @@ function router() {
 
     stopQrScanner();
     stopWebcam();
+
+    // Ocultar / mostrar "Chequeo de Inventario" según si hay sesión iniciada
+    const navInvCheck = document.getElementById('nav-inventory-check');
+    if (navInvCheck) {
+        if (state.isLoggedIn) {
+            navInvCheck.classList.remove('hidden');
+        } else {
+            navInvCheck.classList.add('hidden');
+        }
+    }
 
     document.querySelectorAll('aside nav a').forEach(a => {
         a.classList.remove('bg-brand-500', 'text-slate-900', 'bg-slate-800', 'text-white');
@@ -179,6 +190,13 @@ function router() {
         setActiveTab('nav-scan-qr');
         titleEl.textContent = "Escaneo de Códigos QR";
         renderScanQrView(mainEl);
+    }
+    else if (state.activeRoute === '#/inventory-check') {
+        setActiveTab('nav-inventory-check');
+        titleEl.textContent = "Chequeo de Inventario";
+        if (typeof renderInventoryCheckView === 'function') {
+            renderInventoryCheckView(mainEl);
+        }
     }
     else if (state.activeRoute === '#/loans') {
         setActiveTab('nav-loans');

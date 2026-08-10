@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sala de Espera - Laboratorio ITMA II</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            width: 48px; height: 48px; border-radius: 50%;
+            border-left-color: #10b981; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700/60 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center space-y-6">
+        <div class="w-20 h-20 bg-slate-800 rounded-2xl mx-auto flex items-center justify-center border border-slate-700 shadow-inner">
+            <i data-lucide="shield-alert" class="w-10 h-10 text-emerald-400"></i>
+        </div>
+        
+        <div>
+            <h1 class="text-xl font-extrabold text-white tracking-tight">Acceso Restringido</h1>
+            <p class="text-sm text-slate-400 mt-2">Dispositivo no reconocido en la red local. Se ha enviado una solicitud al administrador.</p>
+        </div>
+
+        <div id="status-container" class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+            <div class="spinner mx-auto mb-4"></div>
+            <p class="text-sm font-bold text-emerald-400 animate-pulse">Esperando aprobación...</p>
+            <p class="text-xs text-slate-500 mt-2">No cierres esta ventana. Accederás automáticamente cuando el administrador te dé permiso.</p>
+        </div>
+
+        <div id="error-container" class="hidden bg-rose-950/30 border border-rose-500/30 rounded-2xl p-6">
+            <i data-lucide="x-circle" class="w-10 h-10 text-rose-500 mx-auto mb-3"></i>
+            <p class="text-sm font-bold text-rose-400">Acceso Denegado</p>
+            <p class="text-xs text-rose-300/70 mt-2">El administrador ha rechazado tu solicitud de conexión.</p>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function checkStatus() {
+            fetch('/api/auth/device-status')
+                .then(res => {
+                    if (res.status === 403) {
+                        document.getElementById('status-container').classList.add('hidden');
+                        document.getElementById('error-container').classList.remove('hidden');
+                        return null;
+                    }
+                    if (!res.ok) throw new Error('Network error');
+                    return res.json();
+                })
+                .then(data => {
+                    if (!data) return;
+                    if (data.status === 'APPROVED') {
+                        window.location.href = '/'; // Reload to enter main app
+                    } else if (data.status === 'REJECTED') {
+                        document.getElementById('status-container').classList.add('hidden');
+                        document.getElementById('error-container').classList.remove('hidden');
+                    } else {
+                        // Still PENDING, poll again in 3 seconds
+                        setTimeout(checkStatus, 3000);
+                    }
+                })
+                .catch(err => {
+                    console.error('Error checking status:', err);
+                    setTimeout(checkStatus, 5000); // Retry on error
+                });
+        }
+
+        // Start polling
+        setTimeout(checkStatus, 2000);
+    </script>
+</body>
+</html>
