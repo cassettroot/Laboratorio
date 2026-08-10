@@ -360,14 +360,9 @@ window.manageNetworkDevice = async function(deviceId, action) {
 };
 
 window.showQrPairingModal = async function() {
-    // Show a loading toast or similar if needed
     try {
         const res = await fetch('/api/auth/qr-pairing').then(r => r.json());
         if (res.status === 'success') {
-            const qrPayload = JSON.stringify(res.data);
-            // Construct Google Chart API QR Code URL
-            const qrUrl = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(qrPayload)}&choe=UTF-8`;
-            
             const modalHtml = `
                 <div id="qr-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
                     <div class="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-sm w-full shadow-2xl relative">
@@ -382,7 +377,7 @@ window.showQrPairingModal = async function() {
                             <p class="text-xs text-slate-400">Escanea este código desde la aplicación móvil de Laboratorio ITMA II para vincularla al servidor.</p>
                             
                             <div class="bg-white p-4 rounded-2xl shadow-inner inline-block mt-4">
-                                <img src="${qrUrl}" alt="Código QR" class="w-48 h-48 mx-auto">
+                                <img src="/api/auth/qr-image" alt="Código QR" class="w-48 h-48 mx-auto">
                             </div>
                             
                             <p class="text-3xs text-slate-500 font-mono mt-2 break-all bg-slate-800 p-2 rounded-lg">

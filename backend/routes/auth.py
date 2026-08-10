@@ -347,3 +347,36 @@ def get_qr_pairing():
         }
     })
 
+@auth_bp.route('/api/auth/qr-image', methods=['GET'])
+@require_role('admin', 'jefe')
+def get_qr_image():
+    import qrcode
+    from io import BytesIO
+    from flask import send_file, current_app
+    import socket
+    import json
+    
+    local_ip = "127.0.0.1"
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        pass
+
+    server_url = f"http://{local_ip}:5000"
+    app_token = current_app.config.get('MASTER_APP_TOKEN', '')
+    
+    payload = json.dumps({"url": server_url, "token": app_token})
+    
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(payload)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    img_io = BytesIO()
+    img.save(img_io, 'PNG')
+    img_io.seek(0)
+    
+    return send_file(img_io, mimetype='image/png')
