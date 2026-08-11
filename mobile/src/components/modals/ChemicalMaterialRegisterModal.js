@@ -631,6 +631,34 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
                   </TouchableOpacity>
                 </View>
 
+                {/* SI ESTÁ EDITANDO UN ÍTEM EXISTENTE: OPCIÓN PARA AÑADIR OTRA UNIDAD FÍSICA A ESTE PRODUCTO */}
+                {prefillItem?.id ? (
+                  <View style={{ backgroundColor: '#f0fdf4', borderWidth: 1.5, borderColor: '#86efac', padding: 12, borderRadius: 14, marginTop: 10 }}>
+                    <Text style={{ fontWeight: 'bold', color: '#166534', fontSize: 12 }}>
+                      📌 Editando unidad física (ID #{prefillItem.id})
+                    </Text>
+                    <Text style={{ fontSize: 10, color: '#15803d', marginTop: 2, marginBottom: 8 }}>
+                      ¿Deseas agregar una NUEVA unidad física a este mismo producto (con su propio No. SEP o Serie)?
+                    </Text>
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#10b981', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, alignItems: 'center' }}
+                      onPress={() => {
+                        setNoSep('');
+                        setSerialNumber('');
+                        setInventoryNumber('');
+                        setOriginalId('');
+                        if (prefillItem) prefillItem.id = null;
+                        Alert.alert('📋 Modo Nueva Unidad', `Los datos del producto "${name}" se mantuvieron. Ingresa el nuevo No. SEP / Serie para la nueva unidad.`);
+                      }}
+                    >
+                      <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 11 }}>
+                        ➕ Registrar Nueva Unidad Física (Nuevo SEP)
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+
+                {/* SI ES UN REGISTRO NUEVO CON STOCK > 1: OPCIÓN PARA DESGLOSAR EN UNIDADES INDIVIDUALES */}
                 {parseInt(stock, 10) > 1 && !prefillItem?.id ? (
                   <View style={{ backgroundColor: '#f0fdf4', borderWidth: 1.5, borderColor: '#86efac', padding: 12, borderRadius: 12, marginTop: 10 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
