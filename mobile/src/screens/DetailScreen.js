@@ -129,8 +129,8 @@ export default function DetailScreen({ route, navigation }) {
     setDateModalVisible(false);
   };
 
-  const fetchDetail = async () => {
-    const targetId = initialItem?.id || paramId || item?.id;
+  const fetchDetail = async (targetIdParam) => {
+    const targetId = targetIdParam || initialItem?.id || paramId || item?.id;
     if (!targetId) return;
     try {
       const endpoint = (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material') 
@@ -1031,6 +1031,7 @@ export default function DetailScreen({ route, navigation }) {
                 onPress={() => {
                   if (!isCurrent) {
                     setItem(sib);
+                    fetchDetail(sib.id);
                     fetchSiblings(sib.id);
                   }
                 }}

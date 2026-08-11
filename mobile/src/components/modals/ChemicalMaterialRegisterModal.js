@@ -38,6 +38,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
   const [notes, setNotes] = useState('');
 
   const [splitIntoIndividualUnits, setSplitIntoIndividualUnits] = useState(false);
+  const [isNewUnitMode, setIsNewUnitMode] = useState(false);
   const [activeStep, setActiveStep] = useState(1); // 1: Básicos, 2: Técnico, 3: Kit, 4: Ubicación
   const [loading, setLoading] = useState(false);
   const [createdItem, setCreatedItem] = useState(null);
@@ -145,7 +146,6 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
     setItemStatus('Buenas Condiciones');
     setResponsible('');
     setNotes('');
-    setActiveStep(1);
     setCreatedItem(null);
   };
 
@@ -396,7 +396,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
         contents: validContents.length > 0 ? JSON.stringify(validContents) : ''
       };
 
-      if (prefillItem && prefillItem.id) {
+      if (prefillItem && prefillItem.id && !isNewUnitMode) {
         // MODO EDICIÓN DE UN ÍTEM ESPECÍFICO (PUT)
         const res = await apiClient.put(`/api/chemical-materials/${prefillItem.id}`, payload);
         if (res.data && res.data.status === 'success') {
@@ -408,10 +408,10 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
           Alert.alert('Error', res.data?.message || 'No se pudo actualizar el material.');
         }
       } else {
-        // MODO CREACIÓN (POST): REGISTRO NUEVO O REGISTRO DE NUEVA UNIDAD
-        if (splitIntoIndividualUnits && numStock > 1) {
+        // MODO CREACIÓN (POST): REGISTRO NUEVO O REGISTRO DE NUEVAS UNIDADES FÍSICAS
+        if ((splitIntoIndividualUnits || incomingQty > 1) && incomingQty > 1) {
           let successCount = 0;
-          for (let i = 1; i <= Math.min(numStock, 50); i++) {
+          for (let i = 1; i <= Math.min(incomingQty, 50); i++) {
             const unitPayload = {
               ...payload,
               quantity: 1,
@@ -711,7 +711,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
                         setSerialNumber('');
                         setInventoryNumber('');
                         setOriginalId('');
-                        if (prefillItem) prefillItem.id = null;
+                        setIsNewUnitMode(true);
                         Alert.alert('📋 Modo Nueva Unidad', `Los datos del producto "${name}" se mantuvieron. Ingresa el nuevo No. SEP / Serie para la nueva unidad.`);
                       }}
                     >
