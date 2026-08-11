@@ -87,25 +87,33 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
             try {
               const parsed = JSON.parse(rawContents);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                setKitItems(parsed.map((sub, i) => ({
-                  id: String(i + 1),
-                  name: sub.name || '',
-                  quantity: sub.quantity || 1,
-                  imageUri: sub.imageUri || sub.image_path || null
-                })));
+                setKitItems(parsed.map((sub, i) => {
+                  const pathVal = sub.imageUri || sub.image_path || sub.photo || null;
+                  return {
+                    id: String(i + 1),
+                    name: sub.name || '',
+                    quantity: sub.quantity || 1,
+                    imageUri: pathVal,
+                    image_path: pathVal
+                  };
+                }));
               }
             } catch (e) {
-              setKitItems([{ id: '1', name: String(rawContents).trim(), quantity: 1, imageUri: null }]);
+              setKitItems([{ id: '1', name: String(rawContents).trim(), quantity: 1, imageUri: null, image_path: null }]);
             }
           } else if (typeof rawContents === 'string' && rawContents.trim() !== '') {
-            setKitItems([{ id: '1', name: rawContents.trim(), quantity: 1, imageUri: null }]);
+            setKitItems([{ id: '1', name: rawContents.trim(), quantity: 1, imageUri: null, image_path: null }]);
           } else if (Array.isArray(rawContents) && rawContents.length > 0) {
-            setKitItems(rawContents.map((sub, i) => ({
-              id: String(i + 1),
-              name: sub.name || '',
-              quantity: sub.quantity || 1,
-              imageUri: sub.imageUri || sub.image_path || null
-            })));
+            setKitItems(rawContents.map((sub, i) => {
+              const pathVal = sub.imageUri || sub.image_path || sub.photo || null;
+              return {
+                id: String(i + 1),
+                name: sub.name || '',
+                quantity: sub.quantity || 1,
+                imageUri: pathVal,
+                image_path: pathVal
+              };
+            }));
           }
         }
       }
@@ -217,10 +225,35 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
   const handleSaveKitItemsNow = async () => {
     if (!prefillItem?.id) return;
     try {
-      const validContents = kitItems
-        .filter(item => item.name.trim().length > 0)
-        .map(item => ({ name: item.name.trim(), quantity: item.quantity, imageUri: item.imageUri || '' }));
-      
+      const validContents = [];
+      for (const item of kitItems) {
+        if (!item.name.trim()) continue;
+        let subPhotoPath = item.imageUri || item.image_path || item.photo || '';
+        if (subPhotoPath && (subPhotoPath.startsWith('file://') || subPhotoPath.startsWith('content://'))) {
+          try {
+            const filename = subPhotoPath.split('/').pop() || 'sub_photo.jpg';
+            const formData = new FormData();
+            formData.append('photo', {
+              uri: subPhotoPath,
+              name: filename,
+              type: 'image/jpeg'
+            });
+            const uploadRes = await apiService.uploadPhoto(formData);
+            if (uploadRes && uploadRes.status === 'success') {
+              subPhotoPath = uploadRes.image_path;
+            }
+          } catch (e) {
+            console.warn("Error subiendo foto de sub-objeto:", e);
+          }
+        }
+        validContents.push({
+          name: item.name.trim(),
+          quantity: item.quantity || 1,
+          imageUri: subPhotoPath,
+          image_path: subPhotoPath
+        });
+      }
+
       const payload = {
         contents: validContents.length > 0 ? JSON.stringify(validContents) : ''
       };
@@ -304,7 +337,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
       const validContents = [];
       for (const kItem of kitItems) {
         if (!kItem.name.trim()) continue;
-        let subPhotoPath = kItem.imageUri || '';
+        let subPhotoPath = kItem.imageUri || kItem.image_path || kItem.photo || '';
         if (subPhotoPath && (subPhotoPath.startsWith('file://') || subPhotoPath.startsWith('content://'))) {
           try {
             const filename = subPhotoPath.split('/').pop() || 'sub_photo.jpg';
