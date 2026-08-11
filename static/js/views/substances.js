@@ -959,8 +959,7 @@ window.openQRBatchModal = async function(entityType = 'substances') {
     qrBatchModalState.filterType = 'all';
     qrBatchModalState.itemCopies = {};
     items.forEach(s => {
-        const stockUnits = parseInt(s.stock_units || s.quantity, 10);
-        qrBatchModalState.itemCopies[s.id] = (isNaN(stockUnits) || stockUnits < 1) ? 1 : stockUnits;
+        qrBatchModalState.itemCopies[s.id] = 1;
     });
 
     renderQRBatchModalDOM();
@@ -1153,6 +1152,27 @@ function renderQRBatchModalDOM() {
         badgeContainer.textContent = selectedCount.toString();
         const totalBadge = document.getElementById('qr-total-labels-badge');
         if (totalBadge) totalBadge.textContent = totalQRLabels.toString();
+
+        const downloadPdfBtn = document.getElementById('qr-download-pdf-btn');
+        if (downloadPdfBtn) {
+            downloadPdfBtn.innerHTML = `
+                <i data-lucide="download" class="w-4 h-4 text-teal-200"></i>
+                <span>Descargar PDF (${totalQRLabels} etiq.)</span>
+            `;
+            downloadPdfBtn.disabled = selectedCount === 0;
+            downloadPdfBtn.className = `px-4.5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-teal-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}`;
+        }
+
+        const printBtn = document.getElementById('qr-print-btn');
+        if (printBtn) {
+            printBtn.innerHTML = `
+                <i data-lucide="printer" class="w-4 h-4 text-cyan-200"></i>
+                <span>Imprimir Planilla (${totalQRLabels} etiq.)</span>
+            `;
+            printBtn.disabled = selectedCount === 0;
+            printBtn.className = `px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-cyan-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}`;
+        }
+
         if (window.lucide) window.lucide.createIcons();
         return;
     }
@@ -1212,11 +1232,11 @@ function renderQRBatchModalDOM() {
                 </div>
 
                 <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
-                    <button type="button" onclick="downloadSelectedQRPDF()" class="px-4.5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-teal-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
+                    <button id="qr-download-pdf-btn" type="button" onclick="downloadSelectedQRPDF()" class="px-4.5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-teal-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
                         <i data-lucide="download" class="w-4 h-4 text-teal-200"></i>
                         <span>Descargar PDF (${totalQRLabels} etiq.)</span>
                     </button>
-                    <button type="button" onclick="printSelectedQRSheetPDF()" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-cyan-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
+                    <button id="qr-print-btn" type="button" onclick="printSelectedQRSheetPDF()" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-cyan-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
                         <i data-lucide="printer" class="w-4 h-4 text-cyan-200"></i>
                         <span>Imprimir Planilla (${totalQRLabels} etiq.)</span>
                     </button>
@@ -1335,22 +1355,14 @@ window.downloadSingleSubstanceQRPDF = async function(substanceId) {
 
 window.downloadSelectedQRPDF = async function() {
     const allSubstances = state.currentQRItems || state.substances || [];
-    let selectedSubstances = [];
-    allSubstances.forEach(s => {
-        if (qrBatchModalState.selectedIds.has(s.id)) {
-            const copies = qrBatchModalState.copies[s.id] || 1;
-            for (let i = 0; i < copies; i++) {
-                selectedSubstances.push(s);
-            }
-        }
-    });
+    const selectedSubstances = allSubstances.filter(s => qrBatchModalState.selectedIds.has(s.id));
 
     if (selectedSubstances.length === 0) {
-        alert('No has seleccionado ninguna sustancia para incluir en el documento PDF.');
+        alert('No has seleccionado ningún elemento para incluir en el documento PDF.');
         return;
     }
 
-    // Expandir copias según la cantidad seleccionada por el usuario para cada sustancia
+    // Expandir copias según la cantidad seleccionada por el usuario para cada elemento
     const expandedLabels = [];
     selectedSubstances.forEach(s => {
         const copies = (qrBatchModalState.itemCopies && qrBatchModalState.itemCopies[s.id]) || 1;
@@ -1433,20 +1445,16 @@ window.downloadSelectedQRPDF = async function() {
     printSelectedQRLabels();
 };
 
+window.printSelectedQRSheetPDF = function() {
+    window.printSelectedQRLabels();
+};
+
 window.printSelectedQRLabels = function() {
-    const allSubstances = state.substances || [];
-    let selectedSubstances = [];
-    allSubstances.forEach(s => {
-        if (qrBatchModalState.selectedIds.has(s.id)) {
-            const copies = qrBatchModalState.copies[s.id] || 1;
-            for (let i = 0; i < copies; i++) {
-                selectedSubstances.push(s);
-            }
-        }
-    });
+    const allSubstances = state.currentQRItems || state.substances || [];
+    let selectedSubstances = allSubstances.filter(s => qrBatchModalState.selectedIds.has(s.id));
 
     if (selectedSubstances.length === 0) {
-        alert('No has seleccionado ninguna sustancia para imprimir su código QR.');
+        alert('No has seleccionado ningún elemento para imprimir su código QR.');
         return;
     }
 
