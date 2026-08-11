@@ -1012,16 +1012,6 @@ export default function DetailScreen({ route, navigation }) {
             Lista de copias físicas de este mismo producto con diferente No. SEP o No. Inventario:
           </Text>
 
-          {isAdminOrResp ? (
-            <TouchableOpacity
-              style={{ backgroundColor: '#0d9488', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-              onPress={() => {
-                setShowAddUnitModal(true);
-              }}
-            >
-              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>📋 Registrar otra unidad (Mismo Producto, Nuevo SEP)</Text>
-            </TouchableOpacity>
-          ) : null}
 
           {siblingsList.map((sib) => {
             const isCurrent = sib.id === item.id;
