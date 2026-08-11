@@ -72,6 +72,18 @@ export default function DetailScreen({ route, navigation }) {
   const [pickerDay, setPickerDay] = useState(new Date().getDate());
   const [showMonthYearGrid, setShowMonthYearGrid] = useState(false);
 
+  // Visor de foto a pantalla completa
+  const [previewModalVisible, setPreviewModalVisible] = useState(false);
+  const [previewPhotoUrl, setPreviewPhotoUrl] = useState(null);
+  const [previewPhotoLabel, setPreviewPhotoLabel] = useState('');
+
+  const openPhotoPreview = (url, label = 'Fotografía') => {
+    if (!url) return;
+    setPreviewPhotoUrl(url);
+    setPreviewPhotoLabel(label);
+    setPreviewModalVisible(true);
+  };
+
   const openDatePicker = (targetField) => {
     setDateTargetField(targetField);
     const currentDateVal = targetField === 'entry' ? editEntryDate : editExpiration;
@@ -740,15 +752,17 @@ export default function DetailScreen({ route, navigation }) {
       {/* VISOR Y GALERÍA MULTI-IMAGEN DE LA SUSTANCIA */}
       {allDetailImages.length > 0 && currentDetailImg && currentDetailImg.uri ? (
         <View style={styles.imageHeaderContainer}>
-          <Image
-            source={{ uri: currentDetailImg.uri }}
-            style={styles.headerImage}
-            resizeMode="cover"
-          />
+          <TouchableOpacity activeOpacity={0.9} onPress={() => openPhotoPreview(currentDetailImg.uri, currentDetailImg.label)}>
+            <Image
+              source={{ uri: currentDetailImg.uri }}
+              style={styles.headerImage}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
 
           <View style={styles.imageBadgeOverlay}>
             <Text style={styles.imageBadgeOverlayText}>
-              📷 {currentDetailImg.label} ({safePhotoIndex + 1}/{allDetailImages.length})
+              📷 {currentDetailImg.label} ({safePhotoIndex + 1}/{allDetailImages.length}) — Toca para ampliar 🔍
             </Text>
           </View>
 
@@ -958,19 +972,24 @@ export default function DetailScreen({ route, navigation }) {
           {kitContentsList.length > 0 ? (
             <View style={{ gap: 8, marginTop: 8 }}>
               {kitContentsList.map((sub, idx) => {
-                const subPhotoUri = getImageUri(sub.imageUri || sub.image_path);
+                const subPhotoUri = getImageUri(sub.imageUri || sub.image_path || sub.photo);
                 return (
                   <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', gap: 10 }}>
                     {subPhotoUri ? (
-                      <Image source={{ uri: subPhotoUri }} style={{ width: 44, height: 44, borderRadius: 10 }} resizeMode="cover" />
+                      <TouchableOpacity onPress={() => openPhotoPreview(subPhotoUri, sub.name || `Sub-objeto #${idx + 1}`)}>
+                        <Image source={{ uri: subPhotoUri }} style={{ width: 48, height: 48, borderRadius: 10, borderWidth: 1.5, borderColor: '#0d9488' }} resizeMode="cover" />
+                      </TouchableOpacity>
                     ) : (
-                      <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: '#ccfbf1', justifyContent: 'center', alignItems: 'center' }}>
-                        <Text style={{ fontSize: 18 }}>📦</Text>
+                      <View style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: '#ccfbf1', justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 20 }}>📦</Text>
                       </View>
                     )}
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#0f172a' }}>{sub.name || `Sub-objeto #${idx + 1}`}</Text>
                       <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Cantidad en paquete: {sub.quantity || 1} piezas</Text>
+                      {subPhotoUri ? (
+                        <Text style={{ fontSize: 10, color: '#0d9488', fontWeight: 'bold', marginTop: 2 }}>🔍 Toca la foto para ampliar</Text>
+                      ) : null}
                     </View>
                     <View style={{ backgroundColor: '#0d9488', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
                       <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>x{sub.quantity || 1}</Text>
@@ -1761,6 +1780,37 @@ export default function DetailScreen({ route, navigation }) {
               </View>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      {/* MODAL DE VISOR DE FOTO EN PANTALLA COMPLETA */}
+      <Modal
+        visible={previewModalVisible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setPreviewModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.95)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 40, right: 20, zIndex: 10, backgroundColor: 'rgba(255, 255, 255, 0.2)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}
+            onPress={() => setPreviewModalVisible(false)}
+          >
+            <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 16 }}>✕ Cerrar</Text>
+          </TouchableOpacity>
+
+          {previewPhotoLabel ? (
+            <Text style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: 14, marginBottom: 12, textAlign: 'center', paddingHorizontal: 20 }}>
+              📷 {previewPhotoLabel}
+            </Text>
+          ) : null}
+
+          {previewPhotoUrl ? (
+            <Image
+              source={{ uri: previewPhotoUrl }}
+              style={{ width: '100%', height: '75%', borderRadius: 16 }}
+              resizeMode="contain"
+            />
+          ) : null}
         </View>
       </Modal>
     </ScrollView>

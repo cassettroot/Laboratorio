@@ -47,6 +47,30 @@ async function renderItemDetail(container, typePath, itemId) {
             }
         });
 
+        // Incluir imágenes de sub-objetos / kit en el carrusel principal
+        if (item.contents || item.container_content) {
+            let parsedContents = [];
+            const rawContents = item.contents || item.container_content;
+            if (rawContents) {
+                if (typeof rawContents === 'string' && (rawContents.trim().startsWith('[') || rawContents.trim().startsWith('{'))) {
+                    try {
+                        parsedContents = JSON.parse(rawContents);
+                        if (!Array.isArray(parsedContents)) parsedContents = [parsedContents];
+                    } catch(e) {}
+                } else if (Array.isArray(rawContents)) {
+                    parsedContents = rawContents;
+                }
+            }
+            parsedContents.forEach((sub, sIdx) => {
+                const subImgPath = sub.image_path || sub.imageUri || sub.photo;
+                if (subImgPath && typeof subImgPath === 'string' && subImgPath.trim() !== '') {
+                    if (!allWebImages.some(img => img.src === subImgPath)) {
+                        allWebImages.push({ src: subImgPath, label: `Sub-objeto: ${sub.name || `#${sIdx + 1}`}` });
+                    }
+                }
+            });
+        }
+
         const simRes = await fetch(`/api/${apiPath}?similar_to=${item.id}`).then(r => r.json());
         const similars = simRes.data || [];
 
@@ -162,19 +186,22 @@ async function renderItemDetail(container, typePath, itemId) {
                                         </span>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        ${parsedContents.map(sub => `
-                                            <div class="flex items-center gap-3 bg-slate-50 border border-slate-200/90 p-3 rounded-2xl shadow-2xs">
-                                                ${sub.image_path ? `
-                                                    <img src="${sub.image_path}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 cursor-pointer" onclick="openImageViewer('${sub.image_path}', '${sub.name || 'Sub-objeto'}')" />
-                                                ` : `
-                                                    <div class="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shrink-0 font-extrabold text-xs">📦</div>
-                                                `}
-                                                <div class="flex-1 min-w-0">
-                                                    <span class="block text-xs font-bold text-slate-800 truncate">${sub.name || 'Objeto sin nombre'}</span>
-                                                    <span class="inline-block px-2 py-0.5 mt-1 bg-teal-100/80 text-teal-900 font-extrabold text-3xs rounded-md border border-teal-200">${sub.quantity || 1} unidad(es)</span>
-                                                </div>
-                                            </div>
-                                        `).join('')}
+                                        ${parsedContents.map(sub => {
+                                             const subPhotoPath = sub.image_path || sub.imageUri || sub.photo;
+                                             return `
+                                                 <div class="flex items-center gap-3 bg-slate-50 border border-slate-200/90 p-3 rounded-2xl shadow-2xs">
+                                                     ${subPhotoPath ? `
+                                                         <img src="${subPhotoPath}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 cursor-pointer hover:opacity-90 hover:scale-105 transition" onclick="openImageViewer('${subPhotoPath}', '${(sub.name || 'Sub-objeto').replace(/'/g, "\\'")}')" />
+                                                     ` : `
+                                                         <div class="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shrink-0 font-extrabold text-xs">📦</div>
+                                                     `}
+                                                     <div class="flex-1 min-w-0">
+                                                         <span class="block text-xs font-bold text-slate-800 truncate">${sub.name || 'Objeto sin nombre'}</span>
+                                                         <span class="inline-block px-2 py-0.5 mt-1 bg-teal-100/80 text-teal-900 font-extrabold text-3xs rounded-md border border-teal-200">${sub.quantity || 1} unidad(es)</span>
+                                                     </div>
+                                                 </div>
+                                             `;
+                                         }).join('')}
                                     </div>
                                 </div>
                             `;

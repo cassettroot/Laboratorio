@@ -226,8 +226,8 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
     if (!prefillItem?.id) return;
     try {
       const validContents = [];
-      for (const item of kitItems) {
-        if (!item.name.trim()) continue;
+      for (let i = 0; i < kitItems.length; i++) {
+        const item = kitItems[i];
         let subPhotoPath = item.imageUri || item.image_path || item.photo || '';
         if (subPhotoPath && (subPhotoPath.startsWith('file://') || subPhotoPath.startsWith('content://'))) {
           try {
@@ -246,8 +246,12 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
             console.warn("Error subiendo foto de sub-objeto:", e);
           }
         }
+
+        const rawName = (item.name || '').trim();
+        const displayName = rawName || (subPhotoPath ? `Pieza con Foto #${i + 1}` : `Sub-objeto #${i + 1}`);
+
         validContents.push({
-          name: item.name.trim(),
+          name: displayName,
           quantity: item.quantity || 1,
           imageUri: subPhotoPath,
           image_path: subPhotoPath
@@ -335,8 +339,8 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
 
       // Kit items filtering & sub-photo upload
       const validContents = [];
-      for (const kItem of kitItems) {
-        if (!kItem.name.trim()) continue;
+      for (let i = 0; i < kitItems.length; i++) {
+        const kItem = kitItems[i];
         let subPhotoPath = kItem.imageUri || kItem.image_path || kItem.photo || '';
         if (subPhotoPath && (subPhotoPath.startsWith('file://') || subPhotoPath.startsWith('content://'))) {
           try {
@@ -355,8 +359,12 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
             console.warn("Error subiendo foto de sub-objeto:", e);
           }
         }
+
+        const rawName = (kItem.name || '').trim();
+        const displayName = rawName || (subPhotoPath ? `Pieza con Foto #${i + 1}` : `Sub-objeto #${i + 1}`);
+
         validContents.push({
-          name: kItem.name.trim(),
+          name: displayName,
           quantity: kItem.quantity || 1,
           imageUri: subPhotoPath,
           image_path: subPhotoPath
