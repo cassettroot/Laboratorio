@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert, Image, Platform, Switch } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Print from 'expo-print';
 import { apiService } from '../../api/services';
-import apiClient from '../../api/client';
+import apiClient, { getImageUrl } from '../../api/client';
+import { AuthContext } from '../../context/AuthContext';
 
 export default function ChemicalMaterialRegisterModal({ visible, onClose, onSuccess, prefillItem }) {
+  const { serverUrl } = useContext(AuthContext);
   const [name, setName] = useState('');
   const [category, setCategory] = useState('📦 Lote / Kit');
   const [stock, setStock] = useState('1');
@@ -885,67 +887,70 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
                 </View>
 
                 <View style={{ gap: 12 }}>
-                  {kitItems.map((item, idx) => (
-                    <View key={item.id} style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', padding: 12, borderRadius: 14, gap: 10 }}>
-                      {/* FILA 1: FOTO + NOMBRE + ELIMINAR */}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <TouchableOpacity
-                          style={{
-                            width: 44,
-                            height: 44,
-                            borderRadius: 10,
-                            backgroundColor: '#ffffff',
-                            borderWidth: 1,
-                            borderColor: '#0d9488',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            overflow: 'hidden'
-                          }}
-                          onPress={() => handlePickSubItemPhoto(item.id)}
-                        >
-                          {item.imageUri ? (
-                            <Image source={{ uri: item.imageUri }} style={{ width: '100%', height: '100%' }} />
-                          ) : (
-                            <Text style={{ fontSize: 16 }}>📷</Text>
-                          )}
-                        </TouchableOpacity>
-
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 10, fontWeight: '700', color: '#64748b', marginBottom: 2 }}>
-                            Sub-objeto #{idx + 1}
-                          </Text>
-                          <TextInput
-                            style={[styles.input, { height: 38, paddingVertical: 4 }]}
-                            placeholder="ej. Tubos de Ensayo 15mL"
-                            placeholderTextColor="#94a3b8"
-                            value={item.name}
-                            onChangeText={(val) => updateKitItemName(item.id, val)}
-                          />
-                        </View>
-
-                        <TouchableOpacity 
-                          onPress={() => removeKitItem(item.id)} 
-                          style={{ backgroundColor: '#fee2e2', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: '#fca5a5' }}
-                        >
-                          <Text style={{ fontSize: 14 }}>🗑️</Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      {/* FILA 2: CONTADOR DE CANTIDAD */}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' }}>
-                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569' }}>Cantidad en este kit:</Text>
-                        <View style={styles.stepperContainer}>
-                          <TouchableOpacity onPress={() => updateKitItemQty(item.id, -1)} style={styles.stepperBtn}>
-                            <Text style={styles.stepperBtnText}> - </Text>
+                  {kitItems.map((item, idx) => {
+                    const subPhotoUri = getImageUrl(item.imageUri || item.image_path, serverUrl);
+                    return (
+                      <View key={item.id} style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', padding: 12, borderRadius: 14, gap: 10 }}>
+                        {/* FILA 1: FOTO + NOMBRE + ELIMINAR */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <TouchableOpacity
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: 10,
+                              backgroundColor: '#ffffff',
+                              borderWidth: 1,
+                              borderColor: '#0d9488',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              overflow: 'hidden'
+                            }}
+                            onPress={() => handlePickSubItemPhoto(item.id)}
+                          >
+                            {subPhotoUri ? (
+                              <Image source={{ uri: subPhotoUri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                            ) : (
+                              <Text style={{ fontSize: 16 }}>📷</Text>
+                            )}
                           </TouchableOpacity>
-                          <Text style={styles.stepperVal}>{item.quantity}</Text>
-                          <TouchableOpacity onPress={() => updateKitItemQty(item.id, 1)} style={styles.stepperBtn}>
-                            <Text style={styles.stepperBtnText}> + </Text>
+
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 10, fontWeight: '700', color: '#64748b', marginBottom: 2 }}>
+                              Sub-objeto #{idx + 1}
+                            </Text>
+                            <TextInput
+                              style={[styles.input, { height: 38, paddingVertical: 4 }]}
+                              placeholder="ej. Tubos de Ensayo 15mL"
+                              placeholderTextColor="#94a3b8"
+                              value={item.name}
+                              onChangeText={(val) => updateKitItemName(item.id, val)}
+                            />
+                          </View>
+
+                          <TouchableOpacity 
+                            onPress={() => removeKitItem(item.id)} 
+                            style={{ backgroundColor: '#fee2e2', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: '#fca5a5' }}
+                          >
+                            <Text style={{ fontSize: 14 }}>🗑️</Text>
                           </TouchableOpacity>
                         </View>
+
+                        {/* FILA 2: CONTADOR DE CANTIDAD */}
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569' }}>Cantidad en este kit:</Text>
+                          <View style={styles.stepperContainer}>
+                            <TouchableOpacity onPress={() => updateKitItemQty(item.id, -1)} style={styles.stepperBtn}>
+                              <Text style={styles.stepperBtnText}> - </Text>
+                            </TouchableOpacity>
+                            <Text style={styles.stepperVal}>{item.quantity}</Text>
+                            <TouchableOpacity onPress={() => updateKitItemQty(item.id, 1)} style={styles.stepperBtn}>
+                              <Text style={styles.stepperBtnText}> + </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
                       </View>
-                    </View>
-                  ))}
+                    );
+                  })}
 
                   {kitItems.length === 0 ? (
                     <Text style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic', textAlign: 'center', paddingVertical: 12 }}>
