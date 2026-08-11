@@ -711,6 +711,8 @@ export default function DetailScreen({ route, navigation }) {
     });
   }
 
+  const totalSubPieces = Array.isArray(kitContentsList) ? kitContentsList.reduce((acc, sub) => acc + (parseInt(sub.quantity, 10) || 1), 0) : 0;
+
   const safePhotoIndex = allDetailImages.length > 0 ? Math.max(0, Math.min(activePhotoIndex, allDetailImages.length - 1)) : 0;
   const currentDetailImg = allDetailImages[safePhotoIndex];
 
@@ -830,7 +832,9 @@ export default function DetailScreen({ route, navigation }) {
           ) : null}
 
           <View style={styles.badgePrimary}>
-            <Text style={styles.badgePrimaryText}>📦 Stock: {item.quantity || item.stock || 1} {item.unit || 'piezas'}</Text>
+            <Text style={styles.badgePrimaryText}>
+              📦 Stock: {item.quantity || item.stock || 1} {item.unit || 'envase(s)'} {totalSubPieces > 0 ? `(${totalSubPieces} piezas en kit)` : ''}
+            </Text>
           </View>
 
           {item.capacity ? (
@@ -960,7 +964,7 @@ export default function DetailScreen({ route, navigation }) {
       {(kitContentsList.length > 0 || plainTextKitContent !== '') ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            📦 Contenido del Kit / Sub-objetos {kitContentsList.length > 0 ? `(${kitContentsList.length})` : ''}
+            📦 Contenido del Kit / Sub-objetos {kitContentsList.length > 0 ? `(${totalSubPieces} piezas en ${kitContentsList.length} tipos)` : ''}
           </Text>
 
           {plainTextKitContent !== '' ? (

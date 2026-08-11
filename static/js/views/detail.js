@@ -177,12 +177,13 @@ async function renderItemDetail(container, typePath, itemId) {
                                 }
                             }
                             if (parsedContents.length === 0) return '';
+                            const totalWebPieces = parsedContents.reduce((acc, s) => acc + (parseInt(s.quantity, 10) || 1), 0);
                             return `
                                 <div class="pt-4 border-t border-slate-100 space-y-3">
                                     <div class="flex items-center justify-between">
                                         <span class="text-xs uppercase font-extrabold tracking-wider text-teal-700 flex items-center gap-1.5">
                                             <i data-lucide="layers" class="w-4 h-4 text-teal-600"></i>
-                                            <span>📦 Sub-objetos e Inventario Interno del Lote (${parsedContents.length} tipo(s) de objeto)</span>
+                                            <span>📦 Sub-objetos e Inventario Interno (${totalWebPieces} piezas en ${parsedContents.length} tipo(s) de objeto)</span>
                                         </span>
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
