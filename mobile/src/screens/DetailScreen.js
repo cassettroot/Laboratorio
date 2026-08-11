@@ -807,39 +807,6 @@ export default function DetailScreen({ route, navigation }) {
           <Text style={styles.formula}>🧪 Fórmula: {item.chemical_formula}</Text>
         ) : null}
 
-        {/* CONTROL INTERACTIVO DE CANTIDAD / STOCK RÁPIDO */}
-        <View style={{ backgroundColor: '#f8fafc', padding: 12, borderRadius: 14, borderWidth: 1.5, borderColor: '#cbd5e1', marginVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <View style={{ flex: 1, marginRight: 8 }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Cantidad / Stock Disponible</Text>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#0d9488', marginTop: 2 }}>
-              {item.quantity || item.stock || 1} {item.unit || 'piezas'}
-            </Text>
-          </View>
-
-          {isAdminOrResp ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <TouchableOpacity
-                style={{ backgroundColor: '#fee2e2', borderWidth: 1.5, borderColor: '#fca5a5', width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}
-                onPress={() => handleQuickQuantityChange(-1)}
-              >
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#ef4444' }}>-</Text>
-              </TouchableOpacity>
-
-              <View style={{ backgroundColor: '#ffffff', borderWidth: 1.5, borderColor: '#0d9488', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, minWidth: 44, alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#0f172a' }}>
-                  {item.quantity || item.stock || 1}
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                style={{ backgroundColor: '#ccfbf1', borderWidth: 1.5, borderColor: '#5eead4', width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}
-                onPress={() => handleQuickQuantityChange(1)}
-              >
-                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#0f766e' }}>+</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null}
-        </View>
 
         <View style={styles.badgeRow}>
           {item.category ? (
