@@ -972,7 +972,7 @@ export default function DetailScreen({ route, navigation }) {
           {kitContentsList.length > 0 ? (
             <View style={{ gap: 8, marginTop: 8 }}>
               {kitContentsList.map((sub, idx) => {
-                const subPhotoUri = getImageUri(sub.imageUri || sub.image_path || sub.photo);
+                const subPhotoUri = getImageUri(sub.localUri || sub.imageUri || sub.image_path || sub.photo);
                 return (
                   <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', gap: 10 }}>
                     {subPhotoUri ? (

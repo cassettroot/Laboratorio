@@ -22,10 +22,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
   const [techSpec, setTechSpec] = useState('');
 
   // SECTION C: Kit Contents (Sub-objects)
-  const [kitItems, setKitItems] = useState([
-    { id: '1', name: 'Tubos de Ensayo', quantity: 5 },
-    { id: '2', name: 'Vaso de Precipitados', quantity: 2 }
-  ]);
+  const [kitItems, setKitItems] = useState([]);
 
   // SECTION D: Control & Location
   const [location, setLocation] = useState('');
@@ -95,7 +92,8 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
                     name: sub.name || '',
                     quantity: sub.quantity || 1,
                     imageUri: pathVal,
-                    image_path: pathVal
+                    image_path: pathVal,
+                    localUri: sub.localUri || (pathVal && (pathVal.startsWith('file://') || pathVal.startsWith('content://')) ? pathVal : null)
                   };
                 }));
               }
@@ -208,14 +206,14 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
           const uploadRes = await apiService.uploadPhoto(formData);
           if (uploadRes && uploadRes.status === 'success') {
             const serverPath = uploadRes.image_path;
-            setKitItems(prev => prev.map(item => item.id === id ? { ...item, imageUri: serverPath, image_path: serverPath } : item));
+            setKitItems(prev => prev.map(item => item.id === id ? { ...item, imageUri: serverPath, image_path: serverPath, localUri: photoUri } : item));
             Alert.alert('✅ Fotografía Guardada', 'La imagen del sub-objeto se subió correctamente.');
             return;
           }
         } catch (err) {
           console.warn("Error subiendo foto instantánea de sub-objeto:", err);
         }
-        setKitItems(prev => prev.map(item => item.id === id ? { ...item, imageUri: photoUri } : item));
+        setKitItems(prev => prev.map(item => item.id === id ? { ...item, imageUri: photoUri, localUri: photoUri } : item));
       }
     } catch (e) {
       Alert.alert('Error', 'No se pudo tomar la foto del sub-objeto.');
@@ -254,7 +252,8 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
           name: displayName,
           quantity: item.quantity || 1,
           imageUri: subPhotoPath,
-          image_path: subPhotoPath
+          image_path: subPhotoPath,
+          localUri: item.localUri || (subPhotoPath && (subPhotoPath.startsWith('file://') || subPhotoPath.startsWith('content://')) ? subPhotoPath : null)
         });
       }
 
@@ -367,7 +366,8 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
           name: displayName,
           quantity: kItem.quantity || 1,
           imageUri: subPhotoPath,
-          image_path: subPhotoPath
+          image_path: subPhotoPath,
+          localUri: kItem.localUri || (subPhotoPath && (subPhotoPath.startsWith('file://') || subPhotoPath.startsWith('content://')) ? subPhotoPath : null)
         });
       }
 
@@ -929,7 +929,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
 
                 <View style={{ gap: 12 }}>
                   {kitItems.map((item, idx) => {
-                    const subPhotoUri = getImageUrl(item.imageUri || item.image_path, serverUrl);
+                    const subPhotoUri = item.localUri || getImageUrl(item.imageUri || item.image_path, serverUrl);
                     return (
                       <View key={item.id} style={{ backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#cbd5e1', padding: 12, borderRadius: 14, gap: 10 }}>
                         {/* FILA 1: FOTO + NOMBRE + ELIMINAR */}
