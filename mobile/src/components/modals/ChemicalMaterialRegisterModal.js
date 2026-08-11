@@ -58,7 +58,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
       if (prefillItem) {
         setName(prefillItem.name || '');
         setCategory(prefillItem.category || '📦 Lote / Kit');
-        setStock(prefillItem.quantity ? String(prefillItem.quantity) : (prefillItem.stock ? String(prefillItem.stock) : '1'));
+        setStock('1'); // Inicializar en 1 unidad nueva a ingresar por defecto
         setLocation(prefillItem.location || '');
         setResponsible(prefillItem.responsible || '');
         setItemStatus(prefillItem.status || prefillItem.condition || 'Buenas Condiciones');
@@ -328,13 +328,19 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
         });
       }
 
-      const numStock = parseInt(stock, 10) || 1;
+      const incomingQty = parseInt(stock, 10) || 0;
+      let finalQuantity = incomingQty > 0 ? incomingQty : 1;
+
+      if (prefillItem && prefillItem.id) {
+        const currentQty = parseInt(prefillItem.quantity || prefillItem.stock || 1, 10);
+        finalQuantity = currentQty + incomingQty;
+      }
 
       const payload = {
         name: name.trim(),
         category: category.trim(),
         capacity: capacityStr,
-        quantity: numStock,
+        quantity: finalQuantity,
         location: location.trim(),
         inventory_number: inventoryNumber.trim(),
         serial_number: serialNumber.trim(),
@@ -351,7 +357,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
         // MODO EDICIÓN DE UN ÍTEM ESPECÍFICO (PUT)
         const res = await apiClient.put(`/api/chemical-materials/${prefillItem.id}`, payload);
         if (res.data && res.data.status === 'success') {
-          Alert.alert('✅ Cambios Guardados', 'El material ha sido actualizado correctamente.');
+          Alert.alert('✅ Stock Actualizado', `Se ingresaron +${incomingQty} unidades. Nuevo stock total: ${finalQuantity} piezas.`);
           onSuccess && onSuccess();
           resetForm();
           onClose();
@@ -579,10 +585,13 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
                 />
               </View>
 
-              {/* CANTIDAD EN FILA DEDICADA CON STEPPER + - */}
+              {/* CANTIDAD A INGRESAR / AÑADIR DE MÁS */}
               <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Cantidad / Stock del Material *</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                <Text style={styles.label}>Cantidad de Unidades a Ingresar / Añadir de Más *</Text>
+                <Text style={{ fontSize: 10, color: '#64748b', marginBottom: 4 }}>
+                  (Escribe el número de unidades físicas nuevas que deseas incorporar a este registro).
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 }}>
                   <TouchableOpacity
                     style={{
                       backgroundColor: '#fee2e2',
@@ -595,7 +604,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
                       alignItems: 'center'
                     }}
                     onPress={() => {
-                      const val = Math.max(0, (parseInt(stock, 10) || 1) - 1);
+                      const val = Math.max(1, (parseInt(stock, 10) || 1) - 1);
                       setStock(String(val));
                     }}
                   >
@@ -603,7 +612,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
                   </TouchableOpacity>
 
                   <TextInput
-                    style={[styles.input, { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: 'bold' }]}
+                    style={[styles.input, { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: 'bold', borderColor: '#0d9488' }]}
                     placeholder="1"
                     keyboardType="numeric"
                     placeholderTextColor="#94a3b8"
@@ -630,6 +639,18 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
                     <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#0f766e' }}>+</Text>
                   </TouchableOpacity>
                 </View>
+
+                {/* NOTA DE EXISTENCIA Y UNIDADES A INCORPORAR */}
+                {prefillItem?.id ? (
+                  <View style={{ backgroundColor: '#f0fdf4', borderWidth: 1.5, borderColor: '#86efac', padding: 10, borderRadius: 12, marginTop: 8 }}>
+                    <Text style={{ fontSize: 11, color: '#166534', fontWeight: 'bold' }}>
+                      📦 En existencia actualmente: {prefillItem.quantity || prefillItem.stock || 1} unidades
+                    </Text>
+                    <Text style={{ fontSize: 11, color: '#047857', marginTop: 2 }}>
+                      ➕ Unidades nuevas a ingresar ahora: {stock || 1}
+                    </Text>
+                  </View>
+                ) : null}
 
                 {/* SI ESTÁ EDITANDO UN ÍTEM EXISTENTE: OPCIÓN PARA AÑADIR OTRA UNIDAD FÍSICA A ESTE PRODUCTO */}
                 {prefillItem?.id ? (
