@@ -43,6 +43,7 @@ function openAddModal(type, prefillData = null) {
         title.textContent = `Registrar ${type === 'substances' ? 'Reactivo o Sustancia' : (type === 'chemical_materials' ? 'Material o Equipo' : (type === 'equipos' ? 'Bien o Equipo' : 'Material Didáctico'))}`;
     }
 
+    window._currentModalData = prefillData || {};
     formContainer.innerHTML = buildFormHtml(type, prefillData || {});
 
     modal.classList.remove('hidden');
@@ -91,6 +92,7 @@ async function openEditModal(type, id) {
     try {
         const res = await fetch(`/api/${apiPath}/${id}`).then(r => r.json());
         if (res.status === 'success') {
+            window._currentModalData = res.data;
             formContainer.innerHTML = buildFormHtml(type, res.data);
             bindFormEvents();
             if (window.lucide) window.lucide.createIcons();
@@ -308,77 +310,231 @@ function buildFormHtml(type, data = {}) {
         const isDidactic = (type === 'didactic_materials' || type === 'didactic-materials');
         return `
             <form id="modal-form" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- COLUMNA 1 (IZQUIERDA 1/3): FOTO Y QR -->
                 <div class="md:col-span-1 flex flex-col gap-5">
                     <div id="form-photo-container">${photoPreview}</div>
                     <div class="flex gap-2">
-                        <button type="button" onclick="startWebcamCapture()" class="flex-1 py-2 px-3 border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition">
-                            <i data-lucide="camera" class="w-4 h-4"></i>
+                        <button type="button" onclick="startWebcamCapture()" class="flex-1 py-2 px-3 border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition text-slate-700">
+                            <i data-lucide="camera" class="w-4 h-4 text-teal-600"></i>
                             <span>Tomar Foto</span>
                         </button>
-                        <label class="flex-1 py-2 px-3 border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer text-center">
-                            <i data-lucide="upload" class="w-4 h-4"></i>
+                        <label class="flex-1 py-2 px-3 border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer text-center text-slate-700">
+                            <i data-lucide="upload" class="w-4 h-4 text-teal-600"></i>
                             <span>Subir Archivo</span>
                             <input type="file" id="form-photo-file" accept="image/*" class="hidden">
                         </label>
                     </div>
                     <div class="border-t border-slate-100 pt-4">
                         <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">QR Personalizado (Opcional)</label>
-                        <input type="text" id="form-qr-content" placeholder="Link web o código propio" value="${data.qr_content || ''}" class="w-full bg-slate-50 border rounded-xl px-3 py-2 text-xs focus:bg-white focus:border-brand-500 outline-none transition font-medium">
+                        <input type="text" id="form-qr-content" placeholder="Link web o código propio" value="${data.qr_content || ''}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:bg-white focus:border-teal-500 outline-none transition font-medium text-slate-800">
                         <span class="text-3xs text-slate-400 block mt-1 leading-relaxed">Vacío para que el sistema genere el código de inventario local.</span>
                     </div>
                 </div>
-                <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">${isDidactic ? 'Nombre del Kit / Modelo Didáctico *' : 'Descripción / Nombre del Material *'}</label>
-                        <input type="text" id="form-name" value="${data.name || ''}" required placeholder="${isDidactic ? 'Ej. Kit de Geometría Molecular / Modelo de ADN' : 'Ej. Equipo de Cómputo HP / Silla Secretarial'}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">${isDidactic ? 'Categoría / Asignatura' : 'Categoría'}</label>
-                        <input type="text" id="form-category" value="${data.category || data.subject || ''}" placeholder="${isDidactic ? 'Ej. Química Orgánica / Biología' : 'Ej. Material Químico'}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Stock / Cantidad *</label>
-                        <input type="number" id="form-quantity" value="${data.quantity !== undefined && data.quantity !== null ? data.quantity : (data.stock !== undefined && data.stock !== null ? data.stock : 1)}" required min="1" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Ubicación Física</label>
-                        <input type="text" id="form-location" value="${data.location || ''}" placeholder="Ej. Estante B-4 / LABORATORIO DE CIENCIAS BÁSICAS" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
-                    </div>
-                    ${!isDidactic ? `
+
+                <!-- COLUMNA 2 (DERECHA 2/3): INFORMACIÓN PRINCIPAL Y SECCIONES -->
+                <div class="md:col-span-2 space-y-5">
+                    ${(currentEditId || data.id) ? `
+                    <div class="bg-emerald-50/80 border border-emerald-200/90 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">ID Original Excel (DEPTO CB)</label>
-                            <input type="text" id="form-original-id" value="${data.original_id || ''}" placeholder="Ej. 154" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold font-mono">
+                            <span class="block text-xs font-extrabold text-emerald-900 flex items-center gap-1.5">
+                                <i data-lucide="copy" class="w-4 h-4 text-emerald-700"></i>
+                                <span>📋 ¿Deseas registrar otra unidad física de este producto?</span>
+                            </span>
+                            <span class="text-3xs text-emerald-700/90">Mantiene la descripción, categoría e imagen para que solo agregues el nuevo No. SEP.</span>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">No. Inventario</label>
-                            <input type="text" id="form-inventory-number" value="${data.inventory_number || ''}" placeholder="Ej. 115130001I51101000941309EUKVJ" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold font-mono">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">No. Serie</label>
-                            <input type="text" id="form-serial-number" value="${data.serial_number || ''}" placeholder="Ej. 1P1822369599" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold font-mono">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">No. SEP</label>
-                            <input type="text" id="form-no-sep" value="${data.no_sep || ''}" placeholder="Ej. 12900397" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold font-mono">
-                        </div>
+                        <button type="button" onclick="openDuplicateMaterialModal(${currentEditId || data.id});" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition shadow-xs flex items-center gap-1.5 shrink-0">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                            <span>➕ Registrar Otra Unidad (Nuevo SEP)</span>
+                        </button>
+                    </div>
                     ` : ''}
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Estado / Condición</label>
-                        <select id="form-status" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
-                            <option value="Excelente" ${data.status === 'Excelente' || data.condition === 'Excelente' ? 'selected' : ''}>Excelente</option>
-                            <option value="Bueno" ${data.status === 'Bueno' || data.condition === 'Bueno' || data.status === 'Buenas Condiciones' ? 'selected' : ''}>Bueno / Buenas Condiciones</option>
-                            <option value="Regular" ${data.status === 'Regular' || data.condition === 'Regular' ? 'selected' : ''}>Regular</option>
-                            <option value="Incompleto" ${data.status === 'Incompleto' || data.condition === 'Incompleto' || data.status === 'Roto' ? 'selected' : ''}>Incompleto / Roto</option>
-                            <option value="Dañado" ${data.status === 'Dañado' || data.condition === 'Dañado' ? 'selected' : ''}>Dañado</option>
+
+                    ${(type === 'chemical_materials' && (state.chemMaterialTemplates || []).length > 0) ? `
+                    <div class="bg-sky-50/70 border border-sky-200/90 p-3.5 rounded-2xl shadow-2xs">
+                        <label class="block text-3xs font-extrabold text-sky-800 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                            <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i>
+                            <span>⚡ Autocompletar con Producto Existente (Mismo Modelo / Nuevo No. SEP)</span>
+                        </label>
+                        <select onchange="handleModalTemplateAutofill(this.value)" class="w-full bg-white border border-slate-300 text-slate-800 font-semibold text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-sky-500 cursor-pointer">
+                            <option value="">-- Selecciona un Producto Registrado o Completa el Formulario Abajo --</option>
+                            ${(state.chemMaterialTemplates || []).map(t => `<option value="${t.id}">${t.name} (${t.unit_count} unidad(es) regist.)</option>`).join('')}
                         </select>
                     </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Responsable Custodia</label>
-                        <input type="text" id="form-responsible" value="${data.responsible || getActiveUser()}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">
+                    ` : ''}
+
+                    <!-- SECCIÓN A: FOTO E INFORMACIÓN PRINCIPAL DEL LOTE / MATERIAL -->
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <span class="text-xs font-extrabold text-teal-700 uppercase tracking-wider flex items-center gap-1.5">
+                                <i data-lucide="package" class="w-4 h-4 text-teal-600"></i>
+                                <span>SECCIÓN A: Información Principal del Lote / Objeto</span>
+                            </span>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Nombre / Descripción del Lote o Material *</label>
+                            <input type="text" id="form-name" value="${data.name || ''}" required placeholder="ej. Caja de Experimentación Escolar / Microscopio Binocular / Matraz Erlenmeyer" class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold">
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Categoría</label>
+                                <div class="flex flex-wrap gap-1.5 mb-2">
+                                    <button type="button" onclick="selectCategoryChip('🔬 Equipo / Instrumento', this)" class="category-chip-btn px-2.5 py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200/90 rounded-lg text-3xs font-extrabold transition">🔬 Equipo</button>
+                                    <button type="button" onclick="selectCategoryChip('💻 Cómputo / Electrónica', this)" class="category-chip-btn px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200/90 rounded-lg text-3xs font-extrabold transition">💻 Cómputo</button>
+                                    <button type="button" onclick="selectCategoryChip('🧪 Cristalería / Vidrio', this)" class="category-chip-btn px-2.5 py-1 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200/90 rounded-lg text-3xs font-extrabold transition">🧪 Cristalería</button>
+                                    <button type="button" onclick="selectCategoryChip('📦 Lote / Kit', this)" class="category-chip-btn px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/90 rounded-lg text-3xs font-extrabold transition">📦 Lote / Kit</button>
+                                    <button type="button" onclick="selectCategoryChip('🧰 Herramientas', this)" class="category-chip-btn px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg text-3xs font-extrabold transition">🧰 Herramientas</button>
+                                    <button type="button" onclick="selectCategoryChip('⚖️ Balanza / Medición', this)" class="category-chip-btn px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-3xs font-extrabold transition">⚖️ Medición</button>
+                                    <button type="button" onclick="selectCategoryChip('🔥 Calentamiento / Termo', this)" class="category-chip-btn px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-3xs font-extrabold transition">🔥 Calentamiento</button>
+                                    <button type="button" onclick="selectCategoryChip('🛡️ Seguridad / EPP', this)" class="category-chip-btn px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 rounded-lg text-3xs font-extrabold transition">🛡️ Seguridad</button>
+                                    <button type="button" onclick="selectCategoryChip('🧬 Modelo / Didáctico', this)" class="category-chip-btn px-2.5 py-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 rounded-lg text-3xs font-extrabold transition">🧬 Didáctico</button>
+                                    <button type="button" onclick="selectCategoryChip('🧴 Consumibles / Reactivos', this)" class="category-chip-btn px-2.5 py-1 bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200 rounded-lg text-3xs font-extrabold transition">🧴 Consumibles</button>
+                                </div>
+                                <input type="text" id="form-category" value="${data.category || data.subject || ''}" placeholder="Ej. Cristalería, Lote / Kit, Equipo" class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-4 py-2 text-sm text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Cantidad de Lotes / Stock *</label>
+                                <input type="number" id="form-quantity" value="${data.quantity !== undefined && data.quantity !== null ? data.quantity : (data.stock !== undefined && data.stock !== null ? data.stock : 1)}" required min="1" class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold">
+                            </div>
+                        </div>
                     </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">${isDidactic ? 'Contenido del Kit / Componentes / Observaciones' : 'Observaciones'}</label>
-                        <textarea id="form-observations" rows="2" placeholder="${isDidactic ? 'Ej. 50 esferas de carbono, 30 enlaces flexibles...' : 'Detalles de ID original u observaciones...'}" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:bg-white focus:border-brand-500 outline-none transition font-semibold">${data.observations || data.contents || data.notes || ''}</textarea>
+
+                    <!-- SECCIÓN B: DETALLES TÉCNICOS CONDICIONALES (TOGGLE SWITCH TEAL) -->
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <span class="text-xs font-extrabold text-teal-700 uppercase tracking-wider flex items-center gap-1.5">
+                                <i data-lucide="sliders" class="w-4 h-4 text-teal-600"></i>
+                                <span>SECCIÓN B: Detalles Técnicos Condicionales</span>
+                            </span>
+
+                            <!-- TOGGLE SWITCH TEAL -->
+                            <label class="inline-flex items-center cursor-pointer select-none gap-2">
+                                <span class="text-xs font-extrabold text-slate-600">¿Utilizar datos técnicos?</span>
+                                <input type="checkbox" id="toggle-tech-details" onchange="toggleTechnicalDetailsSection(this.checked)" class="sr-only peer" ${data.capacity ? 'checked' : ''}>
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600 relative"></div>
+                            </label>
+                        </div>
+
+                        <div id="section-b-technical-details" class="${data.capacity ? '' : 'hidden'} space-y-4 animate-fade-in">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Capacidad</label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="text" id="tech-capacity-val" placeholder="ej. 250" class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-3.5 py-2 text-sm text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold">
+                                        <select id="tech-capacity-unit" onchange="syncTechCapacityField()" class="bg-teal-50 border border-teal-200 text-teal-800 font-bold text-xs rounded-xl px-3 py-2 outline-none cursor-pointer shrink-0">
+                                            <option value="mL">mL</option>
+                                            <option value="L">L</option>
+                                            <option value="g">g</option>
+                                            <option value="kg">kg</option>
+                                            <option value="piezas">piezas</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Volumen</label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="text" id="tech-volume-val" placeholder="ej. 500" class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-3.5 py-2 text-sm text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold">
+                                        <select id="tech-volume-unit" onchange="syncTechCapacityField()" class="bg-teal-50 border border-teal-200 text-teal-800 font-bold text-xs rounded-xl px-3 py-2 outline-none cursor-pointer shrink-0">
+                                            <option value="mL">mL</option>
+                                            <option value="L">L</option>
+                                            <option value="cm³">cm³</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Especificación Técnica</label>
+                                <input type="text" id="form-capacity" value="${data.capacity || ''}" placeholder="ej. 250 mL / Vidrio Borosilicato 3.3 / Lente Acromático" class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-4 py-2 text-sm text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN C: CONTENIDO DEL LOTE / OBJETOS INDIVIDUALES (KITS) -->
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <div>
+                                <span class="text-xs font-extrabold text-teal-700 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i data-lucide="layers" class="w-4 h-4 text-teal-600"></i>
+                                    <span>SECCIÓN C: Contenido del Lote (Objetos Individuales)</span>
+                                </span>
+                                <span class="text-3xs text-slate-500 block">Sub-objetos incluidos dentro de esta caja o kit</span>
+                            </div>
+
+                            <button type="button" onclick="addKitSubItem()" class="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 font-extrabold text-xs rounded-xl transition shadow-2xs flex items-center gap-1">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                <span>➕ Añadir Objeto Individual</span>
+                            </button>
+                        </div>
+
+                        <!-- LISTA DINÁMICA DE OBJETOS DEL KIT -->
+                        <div id="kit-subitems-container" class="space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
+                    </div>
+
+                    <!-- SECCIÓN D: CONTROL Y UBICACIÓN -->
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <span class="text-xs font-extrabold text-teal-700 uppercase tracking-wider flex items-center gap-1.5">
+                                <i data-lucide="map-pin" class="w-4 h-4 text-teal-600"></i>
+                                <span>SECCIÓN D: Control y Ubicación Física</span>
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Ubicación Física</label>
+                                <div class="flex flex-wrap gap-1.5 mb-2">
+                                    <button type="button" onclick="document.getElementById('form-location').value='Estante A-1'" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-3xs font-semibold">Estante A-1</button>
+                                    <button type="button" onclick="document.getElementById('form-location').value='Estante B-2'" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-3xs font-semibold">Estante B-2</button>
+                                    <button type="button" onclick="document.getElementById('form-location').value='Mesa Central'" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-3xs font-semibold">Mesa Central</button>
+                                    <button type="button" onclick="document.getElementById('form-location').value='Laboratorio de Química'" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-3xs font-semibold">Lab. Química</button>
+                                </div>
+                                <input type="text" id="form-location" value="${data.location || ''}" placeholder="Ej. Estante B-4 / LABORATORIO DE CIENCIAS BÁSICAS" class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-4 py-2 text-sm text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold">
+                            </div>
+
+                            <div>
+                                <label class="block text-3xs font-bold text-slate-500 uppercase tracking-wider mb-1">ID Original Excel (DEPTO CB)</label>
+                                <input type="text" id="form-original-id" value="${data.original_id || ''}" placeholder="Ej. 154" class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-3xs font-bold text-slate-500 uppercase tracking-wider mb-1">No. Inventario</label>
+                                <input type="text" id="form-inventory-number" value="${data.inventory_number || ''}" placeholder="Ej. 115130001I51101000941309EUKVJ" class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-3xs font-bold text-slate-500 uppercase tracking-wider mb-1">No. Serie</label>
+                                <input type="text" id="form-serial-number" value="${data.serial_number || ''}" placeholder="Ej. 1P1822369599" class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-3xs font-bold text-emerald-800 uppercase tracking-wider mb-1">No. SEP (Etiqueta Oficial)</label>
+                                <input type="text" id="form-no-sep" value="${data.no_sep || ''}" placeholder="Ej. 12900397" class="w-full bg-emerald-50/60 border border-emerald-300 rounded-xl px-3.5 py-2 text-xs text-emerald-900 focus:bg-white focus:border-emerald-500 outline-none transition font-semibold font-mono">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Estado / Condición Físico</label>
+                                <select id="form-status" class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-4 py-2 text-sm text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold cursor-pointer">
+                                    <option value="Buenas Condiciones" ${data.status === 'Buenas Condiciones' || data.status === 'Bueno' ? 'selected' : ''}>Buenas Condiciones</option>
+                                    <option value="Nuevo" ${data.status === 'Nuevo' ? 'selected' : ''}>Nuevo</option>
+                                    <option value="Excelente" ${data.status === 'Excelente' ? 'selected' : ''}>Excelente</option>
+                                    <option value="Bueno" ${data.status === 'Bueno' ? 'selected' : ''}>Bueno</option>
+                                    <option value="Regular" ${data.status === 'Regular' ? 'selected' : ''}>Regular</option>
+                                    <option value="Dañado" ${data.status === 'Dañado' ? 'selected' : ''}>⚠️ Dañado (Requiere Reparación)</option>
+                                    <option value="Roto / Incompleto" ${data.status === 'Roto' || data.status === 'Roto / Incompleto' || data.status === 'Incompleto' ? 'selected' : ''}>🚫 Roto / Incompleto</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Responsable Custodia</label>
+                                <input type="text" id="form-responsible" value="${data.responsible || getActiveUser()}" class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-4 py-2 text-sm text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold">
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Observaciones Adicionales</label>
+                                <textarea id="form-observations" rows="2" placeholder="Detalles de ID original u observaciones de entrega..." class="w-full bg-slate-50/70 border border-slate-300/80 rounded-xl px-4 py-2 text-sm text-slate-800 focus:bg-white focus:border-teal-500 outline-none transition font-semibold">${data.observations || data.notes || ''}</textarea>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -529,6 +685,30 @@ function bindFormEvents() {
                 }
             }
         });
+    }
+
+    if (currentModalType === 'chemical_materials' || currentModalType === 'chemical-materials') {
+        const subContainer = document.getElementById('kit-subitems-container');
+        if (subContainer && subContainer.children.length === 0) {
+            let initialContents = [];
+            if (window._currentModalData && window._currentModalData.contents) {
+                try {
+                    initialContents = typeof window._currentModalData.contents === 'string'
+                        ? JSON.parse(window._currentModalData.contents)
+                        : window._currentModalData.contents;
+                } catch(e) {
+                    initialContents = [];
+                }
+            }
+            if (Array.isArray(initialContents) && initialContents.length > 0) {
+                initialContents.forEach(it => {
+                    addKitSubItem(it.name || '', it.quantity || 1, it.image_path || '');
+                });
+            } else {
+                addKitSubItem('Tubos de Ensayo', 5, '');
+                addKitSubItem('Vaso de Precipitados', 2, '');
+            }
+        }
     }
 
     const saveBtn = document.getElementById('btn-save-modal');
@@ -696,6 +876,22 @@ async function handleFormSubmit() {
         const stockUnitsEl = document.getElementById('form-stock-units');
         if (stockUnitsEl) {
             payload.stock_units = parseInt(stockUnitsEl.value, 10) || 1;
+        }
+    } else if (currentModalType === 'chemical_materials' || currentModalType === 'chemical-materials') {
+        const subItems = [];
+        document.querySelectorAll('.kit-subitem-row').forEach(row => {
+            const nameInput = row.querySelector('.subitem-name');
+            const qtyInput = row.querySelector('.subitem-qty');
+            const imgInput = row.querySelector('.subitem-image-path');
+            const name = nameInput ? nameInput.value.trim() : '';
+            const quantity = qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1;
+            const image_path = imgInput ? imgInput.value : '';
+            if (name) {
+                subItems.push({ name, quantity, image_path });
+            }
+        });
+        if (subItems.length > 0) {
+            payload.contents = JSON.stringify(subItems);
         }
     } else if (currentModalType === 'didactic_materials' || currentModalType === 'didactic-materials') {
         if (payload.quantity) {
@@ -1078,3 +1274,121 @@ function closeImageViewer() {
 
 window.openImageViewer = openImageViewer;
 window.closeImageViewer = closeImageViewer;
+
+window.selectCategoryChip = function(val, btnEl) {
+    const input = document.getElementById('form-category');
+    if (input) {
+        input.value = val;
+    }
+    if (btnEl && btnEl.parentElement) {
+        btnEl.parentElement.querySelectorAll('.category-chip-btn').forEach(b => {
+            b.classList.remove('ring-2', 'ring-teal-500', 'bg-teal-100', 'text-teal-900', 'font-black');
+            b.classList.add('bg-slate-50', 'text-slate-700');
+        });
+        btnEl.classList.remove('bg-slate-50', 'text-slate-700');
+        btnEl.classList.add('ring-2', 'ring-teal-500', 'bg-teal-100', 'text-teal-900', 'font-black');
+    }
+};
+
+window.addKitSubItem = function(initialName = '', initialQty = 1, initialImg = '') {
+    const container = document.getElementById('kit-subitems-container');
+    if (!container) return;
+    const itemId = 'subitem_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const itemEl = document.createElement('div');
+    itemEl.id = itemId;
+    itemEl.className = 'kit-subitem-row flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50 border border-slate-200/90 p-3 rounded-2xl shadow-2xs transition';
+    itemEl.innerHTML = `
+        <div class="flex items-center gap-3 flex-1">
+            <!-- FOTO DEL SUB-OBJETO -->
+            <div class="relative w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden group">
+                <img id="img-preview-${itemId}" src="${initialImg || ''}" class="${initialImg ? '' : 'hidden'} w-full h-full object-cover">
+                <div id="placeholder-${itemId}" class="${initialImg ? 'hidden' : ''} flex flex-col items-center justify-center text-slate-400 cursor-pointer" onclick="document.getElementById('file-${itemId}').click()">
+                    <i data-lucide="camera" class="w-4 h-4 text-teal-600"></i>
+                    <span class="text-[9px] font-bold text-slate-500">Foto</span>
+                </div>
+                <input type="file" id="file-${itemId}" accept="image/*" class="hidden" onchange="uploadSubItemPhoto('${itemId}', this)">
+                <input type="hidden" class="subitem-image-path" value="${initialImg || ''}">
+                <button type="button" onclick="document.getElementById('file-${itemId}').click()" class="absolute inset-0 bg-slate-900/40 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-xs font-bold" title="Cambiar Foto">
+                    📷
+                </button>
+            </div>
+
+            <!-- NOMBRE DEL SUB-OBJETO -->
+            <input type="text" class="subitem-name bg-white border border-slate-300 text-slate-800 font-semibold text-xs rounded-xl px-3.5 py-2 w-full outline-none focus:border-teal-500 shadow-2xs" placeholder="Nombre del sub-objeto (ej. Tubo de Ensayo, Lente, Pinzas)" value="${initialName}">
+        </div>
+
+        <!-- CANTIDAD DE UNIDADES Y BOTÓN ELIMINAR -->
+        <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+            <div class="flex items-center bg-white border border-slate-300 rounded-xl overflow-hidden shadow-2xs">
+                <button type="button" onclick="changeKitSubItemQty('${itemId}', -1)" class="px-3 py-1.5 text-slate-600 hover:bg-slate-100 font-extrabold text-xs transition">-</button>
+                <input type="number" class="subitem-qty w-12 text-center bg-transparent text-slate-800 font-extrabold text-xs outline-none" value="${initialQty}" min="1">
+                <button type="button" onclick="changeKitSubItemQty('${itemId}', 1)" class="px-3 py-1.5 text-slate-600 hover:bg-slate-100 font-extrabold text-xs transition">+</button>
+            </div>
+            <button type="button" onclick="document.getElementById('${itemId}').remove()" class="p-2 text-red-500 hover:bg-red-50 rounded-xl transition border border-transparent hover:border-red-200" title="Eliminar Objeto">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(itemEl);
+    if (window.lucide) window.lucide.createIcons();
+};
+
+window.uploadSubItemPhoto = async function(itemId, inputEl) {
+    if (inputEl.files && inputEl.files[0]) {
+        const file = inputEl.files[0];
+        const formData = new FormData();
+        formData.append('photo', file);
+
+        try {
+            const res = await fetch('/api/upload-photo', {
+                method: 'POST',
+                body: formData
+            }).then(r => r.json());
+
+            if (res.status === 'success') {
+                const imgEl = document.getElementById(`img-preview-${itemId}`);
+                const placeholderEl = document.getElementById(`placeholder-${itemId}`);
+                const hiddenInput = inputEl.parentElement.querySelector('.subitem-image-path');
+                
+                if (imgEl && placeholderEl && hiddenInput) {
+                    imgEl.src = res.image_path;
+                    imgEl.classList.remove('hidden');
+                    placeholderEl.classList.add('hidden');
+                    hiddenInput.value = res.image_path;
+                }
+            } else {
+                alert(`Error al subir foto: ${res.message}`);
+            }
+        } catch (err) {
+            alert(`Error en carga de foto: ${err.message}`);
+        }
+    }
+};
+
+window.changeKitSubItemQty = function(itemId, delta) {
+    const el = document.querySelector(`#${itemId} .subitem-qty`);
+    if (el) {
+        let val = parseInt(el.value, 10) || 1;
+        val = Math.max(1, val + delta);
+        el.value = val;
+    }
+};
+
+window.toggleTechnicalDetailsSection = function(enabled) {
+    const secB = document.getElementById('section-b-technical-details');
+    if (!secB) return;
+    if (enabled) {
+        secB.classList.remove('hidden');
+    } else {
+        secB.classList.add('hidden');
+    }
+};
+
+window.syncTechCapacityField = function() {
+    const capVal = document.getElementById('tech-capacity-val')?.value || '';
+    const capUnit = document.getElementById('tech-capacity-unit')?.value || '';
+    const capInput = document.getElementById('form-capacity');
+    if (capInput && capVal) {
+        capInput.value = `${capVal} ${capUnit}`.trim();
+    }
+};

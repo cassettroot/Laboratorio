@@ -510,3 +510,39 @@ def check_and_queue_request(req_type, req_action, target_id=None, target_name=No
         })
 
     return None
+
+
+@change_requests_bp.route('/api/sync/status', methods=['GET'])
+def get_sync_status():
+    """
+    Retorna el estado global de sincronización en tiempo real.
+    Permite que tanto la plataforma Web como la App Móvil sincronicen cambios
+    y muestren alertas instantáneas en los teléfonos sin sobrecargar la red.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("SELECT COUNT(*), MAX(id) FROM change_requests WHERE status = 'PENDIENTE'")
+        pending_row = cursor.fetchone()
+        pending_count = pending_row[0] if pending_row else 0
+        last_pending_id = pending_row[1] if (pending_row and pending_row[1]) else 0
+
+        cursor.execute("SELECT MAX(id) FROM change_requests")
+        max_req_row = cursor.fetchone()
+        total_max_id = max_req_row[0] if (max_req_row and max_req_row[0]) else 0
+
+        conn.close()
+
+        import time
+        return jsonify({
+            "status": "success",
+            "pending_count": pending_count,
+            "last_pending_id": last_pending_id,
+            "total_max_id": total_max_id,
+            "timestamp": int(time.time())
+        })
+    except Exception as e:
+        conn.close()
+        return jsonify({"status": "error", "message": str(e)}), 500
+

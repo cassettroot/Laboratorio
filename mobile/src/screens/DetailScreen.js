@@ -14,15 +14,19 @@ import {
   ActivityIndicator
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as Print from 'expo-print';
 import { AuthContext } from '../context/AuthContext';
 import { apiService } from '../api/services';
 import apiClient, { DEFAULT_API_BASE, getImageUrl } from '../api/client';
+import ChemicalMaterialRegisterModal from '../components/modals/ChemicalMaterialRegisterModal';
 
 export default function DetailScreen({ route, navigation }) {
   const { role, user, serverUrl } = useContext(AuthContext);
   const { type, id: paramId, item: initialItem } = route.params || {};
 
   const [item, setItem] = useState(initialItem || null);
+  const [showAddUnitModal, setShowAddUnitModal] = useState(false);
+  const [showEditChemModal, setShowEditChemModal] = useState(false);
 
   const getImageUri = (imagePath) => {
     return getImageUrl(imagePath, serverUrl);
@@ -131,9 +135,31 @@ export default function DetailScreen({ route, navigation }) {
     }
   };
 
+  const [siblingsList, setSiblingsList] = useState([]);
+
+  const fetchSiblings = async (targetId) => {
+    if (!targetId) return;
+    try {
+      const endpoint = (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material') 
+        ? `/api/chemical-materials/${targetId}/siblings` 
+        : `/api/substances/${targetId}/siblings`;
+      const res = await apiClient.get(endpoint);
+      if (res.data && res.data.status === 'success') {
+        const list = res.data.siblings || res.data.data || [];
+        if (Array.isArray(list)) {
+          setSiblingsList(list);
+        }
+      }
+    } catch (e) {
+      console.warn("Siblings fetch error:", e);
+    }
+  };
+
   useEffect(() => {
     if (initialItem) setItem(initialItem);
     fetchDetail();
+    const tid = initialItem?.id || paramId;
+    if (tid) fetchSiblings(tid);
   }, [paramId, initialItem]);
 
   const handleAssignLocation = async (locationStr) => {
@@ -151,7 +177,37 @@ export default function DetailScreen({ route, navigation }) {
     }
   };
 
+  const handleQuickQuantityChange = async (delta) => {
+    const currentQty = parseInt(item.quantity || item.stock || 1, 10);
+    const newQty = Math.max(0, currentQty + delta);
+    if (newQty === currentQty) return;
+    try {
+      const endpoint = (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material') 
+        ? `/api/chemical-materials/${item.id}` 
+        : ((type === 'didactic-materials' || type === 'didactic_materials' || type === 'did_material')
+            ? `/api/didactic-materials/${item.id}`
+            : `/api/substances/${item.id}`);
+      
+      const payload = (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material')
+        ? { quantity: newQty, stock: newQty }
+        : { quantity: newQty, stock: newQty, stock_units: newQty };
+      
+      const res = await apiClient.put(endpoint, payload);
+      if (res.data && res.data.status === 'success') {
+        setItem(prev => ({ ...prev, quantity: newQty, stock: newQty }));
+      } else {
+        Alert.alert('Error', res.data?.message || 'No se pudo actualizar la cantidad.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo actualizar la cantidad: ' + e.message);
+    }
+  };
+
   const openEditModal = () => {
+    if (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material') {
+      setShowEditChemModal(true);
+      return;
+    }
     setEditName(item.name || '');
     setEditFormula(item.chemical_formula || item.subject || '');
     setEditCas(item.cas_number || '');
@@ -399,14 +455,28 @@ export default function DetailScreen({ route, navigation }) {
           style: 'destructive',
           onPress: async () => {
             try {
-              if (type === 'substance') {
-                await apiService.deleteSubstance(item.id);
-              } else {
-                const endpoint = type === 'chemical-materials' ? `/api/chemical-materials/${item.id}` : `/api/didactic-materials/${item.id}`;
-                await apiClient.delete(endpoint);
+              const isSub = (type === 'substance' || type === 'substances');
+              const isChem = (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material');
+              const isDid = (type === 'didactic-materials' || type === 'didactic_materials' || type === 'did_material');
+
+              let endpoint = `/api/substances/${item.id}`;
+              if (isChem) {
+                endpoint = `/api/chemical-materials/${item.id}`;
+              } else if (isDid) {
+                endpoint = `/api/didactic-materials/${item.id}`;
               }
-              Alert.alert('Éxito', 'Registro eliminado del inventario.');
-              navigation.goBack();
+
+              const res = await apiClient.delete(endpoint);
+              if (res.data && res.data.status === 'success') {
+                if (res.data.pending) {
+                  Alert.alert('⏳ Solicitud Enviada', res.data.message || 'La solicitud de eliminación fue enviada al administrador.');
+                } else {
+                  Alert.alert('✅ Éxito', 'Registro eliminado del inventario.');
+                }
+                navigation.goBack();
+              } else {
+                Alert.alert('Error', res.data?.message || 'No se pudo eliminar el registro.');
+              }
             } catch (e) {
               Alert.alert('Error', 'No se pudo eliminar el registro: ' + e.message);
             }
@@ -590,6 +660,45 @@ export default function DetailScreen({ route, navigation }) {
     });
   }
 
+  // Extraer sub-objetos del kit si existen en contents o container_content
+  let kitContentsList = [];
+  let plainTextKitContent = '';
+  const rawKitContents = item?.contents || item?.container_content || '';
+
+  if (rawKitContents) {
+    if (typeof rawKitContents === 'string') {
+      const trimmed = rawKitContents.trim();
+      if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            kitContentsList = parsed;
+          } else if (typeof parsed === 'object' && parsed !== null) {
+            kitContentsList = [parsed];
+          }
+        } catch (e) {
+          plainTextKitContent = trimmed;
+        }
+      } else {
+        plainTextKitContent = trimmed;
+      }
+    } else if (Array.isArray(rawKitContents)) {
+      kitContentsList = rawKitContents;
+    }
+  }
+
+  if (Array.isArray(kitContentsList)) {
+    kitContentsList.forEach((sub, idx) => {
+      if (sub && (sub.imageUri || sub.image_path)) {
+        const subUri = getImageUri(sub.imageUri || sub.image_path);
+        if (subUri && typeof subUri === 'string' && subUri.trim() !== '' && !addedUris.has(subUri)) {
+          allDetailImages.push({ uri: subUri, label: `Sub-objeto: ${sub.name || `#${idx + 1}`}` });
+          addedUris.add(subUri);
+        }
+      }
+    });
+  }
+
   const safePhotoIndex = allDetailImages.length > 0 ? Math.max(0, Math.min(activePhotoIndex, allDetailImages.length - 1)) : 0;
   const currentDetailImg = allDetailImages[safePhotoIndex];
 
@@ -698,10 +807,62 @@ export default function DetailScreen({ route, navigation }) {
           <Text style={styles.formula}>🧪 Fórmula: {item.chemical_formula}</Text>
         ) : null}
 
-        <View style={styles.badgeRow}>
-          <View style={styles.badgePrimary}>
-            <Text style={styles.badgePrimaryText}>📦 {item.stock_units || 1} envase(s) ({item.quantity || 1} {item.unit || 'g'})</Text>
+        {/* CONTROL INTERACTIVO DE CANTIDAD / STOCK RÁPIDO */}
+        <View style={{ backgroundColor: '#f8fafc', padding: 12, borderRadius: 14, borderWidth: 1.5, borderColor: '#cbd5e1', marginVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flex: 1, marginRight: 8 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Cantidad / Stock Disponible</Text>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#0d9488', marginTop: 2 }}>
+              {item.quantity || item.stock || 1} {item.unit || 'piezas'}
+            </Text>
           </View>
+
+          {isAdminOrResp ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <TouchableOpacity
+                style={{ backgroundColor: '#fee2e2', borderWidth: 1.5, borderColor: '#fca5a5', width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}
+                onPress={() => handleQuickQuantityChange(-1)}
+              >
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#ef4444' }}>-</Text>
+              </TouchableOpacity>
+
+              <View style={{ backgroundColor: '#ffffff', borderWidth: 1.5, borderColor: '#0d9488', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, minWidth: 44, alignItems: 'center' }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#0f172a' }}>
+                  {item.quantity || item.stock || 1}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={{ backgroundColor: '#ccfbf1', borderWidth: 1.5, borderColor: '#5eead4', width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}
+                onPress={() => handleQuickQuantityChange(1)}
+              >
+                <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#0f766e' }}>+</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.badgeRow}>
+          {item.category ? (
+            <View style={[styles.badgePrimary, { backgroundColor: '#ccfbf1', borderColor: '#0d9488' }]}>
+              <Text style={[styles.badgePrimaryText, { color: '#0f766e' }]}>{item.category}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.badgePrimary}>
+            <Text style={styles.badgePrimaryText}>📦 Stock: {item.quantity || item.stock || 1} {item.unit || 'piezas'}</Text>
+          </View>
+
+          {item.capacity ? (
+            <View style={styles.badgeSecondary}>
+              <Text style={styles.badgeSecondaryText}>🧪 Capacidad: {item.capacity}</Text>
+            </View>
+          ) : null}
+
+          {item.status || item.condition ? (
+            <View style={[styles.badgeSecondary, { backgroundColor: '#d1fae5', borderColor: '#10b981' }]}>
+              <Text style={[styles.badgeSecondaryText, { color: '#047857' }]}>🟢 {item.status || item.condition}</Text>
+            </View>
+          ) : null}
 
           {item.cas_number ? (
             <View style={styles.badgeSecondary}>
@@ -728,6 +889,25 @@ export default function DetailScreen({ route, navigation }) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>📦 Inventario y Custodia</Text>
 
+        {item.category ? (
+          <View style={styles.row}>
+            <Text style={styles.label}>Categoría:</Text>
+            <Text style={[styles.value, { color: '#0d9488', fontWeight: 'bold' }]}>{item.category}</Text>
+          </View>
+        ) : null}
+
+        {item.capacity ? (
+          <View style={styles.row}>
+            <Text style={styles.label}>Capacidad / Especificación:</Text>
+            <Text style={[styles.value, { color: '#0284c7', fontWeight: 'bold' }]}>{item.capacity}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.row}>
+          <Text style={styles.label}>Ubicación Física:</Text>
+          <Text style={[styles.value, { color: '#10b981', fontWeight: 'bold' }]}>{item.location || 'Laboratorio Principal'}</Text>
+        </View>
+
         {item.inventory_number ? (
           <View style={styles.row}>
             <Text style={styles.label}>No. Inventario:</Text>
@@ -749,10 +929,24 @@ export default function DetailScreen({ route, navigation }) {
           </View>
         ) : null}
 
+        {item.original_id ? (
+          <View style={styles.row}>
+            <Text style={styles.label}>ID CB / Excel:</Text>
+            <Text style={[styles.value, { color: '#8b5cf6', fontFamily: 'monospace' }]}>{item.original_id}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.row}>
           <Text style={styles.label}>Responsable Custodia:</Text>
           <Text style={styles.value}>{item.responsible || 'No asignado'}</Text>
         </View>
+
+        {item.status || item.condition ? (
+          <View style={styles.row}>
+            <Text style={styles.label}>Estado / Condición:</Text>
+            <Text style={[styles.value, { color: '#059669', fontWeight: 'bold' }]}>{item.status || item.condition}</Text>
+          </View>
+        ) : null}
 
         {item.container_content ? (
           <View style={styles.row}>
@@ -768,16 +962,138 @@ export default function DetailScreen({ route, navigation }) {
           </View>
         ) : null}
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Fecha de Caducidad:</Text>
-          <Text style={[
-            styles.value, 
-            (item.expiration_date === 'Sin caducidad' || item.expiration_date === 'No aplica') ? { color: '#38bdf8' } : {}
-          ]}>
-            {item.expiration_date || 'No especificada'}
-          </Text>
-        </View>
+        {item.expiration_date ? (
+          <View style={styles.row}>
+            <Text style={styles.label}>Fecha de Caducidad:</Text>
+            <Text style={[
+              styles.value, 
+              (item.expiration_date === 'Sin caducidad' || item.expiration_date === 'No aplica') ? { color: '#38bdf8' } : {}
+            ]}>
+              {item.expiration_date}
+            </Text>
+          </View>
+        ) : null}
       </View>
+
+      {/* SECCIÓN CONTENIDO DEL KIT Y SUB-OBJETOS */}
+      {(kitContentsList.length > 0 || plainTextKitContent !== '') ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            📦 Contenido del Kit / Sub-objetos {kitContentsList.length > 0 ? `(${kitContentsList.length})` : ''}
+          </Text>
+
+          {plainTextKitContent !== '' ? (
+            <View style={{ backgroundColor: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', marginTop: 8 }}>
+              <Text style={{ fontSize: 13, color: '#334155', lineHeight: 18 }}>{plainTextKitContent}</Text>
+            </View>
+          ) : null}
+
+          {kitContentsList.length > 0 ? (
+            <View style={{ gap: 8, marginTop: 8 }}>
+              {kitContentsList.map((sub, idx) => {
+                const subPhotoUri = getImageUri(sub.imageUri || sub.image_path);
+                return (
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', gap: 10 }}>
+                    {subPhotoUri ? (
+                      <Image source={{ uri: subPhotoUri }} style={{ width: 44, height: 44, borderRadius: 10 }} resizeMode="cover" />
+                    ) : (
+                      <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: '#ccfbf1', justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 18 }}>📦</Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#0f172a' }}>{sub.name || `Sub-objeto #${idx + 1}`}</Text>
+                      <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Cantidad en paquete: {sub.quantity || 1} piezas</Text>
+                    </View>
+                    <View style={{ backgroundColor: '#0d9488', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                      <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>x{sub.quantity || 1}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {/* SECCIÓN UNIDADES FÍSICAS REGISTRADAS (MISMO PRODUCTO CON DIFERENTE NO. SEP / INVENTARIO) */}
+      {(type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material' || siblingsList.length > 0) ? (
+        <View style={[styles.section, { backgroundColor: '#0f172a', borderColor: '#334155', borderWidth: 1 }]}>
+          <Text style={[styles.sectionTitle, { color: '#10b981', marginBottom: 4 }]}>
+            📦 Unidades Físicas Registradas ({siblingsList.length || 1})
+          </Text>
+          <Text style={{ color: '#94a3b8', fontSize: 11, marginBottom: 12 }}>
+            Lista de copias físicas de este mismo producto con diferente No. SEP o No. Inventario:
+          </Text>
+
+          {isAdminOrResp ? (
+            <TouchableOpacity
+              style={{ backgroundColor: '#0d9488', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              onPress={() => {
+                setShowAddUnitModal(true);
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>📋 Registrar otra unidad (Mismo Producto, Nuevo SEP)</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {siblingsList.map((sib) => {
+            const isCurrent = sib.id === item.id;
+            return (
+              <TouchableOpacity
+                key={sib.id}
+                onPress={() => {
+                  if (!isCurrent) {
+                    setItem(sib);
+                    fetchSiblings(sib.id);
+                  }
+                }}
+                style={{
+                  backgroundColor: isCurrent ? '#064e3b' : '#1e293b',
+                  borderWidth: 1,
+                  borderColor: isCurrent ? '#10b981' : '#334155',
+                  borderRadius: 14,
+                  padding: 12,
+                  marginBottom: 8,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <Text style={{ color: isCurrent ? '#6ee7b7' : '#ffffff', fontWeight: 'bold', fontSize: 13 }}>
+                      {isCurrent ? '👉 ' : ''}ID #{sib.id}
+                    </Text>
+                    {sib.no_sep ? (
+                      <Text style={{ color: '#10b981', fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', backgroundColor: '#064e3b', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                        SEP: {sib.no_sep}
+                      </Text>
+                    ) : null}
+                    {sib.inventory_number ? (
+                      <Text style={{ color: '#f59e0b', fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', backgroundColor: '#451a03', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                        Inv: {sib.inventory_number}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  <Text style={{ color: '#cbd5e1', fontSize: 11, marginTop: 4 }}>
+                    Ubicación: {sib.location || 'Laboratorio'} | Estado: {sib.status || 'Buenas condiciones'}
+                  </Text>
+                </View>
+
+                {isCurrent ? (
+                  <View style={{ backgroundColor: '#10b981', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>Actual</Text>
+                  </View>
+                ) : (
+                  <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>Ver ➔</Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ) : null}
 
       {/* SECCIÓN 2: PROPIEDADES FÍSICAS Y QUÍMICAS */}
       {(type === 'substance' || item.physical_state) ? (
@@ -839,6 +1155,70 @@ export default function DetailScreen({ route, navigation }) {
         </View>
       ) : null}
 
+      {/* SECCIÓN CÓDIGO QR DE INVENTARIO */}
+      <View style={[styles.section, { alignItems: 'center', backgroundColor: '#0f172a', borderColor: '#334155', borderWidth: 1 }]}>
+        <Text style={[styles.sectionTitle, { color: '#38bdf8', alignSelf: 'flex-start' }]}>📱 Código QR de Inventario</Text>
+
+        <View style={{ backgroundColor: '#ffffff', padding: 12, borderRadius: 16, marginVertical: 10, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 8, elevation: 4 }}>
+          <Image
+            source={{
+              uri: item.qr_path
+                ? getImageUri(item.qr_path)
+                : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(item.qr_content || `LAB-CHEMICAL_MATERIALS-${item.id}`)}`
+            }}
+            style={{ width: 160, height: 160 }}
+            resizeMode="contain"
+          />
+        </View>
+
+        <Text style={{ color: '#cbd5e1', fontSize: 11, fontFamily: 'monospace', textAlign: 'center', backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginBottom: 8 }}>
+          {item.qr_content || `LAB-CHEMICAL_MATERIALS-${item.id}`}
+        </Text>
+
+        <TouchableOpacity 
+          style={{ backgroundColor: '#0284c7', paddingVertical: 10, paddingHorizontal: 18, borderRadius: 12, marginVertical: 4, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          onPress={async () => {
+            try {
+              const qrImageUrl = item.qr_path
+                ? getImageUri(item.qr_path)
+                : `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(item.qr_content || `LAB-CHEMICAL_MATERIALS-${item.id}`)}`;
+
+              const htmlContent = `
+                <!DOCTYPE html>
+                <html>
+                  <head>
+                    <meta charset="utf-8">
+                    <style>
+                      body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 15px; }
+                      .label-card { border: 2px solid #0f172a; border-radius: 12px; padding: 15px; max-width: 280px; margin: 0 auto; }
+                      .header { font-size: 11px; font-weight: bold; color: #0f172a; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px; }
+                      .title { font-size: 14px; font-weight: bold; color: #1e293b; margin-bottom: 4px; }
+                      .subtitle { font-size: 10px; color: #64748b; margin-bottom: 10px; }
+                      .qr-img { width: 150px; height: 150px; object-fit: contain; margin: 5px auto; display: block; }
+                      .code-badge { font-family: monospace; font-size: 10px; font-weight: bold; background-color: #f1f5f9; color: #0f172a; padding: 4px 8px; border-radius: 6px; border: 1px solid #cbd5e1; margin-top: 6px; display: inline-block; word-break: break-all; }
+                    </style>
+                  </head>
+                  <body>
+                    <div class="label-card">
+                      <div class="header">TECNM - MILPA ALTA II</div>
+                      <div class="title">${item.name || 'Material Químico'}</div>
+                      <div class="subtitle">Categoría: ${item.category || item.substance_group || 'Inventario'} | Ubicación: ${item.location || 'Laboratorio'}</div>
+                      <img class="qr-img" src="${qrImageUrl}" />
+                      <div class="code-badge">${item.qr_content || `LAB-CHEMICAL_MATERIALS-${item.id}`}</div>
+                    </div>
+                  </body>
+                </html>
+              `;
+              await Print.printAsync({ html: htmlContent });
+            } catch (err) {
+              Alert.alert('Error al Imprimir', 'No se pudo generar la etiqueta QR: ' + err.message);
+            }
+          }}
+        >
+          <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 13 }}>🖨️ Generar e Imprimir QR</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* BOTÓN SOLICITAR PRÉSTAMO (Solo Docentes / Admin) */}
       {(type === 'substance' && isAdminOrResp) ? (
         <TouchableOpacity style={styles.loanRequestBtn} onPress={openLoanModal}>
@@ -852,6 +1232,29 @@ export default function DetailScreen({ route, navigation }) {
           <Text style={styles.pdfButtonText}>📄 Ver Hoja de Datos de Seguridad (HDS / FDS)</Text>
         </TouchableOpacity>
       ) : null}
+
+      {/* MODAL PARA REGISTRAR OTRA UNIDAD DEL MISMO PRODUCTO */}
+      <ChemicalMaterialRegisterModal
+        visible={showAddUnitModal}
+        onClose={() => setShowAddUnitModal(false)}
+        onSuccess={() => {
+          setShowAddUnitModal(false);
+          if (item?.id) fetchSiblings(item.id);
+        }}
+        prefillItem={item ? { ...item, id: null, no_sep: '', inventory_number: '', serial_number: '', stock: '1', quantity: 1 } : null}
+      />
+
+      {/* MODAL PARA EDITAR EL MATERIAL QUÍMICO ACTUAL CON EL MISMO ASISTENTE */}
+      <ChemicalMaterialRegisterModal
+        visible={showEditChemModal}
+        onClose={() => setShowEditChemModal(false)}
+        onSuccess={() => {
+          setShowEditChemModal(false);
+          fetchDetail();
+          if (item?.id) fetchSiblings(item.id);
+        }}
+        prefillItem={item}
+      />
 
       {/* MODAL COMPLETO DE EDICIÓN DEL ELEMENTO */}
       <Modal

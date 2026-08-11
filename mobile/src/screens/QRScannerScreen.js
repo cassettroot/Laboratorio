@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator, TextInput, Modal } from 'react-native';
 import { CameraView, useCameraPermissions, Camera } from 'expo-camera';
 import { apiService } from '../api/services';
+import { AuthContext } from '../context/AuthContext';
 
 export default function QRScannerScreen({ navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { updateServerUrl } = useContext(AuthContext) || {};
 
   // Modal para ingreso manual de código
   const [manualModalVisible, setManualModalVisible] = useState(false);
@@ -28,6 +30,44 @@ export default function QRScannerScreen({ navigation }) {
       if (!rawText) {
         setLoading(false);
         setScanned(false);
+        return;
+      }
+
+      // 0. Detección especial: Código QR de Vinculación con Servidor Backend
+      let isPairingQr = false;
+      let pairingUrl = null;
+
+      try {
+        const parsed = JSON.parse(rawText);
+        if (parsed && (parsed.type === 'server_pairing' || parsed.url || parsed.server_url)) {
+          isPairingQr = true;
+          pairingUrl = parsed.url || parsed.server_url;
+        }
+      } catch (e) {
+        if (rawText.startsWith('http://') || rawText.startsWith('https://')) {
+          if (rawText.includes(':5000') || rawText.includes('/api/')) {
+            isPairingQr = true;
+            pairingUrl = rawText.split('/api')[0];
+          }
+        }
+      }
+
+      if (isPairingQr && pairingUrl) {
+        setLoading(false);
+        if (typeof updateServerUrl === 'function') {
+          await updateServerUrl(pairingUrl);
+        }
+        Alert.alert(
+          '¡Servidor Vinculado con Éxito! 📲⚡',
+          `La aplicación se conectó exitosamente al servidor:\n\n${pairingUrl}\n\nLos datos del laboratorio han sido sincronizados.`,
+          [{
+            text: 'Aceptar',
+            onPress: () => {
+              setScanned(false);
+              navigation.navigate('Main', { screen: 'Inicio' });
+            }
+          }]
+        );
         return;
       }
 

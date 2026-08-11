@@ -163,8 +163,8 @@ def scan_qr():
 
     cursor.execute('''
         SELECT * FROM chemical_materials 
-        WHERE id = ? OR qr_content = ? OR ('LAB-CHEMICAL_MATERIALS-' || id) = ? OR ('LAB-CHM-' || id) = ?
-    ''', (chem_id, qr_code, qr_code, qr_code))
+        WHERE id = ? OR qr_content = ? OR ('LAB-CHEMICAL_MATERIALS-' || id) = ? OR ('LAB-CHM-' || id) = ? OR barcode = ? OR inventory_number = ? OR serial_number = ?
+    ''', (chem_id, qr_code, qr_code, qr_code, qr_code, qr_code, qr_code))
     chem_material = cursor.fetchone()
     if chem_material:
         conn.close()

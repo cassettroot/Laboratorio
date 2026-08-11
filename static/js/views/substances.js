@@ -913,36 +913,55 @@ let qrBatchModalState = {
 };
 
 
-window.openQRBatchModal = async function() {
+window.openQRBatchModal = async function(entityType = 'substances') {
     if (!state.isLoggedIn || state.userRole !== 'admin') {
         alert('Esta función de impresión masiva de códigos QR está reservada exclusivamente para Administradores.');
         return;
     }
 
-    // Si state.substances no está cargado aún, obtenerlo desde el backend
-    if (!state.substances || state.substances.length === 0) {
-        try {
-            const res = await fetch('/api/substances').then(r => r.json());
-            if (res.status === 'success' && Array.isArray(res.data)) {
-                state.substances = res.data;
-            } else if (Array.isArray(res)) {
-                state.substances = res;
+    qrBatchModalState.entityType = entityType;
+
+    if (entityType === 'chemical_materials') {
+        if (!state.chemMaterials || state.chemMaterials.length === 0) {
+            try {
+                const res = await fetch('/api/chemical-materials').then(r => r.json());
+                state.chemMaterials = res.data || [];
+            } catch (e) {
+                console.warn('Error al precargar materiales químicos para modal QR:', e);
             }
-        } catch (e) {
-            console.warn('Error al precargar sustancias para modal QR:', e);
         }
+        state.currentQRItems = state.chemMaterials || [];
+    } else if (entityType === 'didactic_materials') {
+        if (!state.didacticMaterials || state.didacticMaterials.length === 0) {
+            try {
+                const res = await fetch('/api/didactic-materials').then(r => r.json());
+                state.didacticMaterials = res.data || [];
+            } catch (e) {
+                console.warn('Error al precargar materiales didácticos para modal QR:', e);
+            }
+        }
+        state.currentQRItems = state.didacticMaterials || [];
+    } else {
+        if (!state.substances || state.substances.length === 0) {
+            try {
+                const res = await fetch('/api/substances').then(r => r.json());
+                state.substances = res.data || [];
+            } catch (e) {
+                console.warn('Error al precargar sustancias para modal QR:', e);
+            }
+        }
+        state.currentQRItems = state.substances || [];
     }
 
-    const substances = state.substances || [];
-    qrBatchModalState.selectedIds = new Set(substances.map(s => s.id));
+    const items = state.currentQRItems || [];
+    qrBatchModalState.selectedIds = new Set(items.map(s => s.id));
     qrBatchModalState.searchTerm = '';
     qrBatchModalState.filterType = 'all';
     qrBatchModalState.itemCopies = {};
-    substances.forEach(s => {
-        const stockUnits = parseInt(s.stock_units, 10);
+    items.forEach(s => {
+        const stockUnits = parseInt(s.stock_units || s.quantity, 10);
         qrBatchModalState.itemCopies[s.id] = (isNaN(stockUnits) || stockUnits < 1) ? 1 : stockUnits;
     });
-
 
     renderQRBatchModalDOM();
 };
@@ -954,14 +973,14 @@ window.closeQRBatchModal = function() {
 
 window.setQRFilter = function(filterType) {
     qrBatchModalState.filterType = filterType;
-    const substances = state.substances || [];
-    let filtered = substances;
+    const items = state.currentQRItems || state.substances || [];
+    let filtered = items;
     if (filterType === 'liquid') {
-        filtered = substances.filter(s => s.physical_state === 'Líquido');
+        filtered = items.filter(s => (s.physical_state || '').includes('Líquido'));
     } else if (filterType === 'solid') {
-        filtered = substances.filter(s => s.physical_state === 'Sólido');
+        filtered = items.filter(s => (s.physical_state || '').includes('Sólido'));
     } else if (filterType === 'gas') {
-        filtered = substances.filter(s => s.physical_state === 'Gaseoso');
+        filtered = items.filter(s => (s.physical_state || '').includes('Gaseoso'));
     }
     qrBatchModalState.selectedIds = new Set(filtered.map(s => s.id));
     renderQRBatchModalDOM();
@@ -1011,21 +1030,21 @@ window.setQRCopies = function(id, val) {
 };
 
 function getFilteredQRSubstances() {
-    const substances = state.substances || [];
+    const substances = state.currentQRItems || state.substances || [];
     const term = (qrBatchModalState.searchTerm || '').toLowerCase().trim();
     const type = qrBatchModalState.filterType;
 
     return substances.filter(s => {
-        if (type === 'liquid' && s.physical_state !== 'Líquido') return false;
-        if (type === 'solid' && s.physical_state !== 'Sólido') return false;
-        if (type === 'gas' && s.physical_state !== 'Gaseoso') return false;
+        if (type === 'liquid' && !(s.physical_state || '').includes('Líquido')) return false;
+        if (type === 'solid' && !(s.physical_state || '').includes('Sólido')) return false;
+        if (type === 'gas' && !(s.physical_state || '').includes('Gaseoso')) return false;
 
         if (term) {
             const matchName = (s.name || '').toLowerCase().includes(term);
-            const matchCas = (s.cas_number || '').toLowerCase().includes(term);
-            const matchFormula = (s.chemical_formula || '').toLowerCase().includes(term);
-            const idStr = s.id.toString();
-            const matchId = idStr === term || idStr.includes(term.replace(/[^0-9]/g, '')) && term.replace(/[^0-9]/g, '').length > 0;
+            const matchCas = (s.cas_number || s.inventory_number || s.no_sep || '').toLowerCase().includes(term);
+            const matchFormula = (s.chemical_formula || s.capacity || s.category || '').toLowerCase().includes(term);
+            const idStr = (s.id || '').toString();
+            const matchId = idStr === term || (idStr.includes(term.replace(/[^0-9]/g, '')) && term.replace(/[^0-9]/g, '').length > 0);
             return matchName || matchCas || matchFormula || matchId;
         }
         return true;
@@ -1047,9 +1066,9 @@ function renderQRBatchModalDOM() {
         cursorPosition = document.activeElement.selectionStart;
     }
 
-    const allSubstances = state.substances || [];
-    const liquidsCount = allSubstances.filter(s => s.physical_state === 'Líquido').length;
-    const solidsCount = allSubstances.filter(s => s.physical_state === 'Sólido').length;
+    const allSubstances = state.currentQRItems || state.substances || [];
+    const liquidsCount = allSubstances.filter(s => (s.physical_state || '').includes('Líquido')).length;
+    const solidsCount = allSubstances.filter(s => (s.physical_state || '').includes('Sólido')).length;
 
     const items = getFilteredQRSubstances();
     const selectedSubstances = allSubstances.filter(s => qrBatchModalState.selectedIds.has(s.id));
@@ -1138,6 +1157,10 @@ function renderQRBatchModalDOM() {
         return;
     }
 
+    const titleText = qrBatchModalState.entityType === 'chemical_materials' 
+        ? 'Impresión y Descarga Masiva - Materiales Químicos' 
+        : (qrBatchModalState.entityType === 'didactic_materials' ? 'Impresión y Descarga Masiva - Materiales Didácticos' : 'Impresión y Descarga Masiva de Códigos QR');
+
     existingModal.className = 'fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in no-print';
     existingModal.innerHTML = `
         <div class="bg-[#0d1527] rounded-3xl border border-slate-800 shadow-2xl shadow-cyan-950/50 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden text-slate-200 font-sans">
@@ -1148,8 +1171,8 @@ function renderQRBatchModalDOM() {
                         <i data-lucide="qr-code" class="w-5 h-5 text-teal-400"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-extrabold text-white tracking-wide">Impresión y Descarga Masiva de Códigos QR</h3>
-                        <p class="text-xs text-slate-400 font-medium">Exclusivo Administrador: Define el número de copias/etiquetas por cada reactivo</p>
+                        <h3 class="text-base font-extrabold text-white tracking-wide">${titleText}</h3>
+                        <p class="text-xs text-slate-400 font-medium">Define el número de copias/etiquetas a imprimir por cada elemento</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeQRBatchModal()" class="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition font-bold text-sm border border-slate-700/50">✕</button>
@@ -1160,10 +1183,10 @@ function renderQRBatchModalDOM() {
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">Filtro rápido:</span>
                     <button type="button" onclick="setQRFilter('liquid')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'liquid' ? 'bg-teal-600/30 text-teal-300 border-teal-500/50 shadow-sm shadow-teal-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
-                        💧 Solo Líquidos (${liquidsCount})
+                        💧 Líquidos (${liquidsCount})
                     </button>
                     <button type="button" onclick="setQRFilter('solid')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'solid' ? 'bg-amber-600/30 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
-                        📦 Solo Sólidos (${solidsCount})
+                        📦 Sólidos / Equipos (${solidsCount})
                     </button>
                     <button type="button" onclick="setQRFilter('all')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'all' ? 'bg-cyan-600/30 text-cyan-300 border-cyan-500/50 shadow-sm shadow-cyan-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
                         🧪 Todos (${allSubstances.length})
@@ -1171,71 +1194,29 @@ function renderQRBatchModalDOM() {
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                    <input id="qr-modal-search" type="text" value="${qrBatchModalState.searchTerm}" oninput="handleQRSearchInput(this.value)" placeholder="Buscar por nombre, CAS o ID..." class="bg-white border border-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold outline-none focus:border-indigo-500 flex-1 min-w-[140px] md:w-52">
-                    <button type="button" onclick="selectAllQRItems(true)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition shrink-0">☑️ Marcar Visibles</button>
-                    <button type="button" onclick="selectAllQRItems(false)" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition shrink-0">🎯 Desmarcar</button>
+                    <input id="qr-modal-search" type="text" value="${qrBatchModalState.searchTerm}" oninput="handleQRSearchInput(this.value)" placeholder="Buscar por nombre, código o ID..." class="bg-slate-900 border border-slate-700 text-white px-3 py-1.5 rounded-xl text-xs font-semibold outline-none focus:border-indigo-500 flex-1 min-w-[140px] md:w-52">
+                    <button type="button" onclick="selectAllQRItems(true)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold rounded-xl text-xs transition shrink-0">☑️ Marcar Visibles</button>
+                    <button type="button" onclick="selectAllQRItems(false)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold rounded-xl text-xs transition shrink-0">🎯 Desmarcar</button>
                 </div>
             </div>
 
-            <!-- Lista de Sustancias Seleccionables -->
-            <div class="p-4 overflow-y-auto flex-1 space-y-2 max-h-[52vh] divide-y divide-slate-100">
-                ${items.length === 0 ? `
-                    <div class="py-12 text-center text-slate-400 font-semibold">No se encontraron reactivos con el filtro o búsqueda actual.</div>
-                ` : items.map(s => {
-                    const isChecked = qrBatchModalState.selectedIds.has(s.id);
-                    const stateColor = s.physical_state === 'Líquido' ? 'bg-cyan-100 text-cyan-800' : (s.physical_state === 'Sólido' ? 'bg-amber-100 text-amber-800' : 'bg-purple-100 text-purple-800');
-                    return `
-                        <div class="pt-2.5 pb-2 flex items-center justify-between gap-4 hover:bg-slate-50 p-2 rounded-2xl transition">
-                            <label class="flex items-center gap-3.5 cursor-pointer flex-1 min-w-0">
-                                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleQRItemSelection(${s.id})" class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 shrink-0">
-                                ${s.qr_path ? `
-                                    <img src="${s.qr_path}" class="w-12 h-12 rounded-lg border border-slate-200 bg-white object-contain p-0.5 shrink-0">
-                                ` : `
-                                    <div class="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 text-xs font-bold shrink-0">QR</div>
-                                `}
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="font-extrabold text-slate-900 text-sm truncate">${s.name}</span>
-                                        <span class="text-3xs font-mono px-2 py-0.5 rounded ${stateColor} font-bold">${s.physical_state || 'Genérico'}</span>
-                                        ${s.substance_group ? `<span class="text-3xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">🏷️ ${s.substance_group}</span>` : ''}
-                                    </div>
-                                    <div class="text-xs text-slate-500 flex items-center gap-3 mt-0.5 flex-wrap">
-                                        <span>Fórmula: <strong class="text-slate-800">${s.chemical_formula || '-'}</strong></span>
-                                        <span>CAS: <strong class="text-slate-800">${s.cas_number || '-'}</strong></span>
-                                        <span>Stock: <strong class="text-indigo-600">${s.container_content || `${s.quantity} ${s.unit}`}</strong></span>
-                                        <span class="text-3xs font-mono text-slate-400">LAB-SUB-${s.id}</span>
-                                    </div>
-                                </div>
-                            </label>
-
-                            <div class="flex items-center gap-4 shrink-0">
-                                <div class="flex flex-col items-center gap-1">
-                                    <span class="text-3xs font-bold text-slate-400 uppercase">Copias</span>
-                                    <input type="number" min="1" max="99" value="${qrBatchModalState.copies[s.id] || 1}" onchange="updateQRCopies(${s.id}, this.value)" class="w-14 px-2 py-1 rounded border border-slate-300 text-xs text-center font-bold text-slate-700 outline-none focus:border-indigo-500">
-                                </div>
-                                ${s.qr_path ? `
-                                    <a href="${s.qr_path}" download="qr_${s.name.replace(/ /g, '_')}_LAB-SUB-${s.id}.png" class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 hover:border-indigo-300 font-bold rounded-xl text-xs transition flex items-center gap-1.5" title="Descargar código QR individual de este elemento">
-                                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                                        <span>QR Solo 1</span>
-                                    </a>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
+            <!-- Lista de Elementos Seleccionables -->
+            <div id="qr-modal-items-list" class="p-4 overflow-y-auto flex-1 space-y-2 max-h-[52vh]">
+                ${listHtml}
+            </div>
 
             <!-- Footer con Acciones Masivas Dinámicas -->
             <div class="p-4 bg-[#090d16] border-t border-slate-800 flex flex-col sm:flex-row gap-3 items-center justify-between shrink-0">
                 <div class="text-xs font-semibold text-slate-400">
-                    Incluidos: <span id="qr-selected-count-badge" class="text-teal-400 font-extrabold text-sm px-1.5 py-0.5 rounded bg-teal-950/60 border border-teal-800/40">${selectedCount}</span> reactivos | <span id="qr-total-labels-badge" class="text-cyan-400 font-extrabold text-sm px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/40">${totalQRLabels}</span> etiqueta(s) QR
+                    Incluidos: <span id="qr-selected-count-badge" class="text-teal-400 font-extrabold text-sm px-1.5 py-0.5 rounded bg-teal-950/60 border border-teal-800/40">${selectedCount}</span> elementos | <span id="qr-total-labels-badge" class="text-cyan-400 font-extrabold text-sm px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/40">${totalQRLabels}</span> etiqueta(s) QR
                 </div>
 
                 <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
                     <button type="button" onclick="downloadSelectedQRPDF()" class="px-4.5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-teal-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
                         <i data-lucide="download" class="w-4 h-4 text-teal-200"></i>
-                        <span>Descargar Seleccionados (${totalQRLabels} etiq.)</span>
+                        <span>Descargar PDF (${totalQRLabels} etiq.)</span>
                     </button>
-                    <button type="button" onclick="printSelectedQRLabels()" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-cyan-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
+                    <button type="button" onclick="printSelectedQRSheetPDF()" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-cyan-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
                         <i data-lucide="printer" class="w-4 h-4 text-cyan-200"></i>
                         <span>Imprimir Planilla (${totalQRLabels} etiq.)</span>
                     </button>
@@ -1243,6 +1224,8 @@ function renderQRBatchModalDOM() {
             </div>
         </div>
     `;
+
+    if (window.lucide) window.lucide.createIcons();
 
     if (window.lucide) window.lucide.createIcons();
 
@@ -1261,7 +1244,7 @@ function renderQRBatchModalDOM() {
 }
 
 window.downloadSingleSubstanceQRPDF = async function(substanceId) {
-    const allSubstances = state.substances || [];
+    const allSubstances = state.currentQRItems || state.substances || [];
     const s = allSubstances.find(item => item.id === substanceId);
     if (!s) return;
 
@@ -1351,7 +1334,7 @@ window.downloadSingleSubstanceQRPDF = async function(substanceId) {
 };
 
 window.downloadSelectedQRPDF = async function() {
-    const allSubstances = state.substances || [];
+    const allSubstances = state.currentQRItems || state.substances || [];
     let selectedSubstances = [];
     allSubstances.forEach(s => {
         if (qrBatchModalState.selectedIds.has(s.id)) {

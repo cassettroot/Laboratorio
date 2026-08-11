@@ -316,5 +316,64 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeImageLightbox();
 });
 
+// ── Sincronización Automática en Tiempo Real para la Web ───────────
+let _lastSyncState = { pending_count: -1, total_max_id: -1, last_pending_id: -1 };
+
+function initRealtimeSync() {
+    setInterval(async () => {
+        try {
+            const res = await originalFetch('/api/sync/status').then(r => r.json());
+            if (res.status === 'success') {
+                const { pending_count, total_max_id, last_pending_id } = res;
+                
+                if (_lastSyncState.pending_count === -1) {
+                    _lastSyncState = { pending_count, total_max_id, last_pending_id };
+                    return;
+                }
+
+                const hasNewRequest = last_pending_id > (_lastSyncState.last_pending_id || 0);
+                const hasInventoryChange = total_max_id !== _lastSyncState.total_max_id;
+
+                if (hasNewRequest || hasInventoryChange) {
+                    _lastSyncState = { pending_count, total_max_id, last_pending_id };
+
+                    if (typeof showToast === 'function') {
+                        if (hasNewRequest) {
+                            showToast('🔔 Nueva solicitud de cambio registrada en el laboratorio', 'info');
+                        } else {
+                            showToast('🔄 Cambios aplicados en el inventario', 'info');
+                        }
+                    }
+
+                    const badgeDesktop = document.getElementById('nav-notification-badge');
+                    const badgeMobile = document.getElementById('mobile-notification-badge');
+                    if (badgeDesktop) {
+                        badgeDesktop.textContent = pending_count > 0 ? pending_count : '';
+                        badgeDesktop.classList.toggle('hidden', pending_count <= 0);
+                    }
+                    if (badgeMobile) {
+                        badgeMobile.textContent = pending_count > 0 ? pending_count : '';
+                        badgeMobile.classList.toggle('hidden', pending_count <= 0);
+                    }
+
+                    if (state.activeRoute === '#/notifications' && typeof renderNotificationsView === 'function') {
+                        const mainEl = document.getElementById('main-content');
+                        if (mainEl) renderNotificationsView(mainEl);
+                    } else if (state.activeRoute.includes('#/substances') || state.activeRoute.includes('#/chemical-materials') || state.activeRoute.includes('#/didactic-materials')) {
+                        const activeInput = document.activeElement;
+                        const isTyping = activeInput && (activeInput.tagName === 'INPUT' || activeInput.tagName === 'TEXTAREA');
+                        if (!isTyping) {
+                            router();
+                        }
+                    }
+                }
+            }
+        } catch (e) {}
+    }, 4000);
+}
+
 window.addEventListener('hashchange', router);
-window.addEventListener('DOMContentLoaded', initApp);
+window.addEventListener('DOMContentLoaded', () => {
+    initApp();
+    initRealtimeSync();
+});

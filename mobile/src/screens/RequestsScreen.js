@@ -16,7 +16,7 @@ import { ThemeContext } from '../context/ThemeContext';
 import { apiService } from '../api/services';
 
 export default function RequestsScreen() {
-  const { role } = useContext(AuthContext);
+  const { role, syncSignal } = useContext(AuthContext);
   const { theme } = useContext(ThemeContext);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +44,7 @@ export default function RequestsScreen() {
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [syncSignal]);
 
   const handleApprove = (reqId) => {
     Alert.alert(

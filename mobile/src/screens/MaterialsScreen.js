@@ -19,7 +19,7 @@ import ChemicalMaterialRegisterModal from '../components/modals/ChemicalMaterial
 import DidacticMaterialRegisterModal from '../components/modals/DidacticMaterialRegisterModal';
 
 export default function MaterialsScreen({ route, navigation }) {
-  const { role, serverUrl } = useContext(AuthContext);
+  const { role, serverUrl, syncSignal } = useContext(AuthContext);
   const { theme } = useContext(ThemeContext);
   const initialTab = route.params?.initialTab || 'quimicos';
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -52,7 +52,7 @@ export default function MaterialsScreen({ route, navigation }) {
 
   useEffect(() => {
     fetchMaterials();
-  }, []);
+  }, [syncSignal]);
 
   const handleOpenRegister = () => {
     if (activeTab === 'quimicos') {
@@ -164,7 +164,7 @@ export default function MaterialsScreen({ route, navigation }) {
             onPress={() => setActiveTab('quimicos')}
           >
             <Text style={[styles.segmentText, activeTab === 'quimicos' ? { color: '#ffffff', fontWeight: '800' } : { color: theme.subtext }]}>
-              🧪 Químicos
+              🧪 Químicos ({chemMaterials.length})
             </Text>
           </TouchableOpacity>
 
@@ -173,12 +173,12 @@ export default function MaterialsScreen({ route, navigation }) {
             onPress={() => setActiveTab('didacticos')}
           >
             <Text style={[styles.segmentText, activeTab === 'didacticos' ? { color: '#ffffff', fontWeight: '800' } : { color: theme.subtext }]}>
-              🎓 Didácticos
+              🎓 Didácticos ({didMaterials.length})
             </Text>
           </TouchableOpacity>
         </View>
 
-        {(role === 'admin' || role === 'responsable') ? (
+        {role !== 'estudiante' ? (
           <TouchableOpacity 
             style={[styles.addBtn, { backgroundColor: theme.brand }]} 
             activeOpacity={0.8}
@@ -203,6 +203,18 @@ export default function MaterialsScreen({ route, navigation }) {
           }
         />
       )}
+
+      {/* FLOATING ACTION BUTTON (FAB) PARA REGISTRAR MÁS FÁCILMENTE */}
+      {role !== 'estudiante' ? (
+        <TouchableOpacity
+          style={[styles.fabBtn, { backgroundColor: theme.brand || '#0d9488' }]}
+          activeOpacity={0.85}
+          onPress={handleOpenRegister}
+        >
+          <Text style={styles.fabBtnIcon}>➕</Text>
+          <Text style={styles.fabBtnText}>Registrar {activeTab === 'quimicos' ? 'Químico' : 'Didáctico'}</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {/* Independent Registration Modals */}
       <ChemicalMaterialRegisterModal
@@ -364,5 +376,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 40,
     fontSize: 14,
+  },
+  fabBtn: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  fabBtnIcon: {
+    fontSize: 16,
+    color: '#ffffff',
+  },
+  fabBtnText: {
+    color: '#ffffff',
+    fontWeight: '800',
+    fontSize: 13,
   },
 });

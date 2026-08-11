@@ -44,6 +44,7 @@ def get_materials():
         query += ''' AND (
             CAST(id AS TEXT) LIKE ? OR
             original_id LIKE ? OR
+            barcode LIKE ? OR
             name LIKE ? OR 
             category LIKE ? OR 
             location LIKE ? OR 
@@ -55,7 +56,7 @@ def get_materials():
             no_sep LIKE ?
         )'''
         like_search = f'%{search}%'
-        params.extend([like_search] * 11)
+        params.extend([like_search] * 12)
 
     if category:
         query += ' AND category LIKE ?'
@@ -88,7 +89,22 @@ def get_material(item_id):
     if not row:
         return jsonify({"status": "error", "message": "Material no encontrado"}), 404
 
-    return jsonify({"status": "success", "data": dict(row)})
+    item_dict = dict(row)
+    if not item_dict.get('qr_path') or not item_dict.get('qr_content'):
+        try:
+            from backend.routes.tools import generate_qr
+            qr_path, qr_content = generate_qr('chemical_materials', item_id, item_dict.get('qr_content'))
+            conn = get_db_connection()
+            c2 = conn.cursor()
+            c2.execute('UPDATE chemical_materials SET qr_path = ?, qr_content = ? WHERE id = ?', (qr_path, qr_content, item_id))
+            conn.commit()
+            conn.close()
+            item_dict['qr_path'] = qr_path
+            item_dict['qr_content'] = qr_content
+        except Exception as e:
+            print("Auto QR error:", e)
+
+    return jsonify({"status": "success", "data": item_dict})
 
 
 @chem_materials_bp.route('/api/chemical-materials/<int:item_id>/siblings', methods=['GET'])
@@ -137,6 +153,25 @@ def get_material_siblings(item_id):
     })
 
 
+@chem_materials_bp.route('/api/chemical-materials/templates', methods=['GET'])
+def get_material_templates():
+    """
+    Retorna productos únicos existentes con sus datos base para autocompletar rápidamente
+    al registrar una nueva unidad física del mismo producto (mismo modelo, distinto No. SEP / Inventario).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT id, name, category, location, status, observations, image_path,
+               COUNT(*) as unit_count
+        FROM chemical_materials
+        GROUP BY LOWER(TRIM(name))
+        ORDER BY name ASC
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
+    return jsonify({"status": "success", "data": [dict(r) for r in rows]})
+
 
 @chem_materials_bp.route('/api/chemical-materials', methods=['POST'])
 def create_material():
@@ -161,8 +196,8 @@ def create_material():
     except ValueError:
         return jsonify({"status": "error", "message": "La cantidad debe ser un número válido"}), 400
 
-    fields = ['category', 'location', 'status', 'responsible', 'observations', 'image_path', 'inventory_number', 'serial_number', 'no_sep', 'original_id']
-    optional_vals = {f: data.get(f, '').strip() if data.get(f) is not None else None for f in fields}
+    fields = ['category', 'capacity', 'location', 'status', 'responsible', 'observations', 'image_path', 'barcode', 'inventory_number', 'serial_number', 'no_sep', 'original_id', 'contents']
+    optional_vals = {f: str(data.get(f)).strip() if data.get(f) is not None else None for f in fields}
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -170,18 +205,18 @@ def create_material():
     try:
         cursor.execute('''
             INSERT INTO chemical_materials (
-                name, category, quantity, unit, location, status, responsible, observations, image_path, inventory_number, serial_number, no_sep, original_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                name, category, capacity, quantity, unit, location, status, responsible, observations, image_path, barcode, inventory_number, serial_number, no_sep, original_id, contents
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            name, optional_vals['category'], quantity, unit, optional_vals['location'],
+            name, optional_vals['category'], optional_vals['capacity'], quantity, unit, optional_vals['location'],
             optional_vals['status'], optional_vals['responsible'], optional_vals['observations'],
-            optional_vals['image_path'], optional_vals['inventory_number'], optional_vals['serial_number'], optional_vals['no_sep'], optional_vals['original_id']
+            optional_vals['image_path'], optional_vals['barcode'], optional_vals['inventory_number'], optional_vals['serial_number'], optional_vals['no_sep'], optional_vals['original_id'], optional_vals['contents']
         ))
         
         record_id = cursor.lastrowid
 
         # Generar QR
-        custom_qr_content = data.get('qr_content', '').strip() or None
+        custom_qr_content = str(data.get('qr_content', '') or '').strip() or None
         qr_path, qr_content = generate_qr('chemical_materials', record_id, custom_qr_content)
 
         cursor.execute('''
@@ -224,20 +259,26 @@ def update_material(item_id):
         conn.close()
         return jsonify({"status": "error", "message": "Material no encontrado"}), 404
 
-    name = data.get('name', '').strip()
-    quantity_str = data.get('quantity', '0')
-    unit = data.get('unit', 'piezas').strip()
+    name = str(data.get('name') if data.get('name') is not None else old_row['name']).strip()
+    quantity_str = data.get('quantity') if data.get('quantity') is not None else old_row['quantity']
+    unit = str(data.get('unit') if data.get('unit') is not None else (old_row['unit'] or 'piezas')).strip()
 
     if not name:
         return jsonify({"status": "error", "message": "El nombre del material es obligatorio"}), 400
 
     try:
         quantity = float(quantity_str)
-    except ValueError:
-        return jsonify({"status": "error", "message": "La cantidad debe ser un número"}), 400
+    except (ValueError, TypeError):
+        quantity = float(old_row['quantity'] or 1.0)
 
-    fields = ['category', 'location', 'status', 'responsible', 'observations', 'image_path', 'inventory_number', 'serial_number', 'no_sep', 'original_id']
-    optional_vals = {f: data.get(f, '').strip() if data.get(f) is not None else None for f in fields}
+    fields = ['category', 'capacity', 'location', 'status', 'responsible', 'observations', 'image_path', 'barcode', 'inventory_number', 'serial_number', 'no_sep', 'original_id', 'contents']
+    optional_vals = {}
+    for f in fields:
+        if f in data and data[f] is not None:
+            val = data[f]
+            optional_vals[f] = str(val).strip()
+        else:
+            optional_vals[f] = old_row[f] if (f in old_row.keys() and old_row[f] is not None) else None
 
     try:
         new_data = {
@@ -248,7 +289,7 @@ def update_material(item_id):
         }
 
         # Manejo de cambios en el QR
-        new_qr_content = data.get('qr_content', '').strip() or f"LAB-CHEMICAL_MATERIALS-{item_id}"
+        new_qr_content = str(data.get('qr_content', '') or '').strip() or f"LAB-CHEMICAL_MATERIALS-{item_id}"
         qr_path = old_row['qr_path']
         qr_content = old_row['qr_content']
         
@@ -260,16 +301,16 @@ def update_material(item_id):
 
         cursor.execute('''
             UPDATE chemical_materials SET
-                name = ?, category = ?, quantity = ?, unit = ?, location = ?, status = ?,
-                responsible = ?, observations = ?, image_path = ?, qr_path = ?, qr_content = ?,
-                inventory_number = ?, serial_number = ?, no_sep = ?, original_id = ?,
+                name = ?, category = ?, capacity = ?, quantity = ?, unit = ?, location = ?, status = ?,
+                responsible = ?, observations = ?, image_path = ?, barcode = ?, qr_path = ?, qr_content = ?,
+                inventory_number = ?, serial_number = ?, no_sep = ?, original_id = ?, contents = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         ''', (
-            name, optional_vals['category'], quantity, unit, optional_vals['location'],
+            name, optional_vals['category'], optional_vals['capacity'], quantity, unit, optional_vals['location'],
             optional_vals['status'], optional_vals['responsible'], optional_vals['observations'],
-            optional_vals['image_path'], qr_path, qr_content,
-            optional_vals['inventory_number'], optional_vals['serial_number'], optional_vals['no_sep'], optional_vals['original_id'],
+            optional_vals['image_path'], optional_vals['barcode'], qr_path, qr_content,
+            optional_vals['inventory_number'], optional_vals['serial_number'], optional_vals['no_sep'], optional_vals['original_id'], optional_vals['contents'],
             item_id
         ))
 
@@ -285,6 +326,75 @@ def update_material(item_id):
         conn.rollback()
         conn.close()
         return safe_db_error(e)
+
+@chem_materials_bp.route('/api/chemical-materials/barcode-lookup/<barcode_val>', methods=['GET'])
+def barcode_lookup(barcode_val):
+    barcode_clean = str(barcode_val).strip()
+    if not barcode_clean:
+        return jsonify({"status": "error", "message": "Código de barras no proporcionado"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # 1. Buscar coincidencia local en inventario
+    cursor.execute('SELECT * FROM chemical_materials WHERE barcode = ? OR inventory_number = ? OR serial_number = ?', (barcode_clean, barcode_clean, barcode_clean))
+    existing = cursor.fetchone()
+    conn.close()
+
+    if existing:
+        return jsonify({
+            "status": "success",
+            "source": "local",
+            "message": "Producto encontrado en inventario local",
+            "data": dict(existing)
+        })
+
+    # 2. Si no existe localmente, consultar API externa de productos (Open Food Facts / Open Products)
+    try:
+        import urllib.request
+        import json
+        req_url = f"https://world.openfoodfacts.org/api/v0/product/{barcode_clean}.json"
+        req = urllib.request.Request(req_url, headers={'User-Agent': 'LabKeep/1.0 (Laboratorio ITMA II)'})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+            if data.get('status') == 1 and data.get('product'):
+                prod = data['product']
+                prod_name = prod.get('product_name_es') or prod.get('product_name') or prod.get('brands') or f"Producto EAN {barcode_clean}"
+                brand = prod.get('brands', '')
+                quantity = prod.get('quantity', '')
+                categories = prod.get('categories', '')
+                image_url = prod.get('image_front_url') or prod.get('image_url')
+
+                extracted = {
+                    "barcode": barcode_clean,
+                    "name": f"{prod_name} {brand}".strip(),
+                    "category": categories.split(',')[0].strip() if categories else "Material Químico / Producto",
+                    "unit": "piezas",
+                    "observations": f"Producto detectado por EAN-13/UPC ({barcode_clean}). Marca: {brand}. Contenido: {quantity}".strip(),
+                    "image_path": image_url or ""
+                }
+                return jsonify({
+                    "status": "success",
+                    "source": "external",
+                    "message": "Información del producto extraída exitosamente",
+                    "data": extracted
+                })
+    except Exception as e:
+        print("Barcode lookup external error:", e)
+
+    # 3. Datos por defecto preparados para el formulario
+    return jsonify({
+        "status": "success",
+        "source": "new",
+        "message": "Código de barras capturado",
+        "data": {
+            "barcode": barcode_clean,
+            "name": f"Material Químico ({barcode_clean})",
+            "category": "Material Químico",
+            "unit": "piezas"
+        }
+    })
+
 
 @chem_materials_bp.route('/api/chemical-materials/<int:item_id>', methods=['DELETE'])
 def delete_material(item_id):

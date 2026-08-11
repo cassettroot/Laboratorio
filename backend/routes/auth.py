@@ -320,30 +320,73 @@ def manage_device(device_id, action):
     except Exception as e:
         return safe_db_error(e)
 
-@auth_bp.route('/api/auth/qr-pairing', methods=['GET'])
-@require_role('admin', 'jefe')
-def get_qr_pairing():
+def _get_server_lan_ip():
     import socket
-    from flask import current_app
-    
-    # Obtener IP local de la red
-    local_ip = "127.0.0.1"
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
-        local_ip = s.getsockname()[0]
+        ip = s.getsockname()[0]
         s.close()
+        if ip and ip != "127.0.0.1":
+            return ip
     except Exception:
         pass
+    try:
+        hostname = socket.gethostname()
+        ip = socket.gethostbyname(hostname)
+        if ip and ip != "127.0.0.1":
+            return ip
+    except Exception:
+        pass
+    try:
+        for item in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ip = item[4][0]
+            if ip and not ip.startswith("127."):
+                return ip
+    except Exception:
+        pass
+    return "127.0.0.1"
 
+@auth_bp.route('/api/auth/qr-pairing', methods=['GET'])
+@require_role('admin', 'jefe')
+def get_qr_pairing():
+    import qrcode
+    import base64
+    from io import BytesIO
+    from flask import current_app
+    import json
+
+    local_ip = _get_server_lan_ip()
     server_url = f"http://{local_ip}:5000"
     app_token = current_app.config.get('MASTER_APP_TOKEN', '')
-    
+
+    payload = json.dumps({
+        "type": "server_pairing",
+        "url": server_url,
+        "token": app_token
+    })
+
+    qr_data_url = None
+    try:
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(payload)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        img_io = BytesIO()
+        img.save(img_io, 'PNG')
+        img_io.seek(0)
+        qr_b64 = base64.b64encode(img_io.getvalue()).decode('utf-8')
+        qr_data_url = f"data:image/png;base64,{qr_b64}"
+    except Exception as e:
+        print("Error al generar QR base64:", e)
+
     return jsonify({
         "status": "success",
         "data": {
             "url": server_url,
-            "token": app_token
+            "token": app_token,
+            "qr_data_url": qr_data_url
         }
     })
 
@@ -353,22 +396,17 @@ def get_qr_image():
     import qrcode
     from io import BytesIO
     from flask import send_file, current_app
-    import socket
     import json
     
-    local_ip = "127.0.0.1"
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        local_ip = s.getsockname()[0]
-        s.close()
-    except Exception:
-        pass
-
+    local_ip = _get_server_lan_ip()
     server_url = f"http://{local_ip}:5000"
     app_token = current_app.config.get('MASTER_APP_TOKEN', '')
     
-    payload = json.dumps({"url": server_url, "token": app_token})
+    payload = json.dumps({
+        "type": "server_pairing",
+        "url": server_url,
+        "token": app_token
+    })
     
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(payload)
@@ -380,3 +418,4 @@ def get_qr_image():
     img_io.seek(0)
     
     return send_file(img_io, mimetype='image/png')
+

@@ -363,6 +363,13 @@ window.showQrPairingModal = async function() {
     try {
         const res = await fetch('/api/auth/qr-pairing').then(r => r.json());
         if (res.status === 'success') {
+            const pairingPayload = JSON.stringify({
+                type: "server_pairing",
+                url: res.data.url,
+                token: res.data.token
+            });
+            const qrImgSrc = res.data.qr_data_url || `/api/auth/qr-image?t=${Date.now()}`;
+            
             const modalHtml = `
                 <div id="qr-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
                     <div class="bg-slate-900 border border-slate-700 rounded-3xl p-8 max-w-sm w-full shadow-2xl relative">
@@ -376,11 +383,13 @@ window.showQrPairingModal = async function() {
                             <h3 class="text-lg font-extrabold text-white">Vincular App Móvil</h3>
                             <p class="text-xs text-slate-400">Escanea este código desde la aplicación móvil de Laboratorio ITMA II para vincularla al servidor.</p>
                             
-                            <div class="bg-white p-4 rounded-2xl shadow-inner inline-block mt-4">
-                                <img src="/api/auth/qr-image?t=${Date.now()}" alt="Código QR" class="w-48 h-48 mx-auto">
+                            <div class="bg-white p-4 rounded-2xl shadow-inner inline-block mt-4 overflow-hidden">
+                                <div id="qr-canvas-container" class="w-48 h-48 mx-auto flex items-center justify-center">
+                                    <img id="qr-pairing-img" src="${qrImgSrc}" alt="Código QR de Vinculación" class="w-48 h-48 mx-auto rounded-lg" onerror="this.onerror=null; this.src='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent('${pairingPayload}');">
+                                </div>
                             </div>
                             
-                            <p class="text-3xs text-slate-500 font-mono mt-2 break-all bg-slate-800 p-2 rounded-lg">
+                            <p class="text-3xs text-slate-400 font-mono mt-2 break-all bg-slate-800/80 p-2.5 rounded-xl border border-slate-700/50">
                                 IP: ${res.data.url}
                             </p>
                         </div>
@@ -389,6 +398,22 @@ window.showQrPairingModal = async function() {
             `;
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             if (window.lucide) window.lucide.createIcons();
+
+            // Generación nativa en cliente usando QRCode.js si está cargado
+            if (typeof QRCode !== 'undefined') {
+                const container = document.getElementById('qr-canvas-container');
+                if (container) {
+                    container.innerHTML = '';
+                    new QRCode(container, {
+                        text: pairingPayload,
+                        width: 192,
+                        height: 192,
+                        colorDark: "#0f172a",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                }
+            }
         } else {
             if (typeof showToast === 'function') showToast(res.message, 'error');
         }

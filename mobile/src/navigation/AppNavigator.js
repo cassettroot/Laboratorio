@@ -23,7 +23,7 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
-  const { role } = useContext(AuthContext);
+  const { role, pendingRequestsCount } = useContext(AuthContext);
   const { theme } = useContext(ThemeContext);
 
   return (
@@ -72,7 +72,15 @@ function MainTabs() {
         <Tab.Screen name="Prestamos" component={LoansScreen} options={{ title: 'Préstamos' }} />
       ) : null}
       {role !== 'estudiante' ? (
-        <Tab.Screen name="Solicitudes" component={RequestsScreen} options={{ title: 'Solicitudes' }} />
+        <Tab.Screen 
+          name="Solicitudes" 
+          component={RequestsScreen} 
+          options={{ 
+            title: 'Solicitudes',
+            tabBarBadge: pendingRequestsCount > 0 ? pendingRequestsCount : undefined,
+            tabBarBadgeStyle: { backgroundColor: '#ef4444', color: '#ffffff', fontSize: 11, fontWeight: 'bold' }
+          }} 
+        />
       ) : null}
       {role !== 'estudiante' ? (
         <Tab.Screen name="Chequeo" component={InventoryCheckScreen} options={{ title: 'Chequeo' }} />

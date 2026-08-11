@@ -96,6 +96,17 @@ def get_substance(item_id):
         return jsonify({"status": "error", "message": "Sustancia no encontrada"}), 404
 
     data = dict(row)
+    if not data.get('qr_path') or not data.get('qr_content'):
+        try:
+            from backend.routes.tools import generate_qr
+            qr_path, qr_content = generate_qr('substances', item_id, data.get('qr_content'))
+            c2 = conn.cursor()
+            c2.execute('UPDATE substances SET qr_path = ?, qr_content = ? WHERE id = ?', (qr_path, qr_content, item_id))
+            conn.commit()
+            data['qr_path'] = qr_path
+            data['qr_content'] = qr_content
+        except Exception as e:
+            print("Auto QR error substances:", e)
 
     # Buscar otras presentaciones del mismo producto (mismo CAS o mismo nombre)
     related_presentations = []
@@ -125,6 +136,58 @@ def get_substance(item_id):
         "data": data,
         "related_presentations": related_presentations
     })
+
+
+@substances_bp.route('/api/substances/<int:item_id>/siblings', methods=['GET'])
+def get_substance_siblings(item_id):
+    """
+    Devuelve todas las unidades / presentaciones de la misma sustancia (mismo nombre o CAS),
+    incluyendo el ítem actual.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT id, name, cas_number FROM substances WHERE id = ?', (item_id,))
+    base = cursor.fetchone()
+    if not base:
+        conn.close()
+        return jsonify({"status": "error", "message": "Sustancia no encontrada"}), 404
+
+    base_name = base['name']
+    base_cas = base['cas_number']
+
+    if base_cas and base_cas.strip():
+        cursor.execute('''
+            SELECT id, name, cas_number, chemical_formula, location, quantity, unit,
+                   observations, qr_content, qr_path, updated_at
+            FROM substances
+            WHERE TRIM(LOWER(name)) = TRIM(LOWER(?)) OR (cas_number IS NOT NULL AND cas_number = ?)
+            ORDER BY id ASC
+        ''', (base_name, base_cas))
+    else:
+        cursor.execute('''
+            SELECT id, name, cas_number, chemical_formula, location, quantity, unit,
+                   observations, qr_content, qr_path, updated_at
+            FROM substances
+            WHERE TRIM(LOWER(name)) = TRIM(LOWER(?))
+            ORDER BY id ASC
+        ''', (base_name,))
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    siblings = [dict(r) for r in rows]
+    total = len(siblings)
+    status_summary = {"Registrado": total}
+
+    return jsonify({
+        "status": "success",
+        "current_id": item_id,
+        "total": total,
+        "siblings": siblings,
+        "status_summary": status_summary
+    })
+
 
 @substances_bp.route('/api/substances', methods=['POST'])
 def create_substance():

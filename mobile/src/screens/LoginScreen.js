@@ -154,6 +154,30 @@ export default function LoginScreen({ navigation }) {
               placeholderTextColor="#94a3b8"
             />
 
+            <TouchableOpacity 
+              style={{
+                backgroundColor: '#0284c7',
+                paddingVertical: 12,
+                paddingHorizontal: 16,
+                borderRadius: 12,
+                alignItems: 'center',
+                marginVertical: 12,
+                flexDirection: 'row',
+                justifyContent: 'center',
+                gap: 8
+              }}
+              onPress={() => {
+                setShowConfigModal(false);
+                if (navigation) {
+                  navigation.navigate('QRScanner');
+                }
+              }}
+            >
+              <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14 }}>
+                📷 Escanear QR para Vincular App
+              </Text>
+            </TouchableOpacity>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity 
                 style={[styles.modalButton, styles.cancelButton]}

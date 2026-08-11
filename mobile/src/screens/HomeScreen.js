@@ -23,7 +23,7 @@ import EquipoRegisterModal from '../components/modals/EquipoRegisterModal';
 import RegistrationSelectorModal from '../components/modals/RegistrationSelectorModal';
 
 export default function HomeScreen({ navigation }) {
-  const { user, role, logout } = useContext(AuthContext);
+  const { user, role, logout, syncSignal } = useContext(AuthContext);
   const { theme, themeName, changeTheme, themesList } = useContext(ThemeContext);
   const [stats, setStats] = useState({ sustancias: 0, chemMaterials: 0, didMaterials: 0, pendingRequests: 0, equipos: 0 });
   const [loading, setLoading] = useState(true);
@@ -98,7 +98,7 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [syncSignal]);
 
   const onRefresh = () => {
     setRefreshing(true);

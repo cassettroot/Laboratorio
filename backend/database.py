@@ -128,6 +128,7 @@ def init_db():
             image_path TEXT,
             qr_path TEXT,
             qr_content TEXT,
+            barcode TEXT,
             inventory_number TEXT,
             serial_number TEXT,
             no_sep TEXT,
@@ -290,6 +291,11 @@ def init_db():
 
     try:
         cursor.execute("ALTER TABLE substances ADD COLUMN presentation_images TEXT")
+    except sqlite3.OperationalError:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE chemical_materials ADD COLUMN barcode TEXT")
     except sqlite3.OperationalError:
         pass
 

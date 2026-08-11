@@ -6,6 +6,7 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { apiService } from '../api/services';
 import { ThemeContext } from '../context/ThemeContext';
+import { AuthContext } from '../context/AuthContext';
 
 const CATEGORIES = [
   { key: 'substances',         label: 'Reactivos y Sustancias',  icon: '🧪', stockField: 'stock_units' },
@@ -16,6 +17,7 @@ const CATEGORIES = [
 
 export default function InventoryCheckScreen({ navigation }) {
   const { theme } = useContext(ThemeContext);
+  const { updateServerUrl } = useContext(AuthContext) || {};
   const [phase, setPhase] = useState('select'); // 'select' | 'checking' | 'done'
   const [category, setCategory] = useState(null);
   const [items, setItems] = useState([]);
@@ -71,6 +73,23 @@ export default function InventoryCheckScreen({ navigation }) {
     setTimeout(() => setCooldown(false), 1200);
 
     try {
+      // Detección especial de QR de vinculación de servidor
+      let isPairing = false;
+      let pUrl = null;
+      try {
+        const parsed = JSON.parse(code);
+        if (parsed && (parsed.type === 'server_pairing' || parsed.url || parsed.server_url)) {
+          isPairing = true;
+          pUrl = parsed.url || parsed.server_url;
+        }
+      } catch (e) {}
+
+      if (isPairing && pUrl) {
+        if (typeof updateServerUrl === 'function') await updateServerUrl(pUrl);
+        Alert.alert('Servidor Vinculado 📲⚡', `La dirección del servidor se ha actualizado a:\n\n${pUrl}`);
+        return;
+      }
+
       const res = await apiService.resolveCheckScan(code);
 
       if (res.status === 'not_found') {

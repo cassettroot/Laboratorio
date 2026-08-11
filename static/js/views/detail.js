@@ -50,15 +50,16 @@ async function renderItemDetail(container, typePath, itemId) {
         const simRes = await fetch(`/api/${apiPath}?similar_to=${item.id}`).then(r => r.json());
         const similars = simRes.data || [];
 
-        // Para materiales quimicos: cargar todas las unidades del mismo articulo (mismo nombre)
+        // Cargar todas las unidades/envases del mismo articulo o sustancia
         let siblings = [];
         let siblingsTotal = 0;
         let siblingsStatusSummary = {};
-        if (typePath === 'chemical-materials') {
-            const sibRes = await fetch(`/api/chemical-materials/${itemId}/siblings`).then(r => r.json());
+        if (typePath === 'chemical-materials' || typePath === 'substances') {
+            const endpoint = typePath === 'chemical-materials' ? `/api/chemical-materials/${itemId}/siblings` : `/api/substances/${itemId}/siblings`;
+            const sibRes = await fetch(endpoint).then(r => r.json());
             if (sibRes.status === 'success') {
-                siblings = sibRes.data || [];
-                siblingsTotal = sibRes.total || 0;
+                siblings = sibRes.siblings || sibRes.data || [];
+                siblingsTotal = sibRes.total || siblings.length;
                 siblingsStatusSummary = sibRes.status_summary || {};
             }
         }
@@ -141,6 +142,44 @@ async function renderItemDetail(container, typePath, itemId) {
                             <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Última Modificación</span><span class="text-xs text-slate-500">${item.updated_at}</span></div>
                         </div>
 
+                        ${(() => {
+                            let parsedContents = [];
+                            if (item.contents) {
+                                try {
+                                    parsedContents = typeof item.contents === 'string' ? JSON.parse(item.contents) : item.contents;
+                                    if (!Array.isArray(parsedContents)) parsedContents = [];
+                                } catch(e) {
+                                    parsedContents = [];
+                                }
+                            }
+                            if (parsedContents.length === 0) return '';
+                            return `
+                                <div class="pt-4 border-t border-slate-100 space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs uppercase font-extrabold tracking-wider text-teal-700 flex items-center gap-1.5">
+                                            <i data-lucide="layers" class="w-4 h-4 text-teal-600"></i>
+                                            <span>📦 Sub-objetos e Inventario Interno del Lote (${parsedContents.length} tipo(s) de objeto)</span>
+                                        </span>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        ${parsedContents.map(sub => `
+                                            <div class="flex items-center gap-3 bg-slate-50 border border-slate-200/90 p-3 rounded-2xl shadow-2xs">
+                                                ${sub.image_path ? `
+                                                    <img src="${sub.image_path}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 cursor-pointer" onclick="openImageViewer('${sub.image_path}', '${sub.name || 'Sub-objeto'}')" />
+                                                ` : `
+                                                    <div class="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shrink-0 font-extrabold text-xs">📦</div>
+                                                `}
+                                                <div class="flex-1 min-w-0">
+                                                    <span class="block text-xs font-bold text-slate-800 truncate">${sub.name || 'Objeto sin nombre'}</span>
+                                                    <span class="inline-block px-2 py-0.5 mt-1 bg-teal-100/80 text-teal-900 font-extrabold text-3xs rounded-md border border-teal-200">${sub.quantity || 1} unidad(es)</span>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        })()}
+
                         ${item.observations ? `
                             <div class="pt-4 border-t border-slate-100 text-sm">
                                 <span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Observaciones</span>
@@ -217,15 +256,16 @@ async function renderItemDetail(container, typePath, itemId) {
                             </div>
                         ` : ''}
 
-                        <div class="flex flex-col items-center border border-slate-200 p-3 rounded-2xl bg-white w-full text-center">
-                            <span class="text-3xs font-semibold uppercase text-slate-400 tracking-wider mb-2">Código QR único</span>
-                            ${item.qr_path ? `
-                                <img src="${item.qr_path}" class="w-32 h-32 object-contain" alt="QR Code">
-                                <span class="text-3xs text-slate-500 font-bold mt-2 truncate max-w-full">${item.qr_content}</span>
-                                <a href="${item.qr_path}" download="qr_${item.name.replace(/ /g, '_')}.png" class="text-3xs font-bold text-brand-600 hover:underline mt-1.5 inline-block no-print">Descargar QR</a>
-                            ` : `
-                                <span class="text-xs text-red-500">QR no generado</span>
-                            `}
+                        <div class="flex flex-col items-center border border-slate-200 p-3.5 rounded-2xl bg-white w-full text-center shadow-xs">
+                            <span class="text-3xs font-extrabold uppercase text-slate-400 tracking-wider mb-2">📱 Código QR de Inventario</span>
+                            <img src="${item.qr_path || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(item.qr_content || `LAB-${typePath.toUpperCase()}-${item.id}`)}`}" 
+                                 onerror="this.onerror=null; this.src='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(item.qr_content || `LAB-${typePath.toUpperCase()}-${item.id}`)}';"
+                                 class="w-36 h-36 object-contain rounded-xl p-1 bg-white border border-slate-100 shadow-2xs" alt="Código QR">
+                            <span class="text-3xs text-slate-600 font-mono font-bold mt-2 truncate max-w-full bg-slate-100 px-2 py-0.5 rounded">${item.qr_content || `LAB-${typePath.toUpperCase()}-${item.id}`}</span>
+                            <a href="${item.qr_path || `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(item.qr_content || `LAB-${typePath.toUpperCase()}-${item.id}`)}`}" download="qr_${(item.name || 'material').replace(/\s+/g, '_')}.png" target="_blank" class="text-xs font-extrabold text-teal-600 hover:text-teal-700 hover:underline mt-2 inline-flex items-center gap-1 no-print">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                <span>Descargar Código QR</span>
+                            </a>
                         </div>
 
                         <button onclick="window.print()" class="w-full no-print bg-slate-800 hover:bg-slate-900 font-bold py-2.5 rounded-xl text-xs text-white flex items-center justify-center gap-2 transition">
@@ -343,8 +383,8 @@ async function renderItemDetail(container, typePath, itemId) {
                     </div>
                 ` : ''}
 
-                ${typePath === 'chemical-materials' && siblings.length > 0 ? `
-                    <!-- UNIDADES EN EXISTENCIA (mismo articulo, diferentes No. Inventario) -->
+                ${(typePath === 'chemical-materials' || typePath === 'substances') && siblings.length > 0 ? `
+                    <!-- UNIDADES EN EXISTENCIA (mismo articulo o sustancia) -->
                     <div class="border-t border-slate-100 pt-8 no-print">
                         <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
                             <h3 class="font-bold text-slate-900 flex items-center gap-2 text-base">
@@ -356,7 +396,7 @@ async function renderItemDetail(container, typePath, itemId) {
                                     </span>
                                 </span>
                             </h3>
-                            <div class="flex flex-wrap gap-2">
+                            <div class="flex flex-wrap items-center gap-2">
                                 ${Object.entries(siblingsStatusSummary).map(([st, cnt]) => `
                                     <span class="text-2xs font-bold px-2.5 py-1 rounded-lg border
                                         ${st === 'Buenas Condiciones' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
@@ -365,6 +405,12 @@ async function renderItemDetail(container, typePath, itemId) {
                                         ${cnt} · ${st}
                                     </span>
                                 `).join('')}
+                                ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
+                                    <button onclick="openDuplicateMaterialModal(${item.id})" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-3 py-1.5 rounded-xl shadow transition flex items-center gap-1.5 ml-2">
+                                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                                        <span>+ Registrar otra unidad (Nuevo No. SEP)</span>
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
 
