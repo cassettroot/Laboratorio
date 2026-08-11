@@ -833,7 +833,7 @@ export default function DetailScreen({ route, navigation }) {
 
           <View style={styles.badgePrimary}>
             <Text style={styles.badgePrimaryText}>
-              📦 Stock: {item.quantity || item.stock || 1} {item.unit || 'envase(s)'} {totalSubPieces > 0 ? `(${totalSubPieces} piezas en kit)` : ''}
+              📦 Stock: {totalSubPieces > 0 ? `${totalSubPieces} piezas en kit` : `${item.quantity || item.stock || 1} ${item.unit || 'piezas'}`}
             </Text>
           </View>
 

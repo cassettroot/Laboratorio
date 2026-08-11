@@ -73,6 +73,26 @@ export default function MaterialsScreen({ route, navigation }) {
     );
   });
 
+  const getItemPieceCount = (item) => {
+    if (!item) return 1;
+    const rawContents = item.contents || item.container_content || '';
+    if (rawContents) {
+      if (typeof rawContents === 'string' && (rawContents.trim().startsWith('[') || rawContents.trim().startsWith('{'))) {
+        try {
+          const parsed = JSON.parse(rawContents);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const sum = parsed.reduce((acc, sub) => acc + (parseInt(sub.quantity, 10) || 1), 0);
+            if (sum > 0) return sum;
+          }
+        } catch (e) {}
+      } else if (Array.isArray(rawContents) && rawContents.length > 0) {
+        const sum = rawContents.reduce((acc, sub) => acc + (parseInt(sub.quantity, 10) || 1), 0);
+        if (sum > 0) return sum;
+      }
+    }
+    return parseInt(item.quantity || item.stock || 1, 10);
+  };
+
   const renderItem = ({ item }) => {
     const photoUri = getImageUrl(item.image_path, serverUrl);
     const isChem = activeTab === 'quimicos';
@@ -105,7 +125,7 @@ export default function MaterialsScreen({ route, navigation }) {
               </Text>
               <View style={[styles.badge, { backgroundColor: theme.accentBg || 'rgba(56, 189, 248, 0.15)', borderColor: theme.brand }]}>
                 <Text style={[styles.badgeText, { color: theme.brand }]}>
-                  {item.quantity || item.stock || 1} {item.unit || 'piezas'}
+                  {getItemPieceCount(item)} piezas
                 </Text>
               </View>
             </View>
