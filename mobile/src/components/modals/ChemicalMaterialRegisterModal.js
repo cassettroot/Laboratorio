@@ -579,17 +579,57 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
                 />
               </View>
 
-              {/* CANTIDAD EN FILA DEDICADA */}
+              {/* CANTIDAD EN FILA DEDICADA CON STEPPER + - */}
               <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Cantidad / Stock Inicial *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="1"
-                  keyboardType="numeric"
-                  placeholderTextColor="#94a3b8"
-                  value={stock}
-                  onChangeText={setStock}
-                />
+                <Text style={styles.label}>Cantidad / Stock del Material *</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#fee2e2',
+                      borderWidth: 1.5,
+                      borderColor: '#fca5a5',
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    }}
+                    onPress={() => {
+                      const val = Math.max(0, (parseInt(stock, 10) || 1) - 1);
+                      setStock(String(val));
+                    }}
+                  >
+                    <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#ef4444' }}>-</Text>
+                  </TouchableOpacity>
+
+                  <TextInput
+                    style={[styles.input, { flex: 1, textAlign: 'center', fontSize: 16, fontWeight: 'bold' }]}
+                    placeholder="1"
+                    keyboardType="numeric"
+                    placeholderTextColor="#94a3b8"
+                    value={stock}
+                    onChangeText={setStock}
+                  />
+
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#ccfbf1',
+                      borderWidth: 1.5,
+                      borderColor: '#5eead4',
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    }}
+                    onPress={() => {
+                      const val = (parseInt(stock, 10) || 0) + 1;
+                      setStock(String(val));
+                    }}
+                  >
+                    <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#0f766e' }}>+</Text>
+                  </TouchableOpacity>
+                </View>
 
                 {parseInt(stock, 10) > 1 && !prefillItem?.id ? (
                   <View style={{ backgroundColor: '#f0fdf4', borderWidth: 1.5, borderColor: '#86efac', padding: 12, borderRadius: 12, marginTop: 10 }}>
