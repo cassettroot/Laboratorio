@@ -27,14 +27,14 @@ async function renderHistoryView(container) {
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase tracking-wider text-xs">
-                                <th class="py-4 px-6">Fecha y Hora</th>
-                                <th class="py-4 px-6">Responsable</th>
-                                <th class="py-4 px-6">Acción</th>
-                                <th class="py-4 px-6">Módulo / ID</th>
-                                <th class="py-4 px-6">Campo Modificado</th>
-                                <th class="py-4 px-6">Valor Anterior</th>
-                                <th class="py-4 px-6">Valor Nuevo</th>
+                            <tr class="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                                <th class="py-3 px-4 whitespace-nowrap w-1">Fecha y Hora</th>
+                                <th class="py-3 px-4 whitespace-nowrap w-1">Responsable</th>
+                                <th class="py-3 px-4 whitespace-nowrap w-1">Acción</th>
+                                <th class="py-3 px-4 whitespace-nowrap w-1">Módulo / ID</th>
+                                <th class="py-3 px-4 whitespace-nowrap w-1">Campo Modificado</th>
+                                <th class="py-3 px-4 w-1/2 min-w-[200px]">Valor Anterior</th>
+                                <th class="py-3 px-4 w-1/2 min-w-[200px]">Valor Nuevo</th>
                             </tr>
                         </thead>
                         <tbody id="history-table-body" class="divide-y divide-slate-100 text-slate-700 font-medium">
@@ -78,8 +78,89 @@ async function renderHistoryView(container) {
 
                 const labelTable = h.table_name === 'substances' ? 'Sustancias' : (h.table_name === 'chemical_materials' ? 'Mat. Químico' : (h.table_name === 'loans' ? 'Préstamos' : h.table_name));
 
-                let valHtml = h.new_value || '-';
-                if (h.new_value && h.new_value.startsWith('/static/uploads/photos/')) {
+                const formatJsonValue = (val) => {
+                    if (val === '-' || val === undefined || val === null) return '-';
+                    let obj = val;
+                    if (typeof val === 'string' && (val.trim().startsWith('[') || val.trim().startsWith('{'))) {
+                        try { obj = JSON.parse(val); } catch (e) { return val; }
+                    }
+                    
+                    if (typeof obj === 'object' && obj !== null) {
+                        if (Array.isArray(obj)) {
+                            if (obj.length === 0) return '<span class="text-slate-400 italic text-xs">Vacío</span>';
+                            return '<ul class="space-y-1.5 mt-1 min-w-[200px]">' + obj.map(item => {
+                                if (typeof item === 'object' && item !== null) {
+                                    let mainName = '';
+                                    let details = [];
+                                    let imgHtml = '';
+                                    for (const [k, v] of Object.entries(item)) {
+                                        const isImageUrl = typeof v === 'string' && (v.match(/\.(jpeg|jpg|png|gif|webp)$/i) || v.startsWith('/static/uploads/'));
+                                        if (isImageUrl) {
+                                            imgHtml += `<a href="${v}" target="_blank" title="Ver imagen: ${k}"><img src="${v}" class="w-10 h-10 rounded-md object-cover border border-slate-300 shadow-sm hover:scale-105 transition shrink-0 ml-2"></a>`;
+                                        } else if (k === 'name' || k === 'nombre') {
+                                            mainName = `<span class="font-bold text-slate-800 block text-sm mb-1">${v}</span>`;
+                                        } else {
+                                            // Format key nicely (e.g. image_path -> Image Path)
+                                            const niceKey = k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                            details.push(`<span class="text-slate-500 text-[11px] shrink-0">${niceKey}:</span> <span class="font-medium text-slate-800 text-[11px] mr-2 break-all">${v}</span>`);
+                                        }
+                                    }
+                                    return `<li class="bg-white p-3 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between gap-3">
+                                                <div class="flex-1 min-w-0">
+                                                    ${mainName}
+                                                    <div class="flex flex-wrap items-center mt-1">${details.join('')}</div>
+                                                </div>
+                                                <div class="flex shrink-0">${imgHtml}</div>
+                                            </li>`;
+                                } else {
+                                    return `<li class="bg-slate-50 p-2 rounded-lg border border-slate-200/60 shadow-sm text-xs font-medium text-slate-700">${item}</li>`;
+                                }
+                            }).join('') + '</ul>';
+                        } else {
+                            if (Object.keys(obj).length === 0) return '<span class="text-slate-400 italic text-xs">Vacío</span>';
+                            let details = [];
+                            for (const [k, v] of Object.entries(obj)) {
+                                details.push(`<div class="flex justify-between items-center py-0.5 border-b border-slate-100 last:border-0 gap-2"><span class="text-slate-500 capitalize text-[10px] shrink-0">${k}:</span> <span class="font-medium text-slate-800 text-[10px] text-right break-all">${v}</span></div>`);
+                            }
+                            return `<div class="bg-slate-50 p-2 rounded-lg border border-slate-200/60 shadow-sm min-w-[180px] break-words">${details.join('')}</div>`;
+                        }
+                    }
+                    return val;
+                };
+
+                const diffJson = (oldStr, newStr) => {
+                    let oldObj = oldStr, newObj = newStr;
+                    try { if (typeof oldStr === 'string' && (oldStr.trim().startsWith('[') || oldStr.trim().startsWith('{'))) oldObj = JSON.parse(oldStr); } catch(e) {}
+                    try { if (typeof newStr === 'string' && (newStr.trim().startsWith('[') || newStr.trim().startsWith('{'))) newObj = JSON.parse(newStr); } catch(e) {}
+                    
+                    if (typeof oldObj === 'object' && typeof newObj === 'object' && oldObj !== null && newObj !== null) {
+                        if (Array.isArray(oldObj) && Array.isArray(newObj)) {
+                            const oldDiff = [];
+                            const newDiff = [];
+                            const newMap = new Set(newObj.map(o => JSON.stringify(o)));
+                            const oldMap = new Set(oldObj.map(o => JSON.stringify(o)));
+                            oldObj.forEach(o => { if (!newMap.has(JSON.stringify(o))) oldDiff.push(o); });
+                            newObj.forEach(o => { if (!oldMap.has(JSON.stringify(o))) newDiff.push(o); });
+                            return { oldVal: oldDiff.length ? oldDiff : '-', newVal: newDiff.length ? newDiff : '-' };
+                        } else {
+                            const oldDiff = {};
+                            const newDiff = {};
+                            for (const key of new Set([...Object.keys(oldObj || {}), ...Object.keys(newObj || {})])) {
+                                if (JSON.stringify(oldObj[key]) !== JSON.stringify(newObj[key])) {
+                                    if (oldObj[key] !== undefined) oldDiff[key] = oldObj[key];
+                                    if (newObj[key] !== undefined) newDiff[key] = newObj[key];
+                                }
+                            }
+                            return { oldVal: Object.keys(oldDiff).length ? oldDiff : '-', newVal: Object.keys(newDiff).length ? newDiff : '-' };
+                        }
+                    }
+                    return { oldVal: oldStr, newVal: newStr };
+                };
+
+                const { oldVal: diffOld, newVal: diffNew } = h.action === 'EDICION' ? diffJson(h.old_value, h.new_value) : { oldVal: h.old_value, newVal: h.new_value };
+
+                let valHtml = diffNew === '-' ? '-' : diffNew;
+                if (h.new_value && typeof h.new_value === 'string' && h.new_value.startsWith('/static/uploads/photos/')) {
                     valHtml = `
                         <div class="flex items-center gap-2">
                             <a href="${h.new_value}" target="_blank" class="block w-10 h-10 rounded-lg overflow-hidden border border-slate-300 hover:opacity-80 transition shrink-0" title="Ver Evidencia de Devolución">
@@ -88,24 +169,28 @@ async function renderHistoryView(container) {
                             <span class="text-3xs text-emerald-700 font-bold">📸 Evidencia de Entrega</span>
                         </div>
                     `;
+                } else {
+                    valHtml = formatJsonValue(diffNew);
                 }
+
+                let oldValHtml = formatJsonValue(diffOld);
 
                 return `
                     <tr class="hover:bg-slate-50/50 transition">
-                        <td class="py-3.5 px-6 text-slate-500 font-semibold text-xs whitespace-nowrap">${h.timestamp}</td>
-                        <td class="py-3.5 px-6 font-bold text-slate-900">${h.user_responsible}</td>
-                        <td class="py-3.5 px-6">
-                            <span class="px-2 py-0.5 text-2xs font-bold border rounded-md uppercase tracking-wider ${actionBadgeColor}">
+                        <td class="py-3 px-4 text-slate-500 font-semibold text-[11px] whitespace-nowrap">${h.timestamp}</td>
+                        <td class="py-3 px-4 font-bold text-slate-900 text-[11px] whitespace-nowrap">${h.user_responsible}</td>
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            <span class="px-2 py-0.5 text-[9px] font-bold border rounded-md uppercase tracking-wider ${actionBadgeColor}">
                                 ${h.action}
                             </span>
                         </td>
-                        <td class="py-3.5 px-6">
-                            <div class="font-bold text-slate-800">${labelTable}</div>
-                            <div class="text-3xs text-slate-400 font-bold uppercase">Folio: #PR-${h.record_id}</div>
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            <div class="font-bold text-slate-800 text-[11px]">${labelTable}</div>
+                            <div class="text-[9px] text-slate-400 font-bold uppercase">Folio: #PR-${h.record_id}</div>
                         </td>
-                        <td class="py-3.5 px-6 text-brand-700 font-bold">${h.field_name || '-'}</td>
-                        <td class="py-3.5 px-6 text-slate-600 font-medium max-w-[200px]" title="${h.old_value || ''}">${h.old_value || '-'}</td>
-                        <td class="py-3.5 px-6 text-slate-950 font-semibold">${valHtml}</td>
+                        <td class="py-3 px-4 text-brand-700 font-bold text-[11px] truncate max-w-[120px]" title="${h.field_name || ''}">${h.field_name || '-'}</td>
+                        <td class="py-3 px-4 text-slate-600 font-medium align-top">${oldValHtml}</td>
+                        <td class="py-3 px-4 text-slate-950 font-semibold align-top">${valHtml}</td>
                     </tr>
                 `;
             }).join('');
