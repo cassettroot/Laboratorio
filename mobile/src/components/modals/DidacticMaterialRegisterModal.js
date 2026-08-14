@@ -53,7 +53,7 @@ export default function DidacticMaterialRegisterModal({ visible, onClose, onSucc
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.6,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setPhotoUri(result.assets[0].uri);
@@ -74,7 +74,7 @@ export default function DidacticMaterialRegisterModal({ visible, onClose, onSucc
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.6,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setPhotoUri(result.assets[0].uri);

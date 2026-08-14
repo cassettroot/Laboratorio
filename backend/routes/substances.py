@@ -20,6 +20,7 @@ def get_substances():
     """
     search = request.args.get('search', '').strip()
     physical_state = request.args.get('physical_state', '').strip()
+    added_recent = request.args.get('added_recent', '').strip()
     color = request.args.get('color', '').strip()
     location = request.args.get('location', '').strip()
     similar_to = request.args.get('similar_to', '').strip()
@@ -74,6 +75,20 @@ def get_substances():
     if location:
         query += ' AND location LIKE ?'
         params.append(f'%{location}%')
+
+    if added_recent:
+        if added_recent == 'today':
+            query += ''' AND (
+                (created_at IS NOT NULL AND created_at != '' AND (date(created_at) = date('now', 'localtime') OR date(created_at) = date('now'))) OR 
+                (entry_date IS NOT NULL AND entry_date != '' AND (date(entry_date) = date('now', 'localtime') OR date(entry_date) = date('now') OR entry_date = strftime('%Y-%m-%d', 'now', 'localtime') OR entry_date = strftime('%Y-%m-%d', 'now')))
+            )'''
+        elif added_recent in ('7d', '30d', '90d'):
+            days_map = {'7d': '-7 days', '30d': '-30 days', '90d': '-90 days'}
+            interval = days_map[added_recent]
+            query += f''' AND (
+                (created_at IS NOT NULL AND created_at != '' AND date(created_at) >= date('now', '{interval}', 'localtime')) OR 
+                (entry_date IS NOT NULL AND entry_date != '' AND date(entry_date) >= date('now', '{interval}', 'localtime'))
+            )'''
 
     # Ordenar por fecha de última actualización o ID de forma descendente
     query += ' ORDER BY id DESC'

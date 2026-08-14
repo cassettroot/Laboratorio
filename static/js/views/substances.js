@@ -3,6 +3,77 @@ function formatChemicalFormulaHtml(formula) {
     return formula.replace(/([A-Za-z\)])(\d+)/g, '$1<sub>$2</sub>');
 }
 
+function getAddedDateFormatted(s) {
+    const rawDate = s.created_at || s.entry_date;
+    if (!rawDate) return '';
+    try {
+        const d = new Date(rawDate.includes(' ') ? rawDate.replace(' ', 'T') : rawDate);
+        if (!isNaN(d.getTime())) {
+            return d.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        }
+    } catch(e) {}
+    return (rawDate || '').split(' ')[0];
+}
+
+function getItemDateString(s) {
+    const raw = (s.created_at || s.entry_date || '').trim();
+    if (!raw) return null;
+    const matchISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (matchISO) {
+        return `${matchISO[1]}-${matchISO[2]}-${matchISO[3]}`;
+    }
+    const matchLat = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (matchLat) {
+        return `${matchLat[3]}-${matchLat[2]}-${matchLat[1]}`;
+    }
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+    return null;
+}
+
+function getItemDateObject(s) {
+    const dateStr = getItemDateString(s);
+    if (!dateStr) return null;
+    const parts = dateStr.split('-');
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+}
+
+function matchesAddedRecentFilter(s, filterKey) {
+    if (!filterKey) return true;
+    const itemDateObj = getItemDateObject(s);
+    if (!itemDateObj) return false;
+
+    const now = new Date();
+    const todayObj = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (filterKey === 'today') {
+        return itemDateObj.getTime() === todayObj.getTime();
+    }
+
+    const diffTime = todayObj.getTime() - itemDateObj.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (filterKey === '7d') return diffDays >= 0 && diffDays <= 7;
+    if (filterKey === '30d') return diffDays >= 0 && diffDays <= 30;
+    if (filterKey === '90d') return diffDays >= 0 && diffDays <= 90;
+
+    return true;
+}
+
+function isRecentlyAdded(s, days = 7) {
+    const itemDateObj = getItemDateObject(s);
+    if (!itemDateObj) return false;
+    const now = new Date();
+    const todayObj = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffDays = Math.floor((todayObj.getTime() - itemDateObj.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= days;
+}
+
 function buildGroupBadgesHtml(substance_group) {
     if (!substance_group) return '';
     const groups = substance_group.split(/[,/;|]/).map(g => g.trim()).filter(Boolean);
@@ -77,7 +148,9 @@ function resetSubstancesFilters() {
         group: '',
         physical_state: '',
         completeness: '',
+        risk: '',
         location: '',
+        added_recent: '',
         isPanelOpen: false,
         areFiltersActive: false
     };
@@ -89,6 +162,7 @@ function resetSubstancesFilters() {
     const completeness = document.getElementById('filter-completeness');
     const risk = document.getElementById('filter-risk');
     const loc = document.getElementById('filter-location');
+    const addedRecent = document.getElementById('filter-added-recent');
 
     if (search) search.value = '';
     if (sort) sort.value = 'name_asc';
@@ -97,6 +171,7 @@ function resetSubstancesFilters() {
     if (completeness) completeness.value = '';
     if (risk) risk.value = '';
     if (loc) loc.value = '';
+    if (addedRecent) addedRecent.value = '';
 
     const badge = document.getElementById('active-filters-badge');
     if (badge) {
@@ -116,6 +191,7 @@ async function renderSubstancesList(container) {
             completeness: '',
             risk: '',
             location: '',
+            added_recent: '',
             isPanelOpen: false,
             areFiltersActive: false
         };
@@ -190,7 +266,7 @@ async function renderSubstancesList(container) {
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
                         <div>
                             <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ordenar por</label>
                             <select id="sort-substances" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
@@ -202,6 +278,17 @@ async function renderSubstancesList(container) {
                                 <option value="quantity_asc" ${f.sort === 'quantity_asc' ? 'selected' : ''}>📦 Stock (Menor a Mayor)</option>
                                 <option value="id_desc" ${f.sort === 'id_desc' ? 'selected' : ''}>🆕 Registro (Más recientes)</option>
                                 <option value="id_asc" ${f.sort === 'id_asc' ? 'selected' : ''}>⌛ Registro (Más antiguos)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">📅 Agregado Recientemente</label>
+                            <select id="filter-added-recent" class="w-full bg-emerald-50/60 border border-emerald-300 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-950 outline-none focus:border-brand-500">
+                                <option value="" ${!f.added_recent ? 'selected' : ''}>-- Todas las fechas --</option>
+                                <option value="today" ${f.added_recent === 'today' ? 'selected' : ''}>🆕 Agregados Hoy</option>
+                                <option value="7d" ${f.added_recent === '7d' ? 'selected' : ''}>📅 Últimos 7 días</option>
+                                <option value="30d" ${f.added_recent === '30d' ? 'selected' : ''}>📅 Últimos 30 días</option>
+                                <option value="90d" ${f.added_recent === '90d' ? 'selected' : ''}>📅 Últimos 90 días</option>
                             </select>
                         </div>
 
@@ -279,6 +366,7 @@ async function renderSubstancesList(container) {
         const groupVal = document.getElementById('group-substances')?.value || '';
         const completenessVal = f.areFiltersActive ? (document.getElementById('filter-completeness')?.value || '') : '';
         const riskVal = f.areFiltersActive ? (document.getElementById('filter-risk')?.value || '') : '';
+        const addedRecentVal = document.getElementById('filter-added-recent')?.value || f.added_recent || '';
 
         // Persistir en objeto de estado global
         if (!state.substancesFilters) state.substancesFilters = {};
@@ -289,6 +377,7 @@ async function renderSubstancesList(container) {
         state.substancesFilters.group = groupVal;
         state.substancesFilters.completeness = completenessVal;
         state.substancesFilters.risk = riskVal;
+        state.substancesFilters.added_recent = addedRecentVal;
 
         // Contador de Filtros Activos
         let activeCount = 0;
@@ -297,6 +386,7 @@ async function renderSubstancesList(container) {
         if (physical_state) activeCount++;
         if (completenessVal) activeCount++;
         if (riskVal) activeCount++;
+        if (addedRecentVal) activeCount++;
         if (location && location.trim() !== '') activeCount++;
 
         const badge = document.getElementById('active-filters-badge');
@@ -329,9 +419,14 @@ async function renderSubstancesList(container) {
             if (search) url.searchParams.append('search', search);
             if (physical_state) url.searchParams.append('physical_state', physical_state);
             if (location) url.searchParams.append('location', location);
+            if (addedRecentVal) url.searchParams.append('added_recent', addedRecentVal);
 
             const res = await fetch(url).then(r => r.json());
             let substancesList = res.data || [];
+
+            if (addedRecentVal) {
+                substancesList = substancesList.filter(s => matchesAddedRecentFilter(s, addedRecentVal));
+            }
 
             const completeness = f.areFiltersActive ? (document.getElementById('filter-completeness')?.value || '') : '';
             if (completeness === 'incomplete') {
@@ -381,7 +476,14 @@ async function renderSubstancesList(container) {
             state.substances = substancesList;
 
             if (state.substances.length === 0) {
-                dataContainer.innerHTML = `<div class="bg-white border rounded-3xl p-12 text-center text-slate-400">No se encontraron sustancias con los filtros aplicados.</div>`;
+                const labelMap = {
+                    'today': 'Agregados Hoy',
+                    '7d': 'Últimos 7 días',
+                    '30d': 'Últimos 30 días',
+                    '90d': 'Últimos 90 días'
+                };
+                const filterText = labelMap[addedRecentVal] ? `con el filtro de fecha "${labelMap[addedRecentVal]}"` : 'con los filtros aplicados';
+                dataContainer.innerHTML = `<div class="bg-slate-900/90 border border-slate-700/80 rounded-3xl p-12 text-center text-slate-300 font-bold">No se encontraron sustancias químicas ${filterText}.</div>`;
                 return;
             }
 
@@ -459,6 +561,7 @@ async function renderSubstancesList(container) {
     document.getElementById('filter-completeness')?.addEventListener('change', fetchAndRender);
     document.getElementById('filter-risk')?.addEventListener('change', fetchAndRender);
     document.getElementById('filter-location')?.addEventListener('input', fetchAndRender);
+    document.getElementById('filter-added-recent')?.addEventListener('change', fetchAndRender);
 
     fetchAndRender();
 }
@@ -538,7 +641,10 @@ function renderSubstancesBlock(items, mode) {
                                                 </div>
                                                 <div>
                                                     <a href="#/substances/${s.id}" class="text-sm font-bold text-slate-900 hover:text-brand-600 transition block">${s.name}</a>
-                                                    <span class="text-3xs text-slate-400 uppercase tracking-wider font-mono">LAB-SUB-${s.id}</span>
+                                                    <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                                                        <span class="text-3xs text-slate-400 uppercase tracking-wider font-mono">LAB-SUB-${s.id}</span>
+                                                        ${getAddedDateFormatted(s) ? `<span class="text-3xs font-extrabold ${isRecentlyAdded(s, 7) ? 'text-emerald-600 bg-emerald-50 border border-emerald-200' : 'text-slate-500 bg-slate-100 border border-slate-200'} px-2 py-0.5 rounded-md inline-flex items-center gap-1">🗓️ Agregado: ${getAddedDateFormatted(s)}</span>` : ''}
+                                                    </div>
                                                     ${missingBadge}
                                                 </div>
                                             </div>
@@ -663,6 +769,7 @@ function renderSubstancesBlock(items, mode) {
                                         <div class="flex justify-between items-center"><span class="font-extrabold text-white">Estado:</span><span class="font-black text-emerald-400">${s.physical_state || 'N/D'}</span></div>
                                         <div class="flex justify-between items-center"><span class="font-extrabold text-white">Ubicación:</span><span class="font-extrabold text-amber-300 bg-slate-950 px-2 py-0.5 rounded-lg border border-amber-400/50 text-3xs truncate max-w-[130px]" title="${s.location || 'No asignada'}">📍 ${s.location || 'No asignada'}</span></div>
                                         <div class="flex justify-between items-center"><span class="font-extrabold text-white">Total Stock:</span><span class="font-black text-white">${s.quantity} ${s.unit}</span></div>
+                                        <div class="flex justify-between items-center"><span class="font-extrabold text-white">Fecha Agregado:</span><span class="font-black ${isRecentlyAdded(s, 7) ? 'text-emerald-400 font-extrabold bg-emerald-950/80 border border-emerald-500/50 px-2 py-0.5 rounded-lg' : 'text-slate-300'} text-3xs">🗓️ ${getAddedDateFormatted(s) || 'N/D'}</span></div>
                                         ${(() => {
                                             if (!f.areFiltersActive) return '';
                                             const missing = getMissingSubstanceFields(s);
@@ -957,6 +1064,7 @@ window.openQRBatchModal = async function(entityType = 'substances') {
     qrBatchModalState.selectedIds = new Set(items.map(s => s.id));
     qrBatchModalState.searchTerm = '';
     qrBatchModalState.filterType = 'all';
+    qrBatchModalState.dateFilter = 'all';
     qrBatchModalState.itemCopies = {};
     items.forEach(s => {
         qrBatchModalState.itemCopies[s.id] = 1;
@@ -972,15 +1080,14 @@ window.closeQRBatchModal = function() {
 
 window.setQRFilter = function(filterType) {
     qrBatchModalState.filterType = filterType;
-    const items = state.currentQRItems || state.substances || [];
-    let filtered = items;
-    if (filterType === 'liquid') {
-        filtered = items.filter(s => (s.physical_state || '').includes('Líquido'));
-    } else if (filterType === 'solid') {
-        filtered = items.filter(s => (s.physical_state || '').includes('Sólido'));
-    } else if (filterType === 'gas') {
-        filtered = items.filter(s => (s.physical_state || '').includes('Gaseoso'));
-    }
+    const filtered = getFilteredQRSubstances();
+    qrBatchModalState.selectedIds = new Set(filtered.map(s => s.id));
+    renderQRBatchModalDOM();
+};
+
+window.setQRDateFilter = function(dateFilter) {
+    qrBatchModalState.dateFilter = dateFilter;
+    const filtered = getFilteredQRSubstances();
     qrBatchModalState.selectedIds = new Set(filtered.map(s => s.id));
     renderQRBatchModalDOM();
 };
@@ -1032,11 +1139,14 @@ function getFilteredQRSubstances() {
     const substances = state.currentQRItems || state.substances || [];
     const term = (qrBatchModalState.searchTerm || '').toLowerCase().trim();
     const type = qrBatchModalState.filterType;
+    const dateFilter = qrBatchModalState.dateFilter || 'all';
 
     return substances.filter(s => {
         if (type === 'liquid' && !(s.physical_state || '').includes('Líquido')) return false;
         if (type === 'solid' && !(s.physical_state || '').includes('Sólido')) return false;
         if (type === 'gas' && !(s.physical_state || '').includes('Gaseoso')) return false;
+
+        if (dateFilter && dateFilter !== 'all' && !matchesAddedRecentFilter(s, dateFilter)) return false;
 
         if (term) {
             const matchName = (s.name || '').toLowerCase().includes(term);
@@ -1119,6 +1229,7 @@ function renderQRBatchModalDOM() {
                             <span>Fórmula: <strong class="text-slate-200 font-semibold">${s.chemical_formula || '-'}</strong></span>
                             <span>CAS: <strong class="text-slate-200 font-semibold">${s.cas_number || '-'}</strong></span>
                             <span>Stock: <strong class="text-teal-400 font-bold">${s.container_content || `${s.quantity} ${s.unit}`}</strong></span>
+                            ${getAddedDateFormatted(s) ? `<span class="text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded">🗓️ Reg: ${getAddedDateFormatted(s)}</span>` : ''}
                             <span class="text-3xs font-mono text-slate-500">LAB-SUB-${s.id}</span>
                         </div>
                     </div>
@@ -1202,15 +1313,26 @@ function renderQRBatchModalDOM() {
             <div class="p-4 bg-[#111a2e] border-b border-slate-800/80 flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">Filtro rápido:</span>
-                    <button type="button" onclick="setQRFilter('liquid')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'liquid' ? 'bg-teal-600/30 text-teal-300 border-teal-500/50 shadow-sm shadow-teal-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
+                    <button type="button" onclick="setQRFilter('liquid')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'liquid' ? 'bg-teal-600/30 text-teal-300 border-teal-500/50 shadow-sm shadow-teal-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
                         💧 Líquidos (${liquidsCount})
                     </button>
-                    <button type="button" onclick="setQRFilter('solid')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'solid' ? 'bg-amber-600/30 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
+                    <button type="button" onclick="setQRFilter('solid')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'solid' ? 'bg-amber-600/30 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
                         📦 Sólidos / Equipos (${solidsCount})
                     </button>
-                    <button type="button" onclick="setQRFilter('all')" class="px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'all' ? 'bg-cyan-600/30 text-cyan-300 border-cyan-500/50 shadow-sm shadow-cyan-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
+                    <button type="button" onclick="setQRFilter('all')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'all' ? 'bg-cyan-600/30 text-cyan-300 border-cyan-500/50 shadow-sm shadow-cyan-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
                         🧪 Todos (${allSubstances.length})
                     </button>
+
+                    <div class="flex items-center gap-1.5 border-l border-slate-700/80 pl-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">📅 Fecha:</span>
+                        <select id="qr-date-filter-select" onchange="setQRDateFilter(this.value)" class="bg-slate-900 border border-slate-700 text-teal-300 font-extrabold text-xs px-2.5 py-1 rounded-xl outline-none">
+                            <option value="all" ${qrBatchModalState.dateFilter === 'all' ? 'selected' : ''}>-- Todas --</option>
+                            <option value="today" ${qrBatchModalState.dateFilter === 'today' ? 'selected' : ''}>🆕 Agregados Hoy</option>
+                            <option value="7d" ${qrBatchModalState.dateFilter === '7d' ? 'selected' : ''}>📅 Últimos 7 días</option>
+                            <option value="30d" ${qrBatchModalState.dateFilter === '30d' ? 'selected' : ''}>📅 Últimos 30 días</option>
+                            <option value="90d" ${qrBatchModalState.dateFilter === '90d' ? 'selected' : ''}>📅 Últimos 90 días</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
@@ -1324,6 +1446,7 @@ window.downloadSingleSubstanceQRPDF = async function(substanceId) {
                     <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">
                         Stock: ${s.container_content || `${s.quantity} ${s.unit}`} ${item.totalCopies > 1 ? `<span style="color:#0284c7; font-weight:800;">[Envase/Copia ${item.copyIndex}/${item.totalCopies}]</span>` : ''}
                     </div>
+                    ${getAddedDateFormatted(s) ? `<div style="font-size: 7pt; font-weight: bold; color: #047857; margin-top: 1px;">🗓️ Reg: ${getAddedDateFormatted(s)}</div>` : ''}
                     ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
                 </div>
             `).join('')}
@@ -1414,6 +1537,7 @@ window.downloadSelectedQRPDF = async function() {
                         <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">
                             Stock: ${s.container_content || `${s.quantity} ${s.unit}`} ${item.totalCopies > 1 ? `<span style="color:#0284c7; font-weight:800;">[Envase/Copia ${item.copyIndex}/${item.totalCopies}]</span>` : ''}
                         </div>
+                        ${getAddedDateFormatted(s) ? `<div style="font-size: 7pt; font-weight: bold; color: #047857; margin-top: 1px;">🗓️ Reg: ${getAddedDateFormatted(s)}</div>` : ''}
                         ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
                     </div>
                 `;

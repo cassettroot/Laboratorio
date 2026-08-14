@@ -133,11 +133,14 @@ export default function DetailScreen({ route, navigation }) {
     const targetId = targetIdParam || initialItem?.id || paramId || item?.id;
     if (!targetId) return;
     try {
-      const endpoint = (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material') 
-        ? `/api/chemical-materials/${targetId}` 
-        : ((type === 'didactic-materials' || type === 'didactic_materials' || type === 'did_material') 
-            ? `/api/didactic-materials/${targetId}` 
-            : `/api/substances/${targetId}`);
+      let endpoint = `/api/substances/${targetId}`;
+      if (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material') {
+        endpoint = `/api/chemical-materials/${targetId}`;
+      } else if (type === 'didactic-materials' || type === 'didactic_materials' || type === 'did_material') {
+        endpoint = `/api/didactic-materials/${targetId}`;
+      } else if (type === 'equipos' || type === 'equipo') {
+        endpoint = `/api/equipos/${targetId}`;
+      }
       const res = await apiClient.get(endpoint);
       if (res.data && res.data.status === 'success') {
         setItem(res.data.data);
@@ -151,8 +154,14 @@ export default function DetailScreen({ route, navigation }) {
 
   const fetchSiblings = async (targetId) => {
     if (!targetId) return;
+    const isChem = (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material');
+    const isSub = (!type || type === 'substance' || type === 'substances');
+    if (!isChem && !isSub) {
+      setSiblingsList([]);
+      return;
+    }
     try {
-      const endpoint = (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material') 
+      const endpoint = isChem 
         ? `/api/chemical-materials/${targetId}/siblings` 
         : `/api/substances/${targetId}/siblings`;
       const res = await apiClient.get(endpoint);
@@ -176,7 +185,15 @@ export default function DetailScreen({ route, navigation }) {
 
   const handleAssignLocation = async (locationStr) => {
     try {
-      const endpoint = (type === 'chemical-materials' || type === 'chemical_materials') ? `/api/chemical-materials/${item.id}` : ((type === 'didactic-materials' || type === 'didactic_materials') ? `/api/didactic-materials/${item.id}` : `/api/substances/${item.id}`);
+      let endpoint = `/api/substances/${item.id}`;
+      if (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material') {
+        endpoint = `/api/chemical-materials/${item.id}`;
+      } else if (type === 'didactic-materials' || type === 'didactic_materials' || type === 'did_material') {
+        endpoint = `/api/didactic-materials/${item.id}`;
+      } else if (type === 'equipos' || type === 'equipo') {
+        endpoint = `/api/equipos/${item.id}`;
+      }
+      const res = await apiClient.put(endpoint, { location: locationStr });
       const res = await apiClient.put(endpoint, { location: locationStr });
       if (res.data && res.data.status === 'success') {
         Alert.alert('✅ Ubicación Actualizada', `Se registró la ubicación en: "${locationStr}"`);

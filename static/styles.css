@@ -773,3 +773,31 @@ body:not(.theme-light) #space-select-modal input {
     border-color: #334155 !important;
 }
 
+/* Optimización de claridad para imágenes de producto y miniaturas */
+#web-main-img,
+.web-thumb-btn img {
+    background-color: #ffffff !important;
+    color-scheme: light;
+}
+
+body:not(.theme-light) #web-main-img {
+    background-color: #1e293b !important;
+}
+
+.web-thumb-btn {
+    opacity: 0.9 !important;
+}
+
+.web-thumb-btn:hover {
+    opacity: 1 !important;
+}
+
+/* Paginación y Tablas Adaptables de Alto Rendimiento */
+.max-h-32::-webkit-scrollbar {
+    width: 4px;
+}
+.max-h-32::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 4px;
+}
+

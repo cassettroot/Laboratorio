@@ -21,6 +21,7 @@ export default function QRBatchPrintModal({ visible, onClose, substances = [], s
   const [localSubstances, setLocalSubstances] = useState(substances);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all'); // 'all' | 'liquid' | 'solid' | 'gas'
+  const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | '7d' | '30d' | '90d'
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [itemCopies, setItemCopies] = useState({});
   const [loadingAction, setLoadingAction] = useState(false);
@@ -57,6 +58,54 @@ export default function QRBatchPrintModal({ visible, onClose, substances = [], s
     }
   }, [visible, substances]);
 
+  const getItemDateStringMobile = (s) => {
+    const raw = (s.created_at || s.entry_date || '').trim();
+    if (!raw) return null;
+    const matchISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (matchISO) return `${matchISO[1]}-${matchISO[2]}-${matchISO[3]}`;
+    const matchLat = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (matchLat) return `${matchLat[3]}-${matchLat[2]}-${matchLat[1]}`;
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    return null;
+  };
+
+  const getItemDateObjectMobile = (s) => {
+    const dateStr = getItemDateStringMobile(s);
+    if (!dateStr) return null;
+    const parts = dateStr.split('-');
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  };
+
+  const getAddedDateFormattedMobile = (s) => {
+    const d = getItemDateObjectMobile(s);
+    if (!d) return '';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
+  const filterByDateMobile = (item, filterKey) => {
+    if (!filterKey || filterKey === 'all') return true;
+    const itemDateObj = getItemDateObjectMobile(item);
+    if (!itemDateObj) return false;
+    const now = new Date();
+    const todayObj = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (filterKey === 'today') return itemDateObj.getTime() === todayObj.getTime();
+    const diffTime = todayObj.getTime() - itemDateObj.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    if (filterKey === '7d') return diffDays >= 0 && diffDays <= 7;
+    if (filterKey === '30d') return diffDays >= 0 && diffDays <= 30;
+    if (filterKey === '90d') return diffDays >= 0 && diffDays <= 90;
+    return true;
+  };
+
   const liquidsCount = localSubstances.filter(s => s.physical_state === 'Líquido').length;
   const solidsCount = localSubstances.filter(s => s.physical_state === 'Sólido').length;
 
@@ -64,6 +113,8 @@ export default function QRBatchPrintModal({ visible, onClose, substances = [], s
     if (filterType === 'liquid' && s.physical_state !== 'Líquido') return false;
     if (filterType === 'solid' && s.physical_state !== 'Sólido') return false;
     if (filterType === 'gas' && s.physical_state !== 'Gaseoso') return false;
+
+    if (!filterByDateMobile(s, dateFilter)) return false;
 
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
@@ -148,6 +199,7 @@ export default function QRBatchPrintModal({ visible, onClose, substances = [], s
             <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">
                 Stock: ${s.container_content || `${s.quantity} ${s.unit}`} ${item.totalCopies > 1 ? `<span style="color:#0284c7; font-weight:800;">[Envase ${item.copyIndex}/${item.totalCopies}]</span>` : ''}
             </div>
+            ${getAddedDateFormattedMobile(s) ? `<div style="font-size: 7pt; font-weight: bold; color: #047857; margin-top: 1px;">🗓️ Reg: ${getAddedDateFormattedMobile(s)}</div>` : ''}
             ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
         </div>
       `;
@@ -229,7 +281,7 @@ export default function QRBatchPrintModal({ visible, onClose, substances = [], s
               </TouchableOpacity>
             </View>
 
-            {/* Filtros Rápidos */}
+            {/* Filtros Rápidos de Tipo */}
             <View style={styles.filterChipsRow}>
               <TouchableOpacity
                 style={[styles.filterChip, filterType === 'all' && styles.filterChipActiveCyan]}
@@ -256,6 +308,41 @@ export default function QRBatchPrintModal({ visible, onClose, substances = [], s
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Filtros Rápidos por Fecha de Agregado */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 4, paddingHorizontal: 12 }} contentContainerStyle={{ gap: 6 }}>
+              {[
+                { id: 'all', label: 'Todas las fechas' },
+                { id: 'today', label: '🆕 Agregados Hoy' },
+                { id: '7d', label: '📅 Últimos 7 días' },
+                { id: '30d', label: '📅 Últimos 30 días' },
+                { id: '90d', label: '📅 Últimos 90 días' }
+              ].map((chip) => {
+                const isActive = dateFilter === chip.id;
+                return (
+                  <TouchableOpacity
+                    key={chip.id}
+                    onPress={() => {
+                      setDateFilter(chip.id);
+                      const matching = localSubstances.filter(s => filterByDateMobile(s, chip.id));
+                      setSelectedIds(new Set(matching.map(s => s.id)));
+                    }}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 10,
+                      backgroundColor: isActive ? '#0d9488' : 'rgba(30, 41, 59, 0.8)',
+                      borderWidth: 1,
+                      borderColor: isActive ? '#14b8a6' : 'rgba(51, 65, 85, 0.8)'
+                    }}
+                  >
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: isActive ? '#ffffff' : '#94a3b8' }}>
+                      {chip.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
 
             {/* Barra de Búsqueda y Selección Masiva */}
             <View style={styles.searchRow}>

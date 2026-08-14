@@ -152,7 +152,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        quality: 0.8,
+        quality: 0.6,
       });
       if (!result.canceled && result.assets[0]) {
         setImageUri(result.assets[0].uri);
@@ -171,7 +171,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
       }
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
-        quality: 0.8,
+        quality: 0.6,
       });
       if (!result.canceled && result.assets[0]) {
         setImageUri(result.assets[0].uri);
@@ -190,7 +190,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
       }
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
-        quality: 0.8,
+        quality: 0.6,
       });
       if (!result.canceled && result.assets[0]) {
         const photoUri = result.assets[0].uri;
@@ -359,6 +359,10 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
           }
         }
 
+        if (subPhotoPath && (subPhotoPath.startsWith('file://') || subPhotoPath.startsWith('content://'))) {
+          subPhotoPath = null;
+        }
+
         const rawName = (kItem.name || '').trim();
         const displayName = rawName || (subPhotoPath ? `Pieza con Foto #${i + 1}` : `Sub-objeto #${i + 1}`);
 
@@ -367,7 +371,7 @@ export default function ChemicalMaterialRegisterModal({ visible, onClose, onSucc
           quantity: kItem.quantity || 1,
           imageUri: subPhotoPath,
           image_path: subPhotoPath,
-          localUri: kItem.localUri || (subPhotoPath && (subPhotoPath.startsWith('file://') || subPhotoPath.startsWith('content://')) ? subPhotoPath : null)
+          localUri: kItem.localUri || null
         });
       }
 

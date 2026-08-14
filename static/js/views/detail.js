@@ -37,12 +37,23 @@ async function renderItemDetail(container, typePath, itemId) {
             mainPhotoPath = presentationImagesList[0].image_path;
         }
 
+        function isValidServerImageUrl(path) {
+            if (!path || typeof path !== 'string') return false;
+            const trimmed = path.trim();
+            if (!trimmed || trimmed.startsWith('file://') || trimmed.startsWith('content://')) return false;
+            return true;
+        }
+
+        if (mainPhotoPath && !isValidServerImageUrl(mainPhotoPath)) {
+            mainPhotoPath = null;
+        }
+
         if (mainPhotoPath) {
             allWebImages.push({ src: mainPhotoPath, label: 'Fotografía Principal' });
         }
 
         presentationImagesList.forEach((pImg, pIdx) => {
-            if (pImg.image_path && pImg.image_path !== mainPhotoPath) {
+            if (pImg.image_path && isValidServerImageUrl(pImg.image_path) && pImg.image_path !== mainPhotoPath) {
                 allWebImages.push({ src: pImg.image_path, label: pImg.label || `Presentación ${pIdx + 1}` });
             }
         });
@@ -63,7 +74,7 @@ async function renderItemDetail(container, typePath, itemId) {
             }
             parsedContents.forEach((sub, sIdx) => {
                 const subImgPath = sub.image_path || sub.imageUri || sub.photo;
-                if (subImgPath && typeof subImgPath === 'string' && subImgPath.trim() !== '') {
+                if (subImgPath && isValidServerImageUrl(subImgPath)) {
                     if (!allWebImages.some(img => img.src === subImgPath)) {
                         allWebImages.push({ src: subImgPath, label: `Sub-objeto: ${sub.name || `#${sIdx + 1}`}` });
                     }
@@ -188,11 +199,12 @@ async function renderItemDetail(container, typePath, itemId) {
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         ${parsedContents.map(sub => {
-                                             const subPhotoPath = sub.image_path || sub.imageUri || sub.photo;
+                                             let subPhotoPath = sub.image_path || sub.imageUri || sub.photo;
+                                             if (!isValidServerImageUrl(subPhotoPath)) subPhotoPath = null;
                                              return `
                                                  <div class="flex items-center gap-3 bg-slate-50 border border-slate-200/90 p-3 rounded-2xl shadow-2xs">
                                                      ${subPhotoPath ? `
-                                                         <img src="${subPhotoPath}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 cursor-pointer hover:opacity-90 hover:scale-105 transition" onclick="openImageViewer('${subPhotoPath}', '${(sub.name || 'Sub-objeto').replace(/'/g, "\\'")}')" />
+                                                         <img src="${subPhotoPath}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 cursor-pointer hover:opacity-90 hover:scale-105 transition" onclick="openImageViewer('${subPhotoPath}', '${(sub.name || 'Sub-objeto').replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.outerHTML='<div class=\\'w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shrink-0 font-extrabold text-xs\\'>📦</div>';" />
                                                      ` : `
                                                          <div class="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shrink-0 font-extrabold text-xs">📦</div>
                                                      `}
@@ -256,9 +268,9 @@ async function renderItemDetail(container, typePath, itemId) {
                     </div>
 
                     <div class="w-full md:w-64 shrink-0 flex flex-col gap-5 items-center bg-slate-50/50 p-5 rounded-3xl border border-slate-100">
-                        <div class="w-full aspect-square rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm flex items-center justify-center text-slate-300 relative group/dethead cursor-pointer" onclick="openImageViewer(document.getElementById('web-main-img')?.src || '${mainPhotoPath || ''}', '${(item.name || '').replace(/'/g, "\\'")}')" title="Haz clic para ver la foto completa">
+                        <div class="w-full aspect-square rounded-2xl border border-slate-200 overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm flex items-center justify-center text-slate-300 relative group/dethead cursor-pointer" onclick="openImageViewer(document.getElementById('web-main-img')?.src || '${mainPhotoPath || ''}', '${(item.name || '').replace(/'/g, "\\'")}')" title="Haz clic para ver la foto completa">
                             ${allWebImages.length > 0 ? `
-                                <img id="web-main-img" src="${allWebImages[0].src}" class="w-full h-full object-cover group-hover/dethead:scale-105 transition duration-300">
+                                <img id="web-main-img" src="${allWebImages[0].src}" class="w-full h-full object-cover group-hover/dethead:scale-105 transition duration-300 bg-white" onerror="this.onerror=null; this.src='https://api.iconify.design/lucide/package-open.svg?color=%2394a3b8';">
                                 <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/dethead:opacity-100 transition flex items-center justify-center text-white text-3xs font-bold gap-1 backdrop-blur-[1px]">
                                     <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-brand-400"></i>
                                     <span>Ampliar Foto</span>
@@ -277,8 +289,8 @@ async function renderItemDetail(container, typePath, itemId) {
                         ${allWebImages.length > 1 ? `
                             <div class="w-full flex items-center gap-2 overflow-x-auto pb-1">
                                 ${allWebImages.map((img, iIdx) => `
-                                    <button type="button" onclick="changeWebDetailPhoto('${img.src}', '${img.label.replace(/'/g, "\\'")}', this)" class="w-12 h-12 rounded-xl border-2 ${iIdx === 0 ? 'border-brand-500 ring-2 ring-brand-200' : 'border-slate-200 opacity-60 hover:opacity-100'} overflow-hidden shrink-0 transition web-thumb-btn">
-                                        <img src="${img.src}" class="w-full h-full object-cover">
+                                    <button type="button" onclick="changeWebDetailPhoto('${img.src}', '${img.label.replace(/'/g, "\\'")}', this)" class="w-12 h-12 rounded-xl border-2 ${iIdx === 0 ? 'border-brand-500 ring-2 ring-brand-200 opacity-100' : 'border-slate-200 opacity-90 hover:opacity-100'} overflow-hidden shrink-0 transition web-thumb-btn">
+                                        <img src="${img.src}" class="w-full h-full object-cover" onerror="this.closest('.web-thumb-btn')?.remove();">
                                     </button>
                                 `).join('')}
                             </div>
@@ -613,7 +625,7 @@ window.changeWebDetailPhoto = function(src, label, btn) {
     if (mainImg) mainImg.src = src;
     if (badge) badge.innerHTML = `📷 ${label}`;
     document.querySelectorAll('.web-thumb-btn').forEach(b => {
-        b.className = 'w-12 h-12 rounded-xl border-2 border-slate-200 opacity-60 hover:opacity-100 overflow-hidden shrink-0 transition web-thumb-btn';
+        b.className = 'w-12 h-12 rounded-xl border-2 border-slate-200 opacity-90 hover:opacity-100 overflow-hidden shrink-0 transition web-thumb-btn';
     });
-    if (btn) btn.className = 'w-12 h-12 rounded-xl border-2 border-brand-500 ring-2 ring-brand-200 overflow-hidden shrink-0 transition web-thumb-btn';
+    if (btn) btn.className = 'w-12 h-12 rounded-xl border-2 border-brand-500 ring-2 ring-brand-200 opacity-100 overflow-hidden shrink-0 transition web-thumb-btn';
 };

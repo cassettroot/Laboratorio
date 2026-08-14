@@ -38,6 +38,7 @@ export default function SubstancesScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | '7d' | '30d' | '90d'
 
   // Modal para solicitar préstamo
   const [loanModalVisible, setLoanModalVisible] = useState(false);
@@ -154,6 +155,93 @@ export default function SubstancesScreen({ route, navigation }) {
     return text.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   };
 
+  const getItemDateStringMobile = (s) => {
+    const raw = (s.created_at || s.entry_date || '').trim();
+    if (!raw) return null;
+    const matchISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (matchISO) {
+      return `${matchISO[1]}-${matchISO[2]}-${matchISO[3]}`;
+    }
+    const matchLat = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (matchLat) {
+      return `${matchLat[3]}-${matchLat[2]}-${matchLat[1]}`;
+    }
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    return null;
+  };
+
+  const getItemDateObjectMobile = (s) => {
+    const dateStr = getItemDateStringMobile(s);
+    if (!dateStr) return null;
+    const parts = dateStr.split('-');
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  };
+
+  const getAddedDateFormattedMobile = (s) => {
+    const d = getItemDateObjectMobile(s);
+    if (!d) return '';
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
+  const isRecentlyAddedMobile = (s, days = 7) => {
+    const itemDateObj = getItemDateObjectMobile(s);
+    if (!itemDateObj) return false;
+    const now = new Date();
+    const todayObj = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffDays = Math.floor((todayObj.getTime() - itemDateObj.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= days;
+  };
+
+  const filterByDate = (item, filterKey) => {
+    if (!filterKey || filterKey === 'all') return true;
+    const itemDateObj = getItemDateObjectMobile(item);
+    if (!itemDateObj) return false;
+
+    const now = new Date();
+    const todayObj = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (filterKey === 'today') {
+      return itemDateObj.getTime() === todayObj.getTime();
+    }
+
+    const diffTime = todayObj.getTime() - itemDateObj.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (filterKey === '7d') return diffDays >= 0 && diffDays <= 7;
+    if (filterKey === '30d') return diffDays >= 0 && diffDays <= 30;
+    if (filterKey === '90d') return diffDays >= 0 && diffDays <= 90;
+
+    return true;
+  };
+
+  const applyFilters = (list, query, dateKey) => {
+    let result = list;
+    if (query && query.trim()) {
+      const qNorm = normalizeText(query);
+      result = result.filter(item => 
+        normalizeText(item.name).includes(qNorm) ||
+        normalizeText(item.cas_number).includes(qNorm) ||
+        normalizeText(item.chemical_formula).includes(qNorm) ||
+        normalizeText(item.substance_group).includes(qNorm) ||
+        normalizeText(item.responsible).includes(qNorm) ||
+        normalizeText(item.location).includes(qNorm)
+      );
+    }
+    if (dateKey && dateKey !== 'all') {
+      result = result.filter(item => filterByDate(item, dateKey));
+    }
+    setFiltered(result);
+  };
+
   const fetchSubstances = async () => {
     try {
       const res = await apiService.getSubstances();
@@ -167,22 +255,7 @@ export default function SubstancesScreen({ route, navigation }) {
       }
 
       setSubstances(list);
-
-      const currentSearch = search || '';
-      if (!currentSearch.trim()) {
-        setFiltered(list);
-      } else {
-        const qNorm = normalizeText(currentSearch);
-        const result = list.filter(item => 
-          normalizeText(item.name).includes(qNorm) ||
-          normalizeText(item.cas_number).includes(qNorm) ||
-          normalizeText(item.chemical_formula).includes(qNorm) ||
-          normalizeText(item.substance_group).includes(qNorm) ||
-          normalizeText(item.responsible).includes(qNorm) ||
-          normalizeText(item.location).includes(qNorm)
-        );
-        setFiltered(result);
-      }
+      applyFilters(list, search, dateFilter);
     } catch (e) {
       console.warn("Error al cargar sustancias:", e);
     } finally {
@@ -227,7 +300,7 @@ export default function SubstancesScreen({ route, navigation }) {
         mediaTypes: ImagePicker.MediaTypeOptions ? ImagePicker.MediaTypeOptions.Images : 'images',
         allowsEditing: true,
         aspect: [1, 1], // CORTE CUADRADO 1:1 OBLIGATORIO
-        quality: 0.8,
+        quality: 0.6,
       };
 
       const result = fromCamera
@@ -362,20 +435,7 @@ export default function SubstancesScreen({ route, navigation }) {
 
   const handleSearch = (text) => {
     setSearch(text);
-    if (!text.trim()) {
-      setFiltered(substances);
-      return;
-    }
-    const qNorm = normalizeText(text);
-    const result = substances.filter(item => 
-      normalizeText(item.name).includes(qNorm) ||
-      normalizeText(item.cas_number).includes(qNorm) ||
-      normalizeText(item.chemical_formula).includes(qNorm) ||
-      normalizeText(item.substance_group).includes(qNorm) ||
-      normalizeText(item.responsible).includes(qNorm) ||
-      normalizeText(item.location).includes(qNorm)
-    );
-    setFiltered(result);
+    applyFilters(substances, text, dateFilter);
   };
 
   const openLoanModal = async (substance) => {
@@ -514,6 +574,13 @@ export default function SubstancesScreen({ route, navigation }) {
             <View style={styles.cardHeader}>
               <Text style={{ color: theme.id === 'light' ? '#c2410c' : '#fbbf24', fontSize: 10, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: '900' }}>LAB-SUB-{item.id}</Text>
               <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>{item.name}</Text>
+              {getAddedDateFormattedMobile(item) ? (
+                <View style={{ marginTop: 2, flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 9, fontWeight: '800', color: isRecentlyAddedMobile(item, 7) ? '#059669' : theme.subtext }}>
+                    🗓️ Agregado: {getAddedDateFormattedMobile(item)} {isRecentlyAddedMobile(item, 7) ? '✨ (Nuevo)' : ''}
+                  </Text>
+                </View>
+              ) : null}
             </View>
 
             {item.chemical_formula ? (
@@ -541,7 +608,7 @@ export default function SubstancesScreen({ route, navigation }) {
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <View style={{ marginBottom: 12 }}>
         {/* Fila Superior: Buscador Ancho Completo */}
-        <View style={[styles.searchBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, marginBottom: 8 }]}>
+        <View style={[styles.searchBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, marginBottom: 4 }]}>
           <Text style={{ fontSize: 16, marginRight: 6 }}>🔍</Text>
           <TextInput
             style={[styles.searchInput, { flex: 1, color: theme.text }]}
@@ -559,9 +626,43 @@ export default function SubstancesScreen({ route, navigation }) {
           ) : null}
         </View>
 
+        {/* Chips de Filtro por Fecha de Agregado */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 4 }} contentContainerStyle={{ gap: 6, paddingHorizontal: 2 }}>
+          {[
+            { id: 'all', label: 'Todas' },
+            { id: 'today', label: '🆕 Agregados Hoy' },
+            { id: '7d', label: '📅 Últimos 7 días' },
+            { id: '30d', label: '📅 Últimos 30 días' },
+            { id: '90d', label: '📅 Últimos 90 días' }
+          ].map((chip) => {
+            const isActive = dateFilter === chip.id;
+            return (
+              <TouchableOpacity
+                key={chip.id}
+                onPress={() => {
+                  setDateFilter(chip.id);
+                  applyFilters(substances, search, chip.id);
+                }}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 12,
+                  backgroundColor: isActive ? (theme.id === 'light' ? '#0d9488' : '#14b8a6') : (theme.id === 'light' ? '#e2e8f0' : 'rgba(30, 41, 59, 0.8)'),
+                  borderWidth: 1,
+                  borderColor: isActive ? '#0d9488' : (theme.id === 'light' ? '#cbd5e1' : 'rgba(51, 65, 85, 0.8)')
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '700', color: isActive ? '#ffffff' : theme.text }}>
+                  {chip.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
         {/* Fila Inferior: Botones de Acción */}
         {(role === 'admin' || role === 'responsable') ? (
-          <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
+          <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
             <TouchableOpacity style={[styles.qrBtnHeader, { backgroundColor: 'rgba(20, 184, 166, 0.2)', borderColor: 'rgba(20, 184, 166, 0.4)' }]} onPress={() => setShowQRModal(true)}>
               <Text style={[styles.qrBtnHeaderText, { color: '#2dd4bf' }]}>🖨️ QR Masivo</Text>
             </TouchableOpacity>

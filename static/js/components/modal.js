@@ -2,6 +2,21 @@ let currentModalType = '';
 let currentEditId = null;
 let pendingDelete = null;
 
+function getApiPathForType(t) {
+    if (!t) return 'substances';
+    const typeLower = String(t).toLowerCase();
+    if (typeLower === 'chemical_materials' || typeLower === 'chemical-materials' || typeLower === 'chem-materials') {
+        return 'chemical-materials';
+    }
+    if (typeLower === 'didactic_materials' || typeLower === 'didactic-materials' || typeLower === 'did-materials') {
+        return 'didactic-materials';
+    }
+    if (typeLower === 'equipos' || typeLower === 'equipo') {
+        return 'equipos';
+    }
+    return 'substances';
+}
+
 function closeModal() {
     const modal = document.getElementById('item-modal');
     const content = document.getElementById('item-modal-content');
@@ -87,7 +102,7 @@ async function openEditModal(type, id) {
         content.classList.add('scale-100', 'opacity-100');
     }, 50);
 
-    const apiPath = (type === 'chemical_materials' || type === 'chemical-materials') ? 'chemical-materials' : ((type === 'didactic_materials' || type === 'didactic-materials') ? 'didactic-materials' : (type === 'equipos' ? 'equipos' : 'substances'));
+    const apiPath = getApiPathForType(type);
 
     try {
         const res = await fetch(`/api/${apiPath}/${id}`).then(r => r.json());
@@ -912,7 +927,7 @@ async function handleFormSubmit() {
         method = 'PUT';
     } else {
         const isEdit = currentEditId !== null;
-        const apiPath = currentModalType === 'chemical_materials' ? 'chemical-materials' : (currentModalType === 'didactic_materials' ? 'didactic-materials' : 'substances');
+        const apiPath = getApiPathForType(currentModalType);
         url = isEdit ? `/api/${apiPath}/${currentEditId}` : `/api/${apiPath}`;
         method = isEdit ? 'PUT' : 'POST';
     }
@@ -999,7 +1014,7 @@ function deleteItem(type, id) {
         content.classList.add('scale-100', 'opacity-100');
     }, 50);
 
-    pendingDelete = { type, id, label, apiPath: type === 'chemical_materials' ? 'chemical-materials' : (type === 'didactic_materials' ? 'didactic-materials' : 'substances') };
+    pendingDelete = { type, id, label, apiPath: getApiPathForType(type) };
 
     const btnConfirm = document.getElementById('btn-confirm-delete');
     btnConfirm.onclick = executeDelete;

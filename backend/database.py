@@ -50,22 +50,31 @@ def decrypt_username(encrypted_username: str) -> str:
         return encrypted_username
 
 def get_db_connection():
-    """Conecta a la base de datos del inventario indicado en X-Inventory-Id."""
+    """Conecta a la base de datos del inventario indicado en X-Inventory-Id con alta concurrencia WAL."""
     db_path = _get_db_path()
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+    except Exception:
+        pass
     return conn
 
 def get_users_db_connection():
     """Conecta SIEMPRE a la base de datos principal (inventario.db) donde residen las cuentas de usuario."""
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+    except Exception:
+        pass
     return conn
 
 def get_user_by_username(username):
     """Busca un usuario SIEMPRE en inventario.db (BD principal donde viven los usuarios)."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = get_users_db_connection()
     cursor = conn.cursor()
     enc_username = encrypt_username(username)
     cursor.execute('SELECT * FROM users WHERE username = ?', (enc_username,))
@@ -74,8 +83,18 @@ def get_user_by_username(username):
     return user
 
 def init_db():
-    """Inicializa SIEMPRE inventario.db (BD principal)."""
-    conn = sqlite3.connect(DB_PATH)
+    """Inicializa SIEMPRE inventario.db (BD principal) y habilita WAL en todos los inventarios."""
+    for inv_name, db_file in _INVENTORY_DB_MAP.items():
+        try:
+            target_path = os.path.join(_BASE_DIR, db_file)
+            c_target = sqlite3.connect(target_path, timeout=30.0)
+            c_target.execute("PRAGMA journal_mode=WAL;")
+            c_target.execute("PRAGMA synchronous=NORMAL;")
+            c_target.close()
+        except Exception as e:
+            print(f"WAL init warning for {db_file}:", e)
+
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
