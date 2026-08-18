@@ -194,7 +194,6 @@ export default function DetailScreen({ route, navigation }) {
         endpoint = `/api/equipos/${item.id}`;
       }
       const res = await apiClient.put(endpoint, { location: locationStr });
-      const res = await apiClient.put(endpoint, { location: locationStr });
       if (res.data && res.data.status === 'success') {
         Alert.alert('✅ Ubicación Actualizada', `Se registró la ubicación en: "${locationStr}"`);
         setItem(prev => ({ ...prev, location: locationStr }));
