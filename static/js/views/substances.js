@@ -1196,63 +1196,59 @@ function renderQRBatchModalDOM() {
     });
 
     const listHtml = items.length === 0 ? `
-        <div class="py-12 text-center text-slate-400 font-semibold bg-[#111a2d] rounded-2xl border border-slate-800/80">
-            <i data-lucide="search-x" class="w-8 h-8 mx-auto mb-2 text-slate-500 opacity-60"></i>
-            <span>No se encontraron reactivos con el filtro o búsqueda actual.</span>
+        <div class="qr-empty-msg py-12 text-center font-semibold rounded-2xl border">
+            <i data-lucide="search-x" class="w-8 h-8 mx-auto mb-2 opacity-60"></i>
+            <span>No se encontraron reactivos o materiales con el filtro o búsqueda actual.</span>
         </div>
     ` : items.map(s => {
         const isChecked = qrBatchModalState.selectedIds.has(s.id);
         const copies = (qrBatchModalState.itemCopies && qrBatchModalState.itemCopies[s.id]) || 1;
 
         const stateBadgeClass = s.physical_state === 'Líquido' 
-            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' 
+            ? 'bg-cyan-500/20 text-cyan-400 dark:text-cyan-300 border border-cyan-500/40' 
             : (s.physical_state === 'Sólido' 
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
-                : 'bg-purple-500/20 text-purple-300 border border-purple-500/30');
-
-        const cardStyle = isChecked 
-            ? 'bg-teal-950/30 border-2 border-teal-400/80 shadow-md shadow-teal-950/40 text-slate-100' 
-            : 'bg-[#121b2d] border border-slate-800/80 hover:border-slate-700 text-slate-300';
+                ? 'bg-amber-500/20 text-amber-500 dark:text-amber-300 border border-amber-500/40' 
+                : 'bg-purple-500/20 text-purple-500 dark:text-purple-300 border border-purple-500/40');
 
         return `
-            <div class="p-3 rounded-xl transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${cardStyle}">
+            <div class="qr-item-card p-3 rounded-2xl transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${isChecked ? 'is-selected' : ''}">
                 <label class="flex items-center gap-3.5 cursor-pointer flex-1 min-w-0 w-full sm:w-auto">
-                    <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleQRItemSelection(${s.id})" class="w-5 h-5 rounded-md border-slate-700 bg-slate-900 text-teal-400 focus:ring-teal-500 focus:ring-offset-slate-900 shrink-0 cursor-pointer">
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleQRItemSelection(${s.id})" class="w-5 h-5 rounded-md border-slate-400 dark:border-slate-700 bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 focus:ring-teal-500 shrink-0 cursor-pointer">
                     ${s.qr_path ? `
-                        <img src="${s.qr_path}" class="w-11 h-11 rounded-lg border border-slate-700 bg-white object-contain p-0.5 shrink-0 shadow-sm">
+                        <img src="${s.qr_path}" class="w-11 h-11 rounded-lg border border-slate-300 dark:border-slate-700 bg-white object-contain p-0.5 shrink-0 shadow-sm">
                     ` : `
-                        <div class="w-11 h-11 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-400 text-xs font-bold shrink-0">
-                            <i data-lucide="qr-code" class="w-5 h-5 text-slate-500"></i>
+                        <div class="w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400 text-xs font-bold shrink-0">
+                            <i data-lucide="qr-code" class="w-5 h-5"></i>
                         </div>
                     `}
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-extrabold text-white text-sm truncate">${s.name}</span>
+                            <span class="qr-item-title font-extrabold text-sm truncate">${s.name}</span>
                             <span class="text-3xs font-mono px-2.5 py-0.5 rounded-full font-bold ${stateBadgeClass}">${s.physical_state || 'Genérico'}</span>
-                            ${s.substance_group ? `<span class="text-3xs font-bold text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700/60">🏷️ ${s.substance_group}</span>` : ''}
+                            ${s.substance_group ? `<span class="qr-group-badge text-3xs font-bold px-2 py-0.5 rounded-lg border">🏷️ ${s.substance_group}</span>` : ''}
                         </div>
-                        <div class="text-xs text-slate-400 flex items-center gap-3 mt-1 flex-wrap font-medium">
-                            <span>Fórmula: <strong class="text-slate-200 font-semibold">${s.chemical_formula || '-'}</strong></span>
-                            <span>CAS: <strong class="text-slate-200 font-semibold">${s.cas_number || '-'}</strong></span>
-                            <span>Stock: <strong class="text-teal-400 font-bold">${s.container_content || `${s.quantity} ${s.unit}`}</strong></span>
-                            ${getAddedDateFormatted(s) ? `<span class="text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded">🗓️ Reg: ${getAddedDateFormatted(s)}</span>` : ''}
-                            <span class="text-3xs font-mono text-slate-500">LAB-SUB-${s.id}</span>
+                        <div class="qr-item-meta text-xs flex items-center gap-3 mt-1 flex-wrap font-medium">
+                            <span>Fórmula: <strong class="qr-meta-val font-semibold">${s.chemical_formula || '-'}</strong></span>
+                            <span>CAS: <strong class="qr-meta-val font-semibold">${s.cas_number || s.inventory_number || s.no_sep || '-'}</strong></span>
+                            <span>Stock: <strong class="qr-stock-val font-bold">${s.container_content || `${s.quantity || s.stock || 1} ${s.unit || 'pza'}`}</strong></span>
+                            ${getAddedDateFormatted(s) ? `<span class="qr-date-badge font-bold px-2 py-0.5 rounded border">🗓️ Reg: ${getAddedDateFormatted(s)}</span>` : ''}
+                            <span class="qr-code-id text-3xs font-mono">LAB-SUB-${s.id}</span>
                         </div>
                     </div>
                 </label>
 
-                <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-slate-800/60 pt-2 sm:pt-0">
+                <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-slate-200 dark:border-slate-800/80 pt-2 sm:pt-0">
                     <!-- Selector de Número de Copias por QR -->
-                    <div class="flex items-center gap-1 bg-slate-900 border border-slate-700/80 rounded-xl p-1 shrink-0" title="Número de impresiones/etiquetas para esta sustancia">
-                        <button type="button" onclick="changeQRCopies(${s.id}, -1)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs transition select-none">-</button>
-                        <input type="number" min="1" max="99" value="${copies}" onchange="setQRCopies(${s.id}, this.value)" class="w-8 text-center bg-transparent font-extrabold text-xs text-teal-300 outline-none">
-                        <button type="button" onclick="changeQRCopies(${s.id}, 1)" class="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-xs transition select-none">+</button>
-                        <span class="text-3xs text-slate-400 font-bold pr-1 select-none">copia(s)</span>
+                    <div class="qr-stepper-box flex items-center gap-1 rounded-xl p-1 shrink-0" title="Número de impresiones/etiquetas para esta sustancia">
+                        <button type="button" onclick="changeQRCopies(${s.id}, -1)" class="qr-stepper-btn w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs transition select-none">-</button>
+                        <input type="number" min="1" max="99" value="${copies}" onchange="setQRCopies(${s.id}, this.value)" class="qr-stepper-input w-8 text-center font-extrabold text-xs outline-none">
+                        <button type="button" onclick="changeQRCopies(${s.id}, 1)" class="qr-stepper-btn w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs transition select-none">+</button>
+                        <span class="text-3xs font-bold pr-1 select-none opacity-80">copia(s)</span>
                     </div>
 
                     ${s.qr_path ? `
-                        <button type="button" onclick="downloadSingleSubstanceQRPDF(${s.id})" class="px-3 py-1.5 bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 hover:border-teal-500/60 font-bold rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm" title="Descargar etiquetas QR de este elemento (${copies} copia/s)">
-                            <i data-lucide="download" class="w-3.5 h-3.5 text-teal-400"></i>
+                        <button type="button" onclick="downloadSingleSubstanceQRPDF(${s.id})" class="qr-single-dl-btn px-3 py-1.5 font-bold rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm" title="Descargar etiquetas QR de este elemento (${copies} copia/s)">
+                            <i data-lucide="download" class="w-3.5 h-3.5 text-teal-600 dark:text-teal-400"></i>
                             <span>Descargar QR (${copies})</span>
                         </button>
                     ` : ''}
@@ -1273,21 +1269,21 @@ function renderQRBatchModalDOM() {
         const downloadPdfBtn = document.getElementById('qr-download-pdf-btn');
         if (downloadPdfBtn) {
             downloadPdfBtn.innerHTML = `
-                <i data-lucide="download" class="w-4 h-4 text-teal-200"></i>
+                <i data-lucide="download" class="w-4 h-4 text-white"></i>
                 <span>Descargar PDF (${totalQRLabels} etiq.)</span>
             `;
             downloadPdfBtn.disabled = selectedCount === 0;
-            downloadPdfBtn.className = `px-4.5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-teal-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}`;
+            downloadPdfBtn.className = `px-4.5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-teal-950/30 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}`;
         }
 
         const printBtn = document.getElementById('qr-print-btn');
         if (printBtn) {
             printBtn.innerHTML = `
-                <i data-lucide="printer" class="w-4 h-4 text-cyan-200"></i>
+                <i data-lucide="printer" class="w-4 h-4 text-white"></i>
                 <span>Imprimir Planilla (${totalQRLabels} etiq.)</span>
             `;
             printBtn.disabled = selectedCount === 0;
-            printBtn.className = `px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-cyan-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}`;
+            printBtn.className = `px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-cyan-950/30 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}`;
         }
 
         if (window.lucide) window.lucide.createIcons();
@@ -1298,40 +1294,40 @@ function renderQRBatchModalDOM() {
         ? 'Impresión y Descarga Masiva - Materiales Químicos' 
         : (qrBatchModalState.entityType === 'didactic_materials' ? 'Impresión y Descarga Masiva - Materiales Didácticos' : 'Impresión y Descarga Masiva de Códigos QR');
 
-    existingModal.className = 'fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in no-print';
+    existingModal.className = 'fixed inset-0 z-50 bg-slate-950/70 dark:bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in no-print';
     existingModal.innerHTML = `
-        <div class="bg-[#0d1527] rounded-3xl border border-slate-800 shadow-2xl shadow-cyan-950/50 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden text-slate-200 font-sans">
+        <div class="qr-modal-container rounded-3xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden font-sans">
             <!-- Header Modal -->
-            <div class="px-6 py-4 bg-[#090d16] border-b border-slate-800 text-white flex items-center justify-between shrink-0">
+            <div class="qr-modal-header px-6 py-4 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-400 font-bold text-lg shadow-inner">
-                        <i data-lucide="qr-code" class="w-5 h-5 text-teal-400"></i>
+                    <div class="w-10 h-10 rounded-2xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-600 dark:text-teal-400 font-bold text-lg shadow-inner">
+                        <i data-lucide="qr-code" class="w-5 h-5"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-extrabold text-white tracking-wide">${titleText}</h3>
-                        <p class="text-xs text-slate-400 font-medium">Define el número de copias/etiquetas a imprimir por cada elemento</p>
+                        <h3 class="qr-modal-title text-base font-extrabold tracking-wide">${titleText}</h3>
+                        <p class="qr-modal-subtitle text-xs font-medium">Define el número de copias/etiquetas a imprimir por cada elemento</p>
                     </div>
                 </div>
-                <button type="button" onclick="closeQRBatchModal()" class="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition font-bold text-sm border border-slate-700/50">✕</button>
+                <button type="button" onclick="closeQRBatchModal()" class="qr-modal-close-btn w-8 h-8 rounded-full flex items-center justify-center transition font-bold text-sm">✕</button>
             </div>
 
             <!-- Toolbar Filtros Rápidos -->
-            <div class="p-4 bg-[#111a2e] border-b border-slate-800/80 flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
+            <div class="qr-modal-toolbar p-4 flex flex-col md:flex-row gap-3 items-center justify-between shrink-0">
                 <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">Filtro rápido:</span>
-                    <button type="button" onclick="setQRFilter('liquid')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'liquid' ? 'bg-teal-600/30 text-teal-300 border-teal-500/50 shadow-sm shadow-teal-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
+                    <span class="qr-toolbar-label text-xs font-bold uppercase tracking-wider mr-1">Filtro rápido:</span>
+                    <button type="button" onclick="setQRFilter('liquid')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'liquid' ? 'bg-teal-500/25 text-teal-700 dark:text-teal-300 border-teal-500/60 shadow-sm' : 'qr-action-btn'}">
                         💧 Líquidos (${liquidsCount})
                     </button>
-                    <button type="button" onclick="setQRFilter('solid')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'solid' ? 'bg-amber-600/30 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
+                    <button type="button" onclick="setQRFilter('solid')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'solid' ? 'bg-amber-500/25 text-amber-700 dark:text-amber-300 border-amber-500/60 shadow-sm' : 'qr-action-btn'}">
                         📦 Sólidos / Equipos (${solidsCount})
                     </button>
-                    <button type="button" onclick="setQRFilter('all')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'all' ? 'bg-cyan-600/30 text-cyan-300 border-cyan-500/50 shadow-sm shadow-cyan-950' : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800 hover:text-white'}">
+                    <button type="button" onclick="setQRFilter('all')" class="px-3 py-1.5 rounded-xl text-xs font-extrabold transition border ${qrBatchModalState.filterType === 'all' ? 'bg-cyan-500/25 text-cyan-700 dark:text-cyan-300 border-cyan-500/60 shadow-sm' : 'qr-action-btn'}">
                         🧪 Todos (${allSubstances.length})
                     </button>
 
-                    <div class="flex items-center gap-1.5 border-l border-slate-700/80 pl-2">
-                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">📅 Fecha:</span>
-                        <select id="qr-date-filter-select" onchange="setQRDateFilter(this.value)" class="bg-slate-900 border border-slate-700 text-teal-300 font-extrabold text-xs px-2.5 py-1 rounded-xl outline-none">
+                    <div class="flex items-center gap-1.5 border-l border-slate-300 dark:border-slate-700 pl-2">
+                        <span class="qr-toolbar-label text-xs font-bold uppercase tracking-wider">📅 Fecha:</span>
+                        <select id="qr-date-filter-select" onchange="setQRDateFilter(this.value)" class="qr-date-select font-extrabold text-xs px-2.5 py-1 rounded-xl outline-none">
                             <option value="all" ${qrBatchModalState.dateFilter === 'all' ? 'selected' : ''}>-- Todas --</option>
                             <option value="today" ${qrBatchModalState.dateFilter === 'today' ? 'selected' : ''}>🆕 Agregados Hoy</option>
                             <option value="7d" ${qrBatchModalState.dateFilter === '7d' ? 'selected' : ''}>📅 Últimos 7 días</option>
@@ -1342,9 +1338,9 @@ function renderQRBatchModalDOM() {
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                    <input id="qr-modal-search" type="text" value="${qrBatchModalState.searchTerm}" oninput="handleQRSearchInput(this.value)" placeholder="Buscar por nombre, código o ID..." class="bg-slate-900 border border-slate-700 text-white px-3 py-1.5 rounded-xl text-xs font-semibold outline-none focus:border-indigo-500 flex-1 min-w-[140px] md:w-52">
-                    <button type="button" onclick="selectAllQRItems(true)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold rounded-xl text-xs transition shrink-0">☑️ Marcar Visibles</button>
-                    <button type="button" onclick="selectAllQRItems(false)" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold rounded-xl text-xs transition shrink-0">🎯 Desmarcar</button>
+                    <input id="qr-modal-search" type="text" value="${qrBatchModalState.searchTerm}" oninput="handleQRSearchInput(this.value)" placeholder="Buscar por nombre, código o ID..." class="qr-modal-search px-3 py-1.5 rounded-xl text-xs font-semibold outline-none flex-1 min-w-[140px] md:w-52">
+                    <button type="button" onclick="selectAllQRItems(true)" class="qr-action-btn px-3 py-1.5 font-bold rounded-xl text-xs transition shrink-0">☑️ Marcar Visibles</button>
+                    <button type="button" onclick="selectAllQRItems(false)" class="qr-action-btn px-3 py-1.5 font-bold rounded-xl text-xs transition shrink-0">🎯 Desmarcar</button>
                 </div>
             </div>
 
@@ -1354,18 +1350,18 @@ function renderQRBatchModalDOM() {
             </div>
 
             <!-- Footer con Acciones Masivas Dinámicas -->
-            <div class="p-4 bg-[#090d16] border-t border-slate-800 flex flex-col sm:flex-row gap-3 items-center justify-between shrink-0">
-                <div class="text-xs font-semibold text-slate-400">
-                    Incluidos: <span id="qr-selected-count-badge" class="text-teal-400 font-extrabold text-sm px-1.5 py-0.5 rounded bg-teal-950/60 border border-teal-800/40">${selectedCount}</span> elementos | <span id="qr-total-labels-badge" class="text-cyan-400 font-extrabold text-sm px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/40">${totalQRLabels}</span> etiqueta(s) QR
+            <div class="qr-modal-footer p-4 flex flex-col sm:flex-row gap-3 items-center justify-between shrink-0">
+                <div class="text-xs font-semibold">
+                    Incluidos: <span id="qr-selected-count-badge" class="text-teal-600 dark:text-teal-400 font-extrabold text-sm px-1.5 py-0.5 rounded bg-teal-500/15 border border-teal-500/30">${selectedCount}</span> elementos | <span id="qr-total-labels-badge" class="text-cyan-600 dark:text-cyan-400 font-extrabold text-sm px-1.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30">${totalQRLabels}</span> etiqueta(s) QR
                 </div>
 
                 <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
-                    <button id="qr-download-pdf-btn" type="button" onclick="downloadSelectedQRPDF()" class="px-4.5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-teal-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
-                        <i data-lucide="download" class="w-4 h-4 text-teal-200"></i>
+                    <button id="qr-download-pdf-btn" type="button" onclick="downloadSelectedQRPDF()" class="px-4.5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-teal-950/30 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
+                        <i data-lucide="download" class="w-4 h-4 text-white"></i>
                         <span>Descargar PDF (${totalQRLabels} etiq.)</span>
                     </button>
-                    <button id="qr-print-btn" type="button" onclick="printSelectedQRSheetPDF()" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-cyan-950/50 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
-                        <i data-lucide="printer" class="w-4 h-4 text-cyan-200"></i>
+                    <button id="qr-print-btn" type="button" onclick="printSelectedQRSheetPDF()" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-cyan-950/30 transition flex items-center gap-2 ${selectedCount === 0 ? 'opacity-40 cursor-not-allowed' : ''}" ${selectedCount === 0 ? 'disabled' : ''}>
+                        <i data-lucide="printer" class="w-4 h-4 text-white"></i>
                         <span>Imprimir Planilla (${totalQRLabels} etiq.)</span>
                     </button>
                 </div>

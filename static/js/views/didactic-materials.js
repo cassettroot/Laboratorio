@@ -19,6 +19,10 @@ async function renderDidacticMaterialsList(container) {
                 </div>
                 <div class="flex items-center gap-3 w-full md:w-auto justify-end">
                     ${(state.isLoggedIn && state.userRole === 'admin') ? `
+                    <button onclick="openQRBatchModal('didactic_materials')" class="glass-btn bg-indigo-600/80 hover:bg-indigo-600 font-bold px-3.5 py-2.5 rounded-xl text-xs sm:text-sm text-white flex items-center gap-2 transition shrink-0" title="Imprimir/Descargar Códigos QR">
+                        <i data-lucide="qr-code" class="w-4 h-4 text-amber-300"></i>
+                        <span>QR Masivo</span>
+                    </button>
                     <button onclick="exportTableToExcel('didactic_materials')" class="glass-btn hover:border-teal-400/50 font-extrabold px-4 py-2.5 rounded-xl text-xs sm:text-sm flex items-center gap-2 transition text-white shrink-0">
                         <i data-lucide="download" class="w-4 h-4 text-teal-400"></i>
                         <span>Excel</span>
