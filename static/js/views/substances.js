@@ -1387,11 +1387,6 @@ function renderQRBatchModalDOM() {
     }
 }
 
-window.downloadSingleSubstanceQRPDF = async function(substanceId) {
-    const allSubstances = state.currentQRItems || state.substances || [];
-    const s = allSubstances.find(item => item.id === substanceId);
-    if (!s) return;
-
 // Helper para construir tarjetas de etiquetas QR impresas uniformes y de alta densidad
 function buildQRPrintCardHTML(s, item, entityType) {
     const prefix = entityType === 'chemical_materials' ? 'LAB-MAT-' : (entityType === 'didactic_materials' ? 'LAB-DID-' : 'LAB-SUB-');
