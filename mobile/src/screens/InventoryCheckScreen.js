@@ -7,6 +7,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { apiService } from '../api/services';
 import { ThemeContext } from '../context/ThemeContext';
 import { AuthContext } from '../context/AuthContext';
+import GlassBackground from '../components/GlassBackground';
+import GlassCard from '../components/GlassCard';
 
 const CATEGORIES = [
   { key: 'substances',         label: 'Reactivos y Sustancias',  icon: '🧪', stockField: 'stock_units' },
@@ -195,33 +197,37 @@ export default function InventoryCheckScreen({ navigation }) {
   // ════════════════════════════════════════════════════════════
   if (phase === 'select') {
     return (
-      <ScrollView style={s.container} contentContainerStyle={{ padding: 16, gap: 12 }}>
-        <View style={s.headerCard}>
-          <Text style={s.headerTitle}>📋 Chequeo de Inventario</Text>
-          <Text style={s.headerSub}>Selecciona la categoría para hacer el pase de lista</Text>
-        </View>
+      <GlassBackground>
+        <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ gap: 12, paddingBottom: 120 }}>
+          <GlassCard style={s.headerCard}>
+            <Text style={[s.headerTitle, { color: theme.text }]}>📋 Chequeo de Inventario</Text>
+            <Text style={[s.headerSub, { color: theme.subtext }]}>Selecciona la categoría para hacer el pase de lista</Text>
+          </GlassCard>
 
-        <View style={s.infoBox}>
-          <Text style={s.infoText}>
-            💡 Escanea cada QR para marcarlo. Si el QR corresponde a un ítem ya completo, se te preguntará si hay una unidad extra física.
-          </Text>
-        </View>
+          <View style={[s.infoBox, { backgroundColor: theme.accentBg, borderColor: theme.glassBorderGlow }]}>
+            <Text style={[s.infoText, { color: theme.brand, fontWeight: '600' }]}>
+              💡 Escanea cada QR para marcarlo. Si el QR corresponde a un ítem ya completo, se te preguntará si hay una unidad extra física.
+            </Text>
+          </View>
 
-        {loading ? (
-          <ActivityIndicator size="large" color={theme.brand} style={{ marginTop: 40 }} />
-        ) : (
-          CATEGORIES.map(cat => (
-            <TouchableOpacity key={cat.key} style={s.catCard} onPress={() => loadCategory(cat)}>
-              <Text style={{ fontSize: 32 }}>{cat.icon}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={s.catLabel}>{cat.label}</Text>
-                <Text style={s.catSub}>Iniciar pase de lista</Text>
-              </View>
-              <Text style={{ color: theme.subtext, fontSize: 20 }}>›</Text>
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
+          {loading ? (
+            <ActivityIndicator size="large" color={theme.brand} style={{ marginTop: 40 }} />
+          ) : (
+            CATEGORIES.map(cat => (
+              <TouchableOpacity key={cat.key} activeOpacity={0.8} onPress={() => loadCategory(cat)}>
+                <GlassCard style={s.catCard}>
+                  <Text style={{ fontSize: 32 }}>{cat.icon}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.catLabel, { color: theme.text }]}>{cat.label}</Text>
+                    <Text style={[s.catSub, { color: theme.subtext }]}>Iniciar pase de lista</Text>
+                  </View>
+                  <Text style={{ color: theme.brand, fontSize: 22, fontWeight: 'bold' }}>›</Text>
+                </GlassCard>
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+      </GlassBackground>
     );
   }
 
@@ -399,40 +405,42 @@ export default function InventoryCheckScreen({ navigation }) {
   // RENDER: Reporte final
   // ════════════════════════════════════════════════════════════
   return (
-    <ScrollView style={s.container} contentContainerStyle={{ padding: 16, gap: 12 }}>
-      <View style={[s.headerCard, { backgroundColor: pct === 100 ? '#065f46' : '#1e293b' }]}>
-        <Text style={{ fontSize: 40, textAlign: 'center', marginBottom: 8 }}>{pct === 100 ? '🎉' : '📋'}</Text>
-        <Text style={[s.headerTitle, { textAlign: 'center' }]}>Chequeo Completado</Text>
-        <Text style={[s.headerSub, { textAlign: 'center' }]}>{category?.label}</Text>
-        <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-          <View style={s.statBox}><Text style={s.statNum}>{checked}</Text><Text style={s.statLabel}>Presentes</Text></View>
-          <View style={s.statBox}><Text style={s.statNum}>{total - checked}</Text><Text style={s.statLabel}>Faltantes</Text></View>
-          <View style={s.statBox}><Text style={s.statNum}>{pct}%</Text><Text style={s.statLabel}>Completado</Text></View>
-        </View>
-      </View>
+    <GlassBackground>
+      <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ gap: 12, paddingBottom: 120 }}>
+        <GlassCard style={[s.headerCard, { backgroundColor: pct === 100 ? 'rgba(6, 95, 70, 0.45)' : undefined }]}>
+          <Text style={{ fontSize: 40, textAlign: 'center', marginBottom: 8 }}>{pct === 100 ? '🎉' : '📋'}</Text>
+          <Text style={[s.headerTitle, { textAlign: 'center', color: theme.text }]}>Chequeo Completado</Text>
+          <Text style={[s.headerSub, { textAlign: 'center', color: theme.subtext }]}>{category?.label}</Text>
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+            <View style={[s.statBox, { backgroundColor: theme.glassPill }]}><Text style={[s.statNum, { color: theme.text }]}>{checked}</Text><Text style={[s.statLabel, { color: theme.subtext }]}>Presentes</Text></View>
+            <View style={[s.statBox, { backgroundColor: theme.glassPill }]}><Text style={[s.statNum, { color: theme.text }]}>{total - checked}</Text><Text style={[s.statLabel, { color: theme.subtext }]}>Faltantes</Text></View>
+            <View style={[s.statBox, { backgroundColor: theme.glassPill }]}><Text style={[s.statNum, { color: theme.brand }]}>{pct}%</Text><Text style={[s.statLabel, { color: theme.subtext }]}>Completado</Text></View>
+          </View>
+        </GlassCard>
 
-      {missing.length > 0 ? (
-        <View style={s.missingCard}>
-          <Text style={s.missingTitle}>⬜ {missing.length} ítem(s) no encontrados</Text>
-          {missing.map(item => (
-            <View key={item.id} style={s.missingRow}>
-              <Text style={s.missingName} numberOfLines={2}>{item.name}</Text>
-              <Text style={s.missingCount}>{item.scanned}/{item.stock}</Text>
-            </View>
-          ))}
-        </View>
-      ) : (
-        <View style={[s.infoBox, { backgroundColor: '#d1fae5', borderColor: '#6ee7b7' }]}>
-          <Text style={{ color: '#065f46', fontWeight: '700', textAlign: 'center' }}>
-            ✅ ¡Todos los ítems fueron encontrados!
-          </Text>
-        </View>
-      )}
+        {missing.length > 0 ? (
+          <GlassCard style={s.missingCard}>
+            <Text style={[s.missingTitle, { color: '#ef4444' }]}>⬜ {missing.length} ítem(s) no encontrados</Text>
+            {missing.map(item => (
+              <View key={item.id} style={[s.missingRow, { borderColor: theme.glassBorder }]}>
+                <Text style={[s.missingName, { color: theme.text }]} numberOfLines={2}>{item.name}</Text>
+                <Text style={s.missingCount}>{item.scanned}/{item.stock}</Text>
+              </View>
+            ))}
+          </GlassCard>
+        ) : (
+          <View style={[s.infoBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.35)' }]}>
+            <Text style={{ color: '#10b981', fontWeight: '800', textAlign: 'center' }}>
+              ✅ ¡Todos los ítems fueron encontrados!
+            </Text>
+          </View>
+        )}
 
-      <TouchableOpacity style={[s.finishBtn, { width: '100%', borderRadius: 16, padding: 14, backgroundColor: theme.brand }]} onPress={reset}>
-        <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15, textAlign: 'center' }}>🔄 Nuevo Chequeo</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity style={[s.finishBtn, { width: '100%', borderRadius: 16, padding: 14, backgroundColor: theme.brand }]} onPress={reset}>
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15, textAlign: 'center' }}>🔄 Nuevo Chequeo</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </GlassBackground>
   );
 }
 

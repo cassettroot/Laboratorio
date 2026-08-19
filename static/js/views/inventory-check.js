@@ -34,25 +34,23 @@ function _renderCategorySelector(container) {
     const cats = Object.entries(CHECK_CATEGORY_LABELS);
     container.innerHTML = `
     <div class="max-w-2xl mx-auto space-y-6 animate-fade-in">
-        <!-- Header -->
-        <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-6 text-white shadow-xl border border-slate-700/50">
-            <div class="flex items-center gap-4 mb-2">
-                <div class="bg-brand-500/20 text-brand-400 p-3 rounded-2xl border border-brand-500/30">
-                    <i data-lucide="clipboard-check" class="w-7 h-7"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-extrabold text-white">Chequeo de Inventario</h2>
-                    <p class="text-sm text-slate-400">Escanea los QRs para hacer el pase de lista físico</p>
-                </div>
+        <!-- Header Glassmorphism -->
+        <div class="glass-card rounded-3xl p-6 shadow-xl border border-white/10 flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center text-slate-950 shadow-lg shadow-teal-500/25 shrink-0">
+                <i data-lucide="clipboard-check" class="w-7 h-7"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-black text-white">Chequeo de Inventario</h2>
+                <p class="text-xs text-slate-300">Escanea los QRs para hacer el pase de lista físico</p>
             </div>
         </div>
 
         <!-- Instrucciones -->
-        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800 flex gap-3">
-            <i data-lucide="info" class="w-5 h-5 shrink-0 mt-0.5 text-amber-500"></i>
+        <div class="glass-card border border-amber-500/30 rounded-2xl p-4 text-xs text-amber-300 flex gap-3">
+            <i data-lucide="info" class="w-5 h-5 shrink-0 mt-0.5 text-amber-400"></i>
             <div>
-                <p class="font-bold mb-1">¿Cómo funciona?</p>
-                <ul class="space-y-1 list-disc list-inside text-amber-700">
+                <p class="font-extrabold mb-1 text-amber-300">¿Cómo funciona?</p>
+                <ul class="space-y-1 list-disc list-inside text-slate-300 font-medium">
                     <li>Selecciona la categoría a checar</li>
                     <li>Se carga la lista completa del inventario</li>
                     <li>Escanea cada QR con la cámara — se marca con ✅</li>
@@ -66,15 +64,15 @@ function _renderCategorySelector(container) {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             ${cats.map(([key, cfg]) => `
             <button onclick="startInventoryCheck('${key}')"
-                    class="group bg-white border border-slate-200 hover:border-brand-400 hover:shadow-lg rounded-2xl p-5 text-left transition-all duration-200 flex items-center gap-4">
-                <div class="bg-slate-100 group-hover:bg-brand-50 text-brand-600 p-3.5 rounded-2xl transition-colors border border-slate-200 group-hover:border-brand-200">
+                    class="group glass-card hover:border-teal-400/50 hover:shadow-lg rounded-2xl p-5 text-left transition-all duration-200 flex items-center gap-4 cursor-pointer">
+                <div class="w-12 h-12 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 flex items-center justify-center group-hover:bg-teal-500/25 transition shrink-0">
                     <i data-lucide="${cfg.icon}" class="w-6 h-6"></i>
                 </div>
-                <div>
-                    <p class="font-extrabold text-slate-800 group-hover:text-brand-700 transition-colors">${cfg.label}</p>
-                    <p class="text-xs text-slate-500 mt-0.5">Iniciar pase de lista</p>
+                <div class="min-w-0 flex-1">
+                    <p class="font-extrabold text-white group-hover:text-teal-300 transition-colors text-sm truncate">${cfg.label}</p>
+                    <p class="text-3xs text-slate-400 mt-0.5 font-semibold">Iniciar pase de lista</p>
                 </div>
-                <i data-lucide="chevron-right" class="w-5 h-5 text-slate-300 group-hover:text-brand-400 ml-auto transition-colors"></i>
+                <i data-lucide="chevron-right" class="w-5 h-5 text-slate-400 group-hover:text-teal-300 ml-auto transition-colors"></i>
             </button>
             `).join('')}
         </div>
@@ -178,9 +176,9 @@ function _renderCheckSession(container) {
     <div class="flex flex-col h-full animate-fade-in">
 
         <!-- Top bar -->
-        <div class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-4 mb-4 border border-slate-700/50 flex items-center gap-4 flex-wrap">
+        <div class="glass-card rounded-2xl p-4 mb-4 border border-white/10 flex items-center gap-4 flex-wrap">
             <div class="flex items-center gap-3 flex-1 min-w-0">
-                <div class="bg-brand-500/20 text-brand-400 p-2.5 rounded-xl border border-brand-500/30 shrink-0">
+                <div class="w-10 h-10 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 flex items-center justify-center shrink-0">
                     <i data-lucide="${cfg.icon}" class="w-5 h-5"></i>
                 </div>
                 <div class="min-w-0">
@@ -193,83 +191,83 @@ function _renderCheckSession(container) {
                 <div class="flex justify-between text-xs text-slate-400 mb-1">
                     <span>Progreso</span><span class="font-bold text-white">${pct}%</span>
                 </div>
-                <div class="h-2.5 bg-slate-700 rounded-full overflow-hidden">
-                    <div class="h-full rounded-full transition-all duration-500 ${allDone ? 'bg-emerald-400' : 'bg-brand-500'}"
+                <div class="h-2.5 bg-white/10 rounded-full overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500 ${allDone ? 'bg-emerald-400' : 'bg-gradient-to-r from-teal-500 to-emerald-500'}"
                          style="width:${pct}%"></div>
                 </div>
             </div>
             <div class="flex gap-2 shrink-0">
                 <button onclick="resetInventoryCheck()"
-                        class="px-3 py-2 text-xs font-bold bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl transition flex items-center gap-1.5">
-                    <i data-lucide="refresh-ccw" class="w-3.5 h-3.5"></i> Reiniciar
+                        class="px-3 py-2 text-xs font-bold glass-btn rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="refresh-ccw" class="w-3.5 h-3.5 text-teal-300"></i> Reiniciar
                 </button>
                 <button onclick="finishInventoryCheck()"
-                        class="px-3 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition flex items-center gap-1.5">
+                        class="px-3 py-2 text-xs font-bold bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-slate-950 rounded-xl transition flex items-center gap-1.5 shadow-md cursor-pointer">
                     <i data-lucide="flag" class="w-3.5 h-3.5"></i> Finalizar
                 </button>
             </div>
         </div>
 
-        <div class="flex gap-4 flex-1 min-h-0">
+        <div class="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
 
             <!-- Lista de ítems -->
-            <div class="flex-1 overflow-y-auto space-y-2 pr-1" id="check-item-list">
+            <div class="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar" id="check-item-list">
                 ${groups.map(g => _renderGroup(g)).join('')}
             </div>
 
             <!-- Panel de escáner -->
-            <div class="w-72 shrink-0 space-y-3">
+            <div class="w-full lg:w-72 shrink-0 space-y-3">
                 <!-- Escáner cámara -->
-                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                    <h4 class="font-bold text-sm text-slate-700 mb-3 flex items-center gap-2">
-                        <i data-lucide="camera" class="w-4 h-4 text-brand-500"></i>
+                <div class="glass-card rounded-2xl p-4 shadow-sm border border-white/10">
+                    <h4 class="font-bold text-sm text-white mb-3 flex items-center gap-2">
+                        <i data-lucide="camera" class="w-4 h-4 text-teal-400"></i>
                         Escáner QR
                     </h4>
-                    <div class="bg-slate-900 rounded-xl overflow-hidden aspect-square relative mb-3">
+                    <div class="bg-slate-950/80 rounded-xl overflow-hidden aspect-square relative mb-3 border border-white/10">
                         <div id="check-reader" class="w-full h-full"></div>
                         <div id="check-scanner-overlay"
-                             class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-slate-400 text-xs font-semibold text-center gap-2">
+                             class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 text-slate-400 text-xs font-semibold text-center gap-2">
                             <i data-lucide="qr-code" class="w-8 h-8 opacity-40"></i>
                             <span>Cámara inactiva</span>
                         </div>
                     </div>
                     <div class="flex gap-2">
                         <button id="btn-check-start" onclick="startCheckScanner()"
-                                class="flex-1 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition">
+                                class="flex-1 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-slate-950 text-xs font-black rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer">
                             <i data-lucide="play" class="w-3.5 h-3.5"></i> Iniciar
                         </button>
                         <button id="btn-check-stop" onclick="stopCheckScanner()"
-                                class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl items-center justify-center gap-1.5 transition hidden">
+                                class="flex-1 py-2 glass-btn text-rose-300 hover:text-rose-200 text-xs font-bold rounded-xl items-center justify-center gap-1.5 transition hidden cursor-pointer">
                             <i data-lucide="square" class="w-3.5 h-3.5"></i> Detener
                         </button>
                     </div>
                 </div>
 
                 <!-- Input manual -->
-                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                    <h4 class="font-bold text-sm text-slate-700 mb-2 flex items-center gap-2">
-                        <i data-lucide="keyboard" class="w-4 h-4 text-slate-400"></i>
+                <div class="glass-card rounded-2xl p-4 shadow-sm border border-white/10">
+                    <h4 class="font-bold text-sm text-white mb-2 flex items-center gap-2">
+                        <i data-lucide="keyboard" class="w-4 h-4 text-teal-400"></i>
                         Manual
                     </h4>
                     <div class="flex gap-2">
                         <input id="check-manual-input" type="text"
                                placeholder="LAB-SUB-1..."
-                               class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-400"
+                               class="flex-1 glass-input rounded-xl px-3 py-2 text-xs"
                                onkeydown="if(event.key==='Enter') processCheckScan(document.getElementById('check-manual-input').value)">
                         <button onclick="processCheckScan(document.getElementById('check-manual-input').value)"
-                                class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition">
+                                class="px-3 py-2 glass-btn text-white rounded-xl text-xs font-bold transition cursor-pointer">
                             OK
                         </button>
                     </div>
                 </div>
 
                 <!-- Feed de actividad -->
-                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                    <h4 class="font-bold text-sm text-slate-700 mb-2 flex items-center gap-2">
-                        <i data-lucide="activity" class="w-4 h-4 text-slate-400"></i>
+                <div class="glass-card rounded-2xl p-4 shadow-sm border border-white/10">
+                    <h4 class="font-bold text-sm text-white mb-2 flex items-center gap-2">
+                        <i data-lucide="activity" class="w-4 h-4 text-teal-400"></i>
                         Actividad reciente
                     </h4>
-                    <div id="check-activity-feed" class="space-y-1.5 max-h-48 overflow-y-auto text-xs">
+                    <div id="check-activity-feed" class="space-y-1.5 max-h-48 overflow-y-auto text-xs no-scrollbar">
                         <p class="text-slate-400 italic">Esperando escaneos...</p>
                     </div>
                 </div>

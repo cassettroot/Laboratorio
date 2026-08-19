@@ -2,6 +2,7 @@
 window.renderSettings = function(container) {
     const currentTheme = localStorage.getItem('app_theme') || 'itma';
     const currentInv = localStorage.getItem('inventory_id') || 'inventario';
+    const isAmbientEnabled = localStorage.getItem('ambient_bg_enabled') !== 'false';
     const activeUser = (typeof state !== 'undefined' && state.activeUser) ? state.activeUser : 'Invitado';
     const userRole = (typeof state !== 'undefined' && state.userRole) ? state.userRole : 'estudiante';
 
@@ -67,6 +68,23 @@ window.renderSettings = function(container) {
                             </button>
                         `;
                     }).join('')}
+                </div>
+
+                <!-- Configuración de Fondo Animado y Ahorro de Rendimiento -->
+                <div class="mt-6 pt-5 border-t border-slate-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center justify-center shadow-md shrink-0">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-extrabold text-white">Efectos de Fondo Animado y Estrellas</h4>
+                            <p class="text-xs text-slate-300 font-medium">Orbes multicolor en movimiento y destellos cósmicos. Puedes desactivarlo para máxima velocidad o en equipos de bajos recursos.</p>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="toggleAmbientFromSettings()" class="px-5 py-2.5 rounded-2xl font-extrabold text-xs transition flex items-center gap-2 shrink-0 ${isAmbientEnabled ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/30 ring-2 ring-cyan-400' : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'}">
+                        <span>${isAmbientEnabled ? '✨ Efectos Activados' : '⚪ Fondo Estático (Ahorro)'}</span>
+                    </button>
                 </div>
             </div>
 
@@ -155,10 +173,16 @@ window.renderSettings = function(container) {
                                 <p class="text-xs text-slate-300 font-medium">Controla qué computadoras o celulares pueden acceder al servidor local</p>
                             </div>
                         </div>
-                        <button onclick="showQrPairingModal()" class="px-4 py-2 bg-brand-500 hover:bg-brand-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-md transition">
-                            <i data-lucide="smartphone" class="w-4 h-4"></i>
-                            <span>Vincular App Móvil (QR)</span>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="loadNetworkDevices()" class="px-3 py-2 glass-btn text-slate-300 hover:text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition" title="Refrescar lista de dispositivos">
+                                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                                <span>Refrescar</span>
+                            </button>
+                            <button onclick="showQrPairingModal()" class="px-4 py-2 bg-brand-500 hover:bg-brand-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-md transition">
+                                <i data-lucide="smartphone" class="w-4 h-4"></i>
+                                <span>Vincular App Móvil (QR)</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div id="network-devices-container" class="space-y-3 pt-2">
@@ -179,81 +203,84 @@ window.renderSettings = function(container) {
                         </div>
                         <div>
                             <h3 class="text-base font-extrabold text-white tracking-tight">Gestión de Respaldos y Bases de Datos</h3>
-                            <p class="text-xs text-slate-300 font-medium">Configura copias de seguridad automáticas y elimina bases de datos actuales</p>
+                            <p class="text-xs text-slate-300 font-medium">Configura copias de seguridad automáticas y gestiona la integridad de las bases de datos</p>
                         </div>
                     </div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Configuración Automática -->
                         <div class="space-y-3">
-                            <h4 class="text-sm font-bold text-slate-200">Configuración Automática</h4>
-                            <div class="flex items-center justify-between p-3 bg-slate-900/50 border border-slate-700 rounded-xl">
-                                <span class="text-xs font-semibold text-slate-300">Habilitar respaldos automáticos</span>
-                                <input type="checkbox" id="backup-enabled" class="w-4 h-4 text-brand-500 bg-slate-800 border-slate-600 rounded">
+                            <h4 class="text-sm font-black text-white">Configuración Automática</h4>
+                            <div class="flex items-center justify-between p-3.5 glass-card rounded-xl">
+                                <span class="text-xs font-semibold text-slate-200">Habilitar respaldos automáticos</span>
+                                <input type="checkbox" id="backup-enabled" class="w-4 h-4 text-teal-500 bg-slate-900 border-white/20 rounded">
                             </div>
                             <div class="space-y-1">
-                                <label class="text-xs font-semibold text-slate-400">Ruta del Directorio de Respaldos (Absoluta)</label>
-                                <input type="text" id="backup-dir" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-500" placeholder="/ruta/a/tus/respaldos">
+                                <label class="text-xs font-semibold text-slate-300">Ruta del Directorio de Respaldos (Absoluta)</label>
+                                <input type="text" id="backup-dir" class="w-full glass-input p-2.5 text-xs text-white" placeholder="/ruta/a/tus/respaldos">
                             </div>
                             <div class="flex gap-2">
                                 <div class="flex-1 space-y-1">
-                                    <label class="text-xs font-semibold text-slate-400">Frecuencia</label>
-                                    <select id="backup-freq-type" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-500">
+                                    <label class="text-xs font-semibold text-slate-300">Frecuencia</label>
+                                    <select id="backup-freq-type" class="w-full glass-input p-2.5 text-xs text-white cursor-pointer">
                                         <option value="startup">Al iniciar el programa</option>
                                         <option value="days">Cada X días</option>
                                         <option value="months">Cada X meses</option>
                                     </select>
                                 </div>
                                 <div class="w-20 space-y-1">
-                                    <label class="text-xs font-semibold text-slate-400">Valor (X)</label>
-                                    <input type="number" id="backup-freq-val" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl p-2.5 text-xs text-white outline-none focus:border-brand-500" min="1" value="1">
+                                    <label class="text-xs font-semibold text-slate-300">Valor (X)</label>
+                                    <input type="number" id="backup-freq-val" class="w-full glass-input p-2.5 text-xs text-white" min="1" value="1">
                                 </div>
                             </div>
-                            <button onclick="saveBackupConfig()" class="w-full py-2 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 border border-indigo-500/40 rounded-xl text-xs font-bold transition">Guardar Configuración</button>
+                            <button onclick="saveBackupConfig()" class="w-full py-2.5 bg-indigo-600/80 hover:bg-indigo-600 text-white border border-indigo-400/30 rounded-xl text-xs font-black transition shadow-sm">Guardar Configuración</button>
                         </div>
                         
                         <!-- Gestión Manual y Archivos -->
                         <div class="space-y-3 flex flex-col">
-                            <h4 class="text-sm font-bold text-slate-200">Gestión Manual</h4>
+                            <h4 class="text-sm font-black text-white">Gestión Manual</h4>
                             <div class="flex gap-2">
-                                <button onclick="createManualBackup()" class="flex-1 py-2 bg-brand-500 hover:bg-brand-400 text-slate-950 font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-md">
+                                <button onclick="createManualBackup()" class="flex-1 py-2.5 bg-gradient-to-r from-teal-400 to-emerald-600 hover:from-teal-500 hover:to-emerald-700 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-teal-500/25">
                                     <i data-lucide="download" class="w-4 h-4"></i> Crear Respaldo Ahora
                                 </button>
                             </div>
                             <div class="flex items-center gap-2 mt-2">
                                 <input type="file" id="backup-file" class="hidden" accept=".zip" onchange="document.getElementById('backup-filename').textContent = this.files[0]?.name || 'Ningún archivo seleccionado'">
-                                <button onclick="document.getElementById('backup-file').click()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl border border-slate-600 text-xs transition">Seleccionar ZIP</button>
-                                <button onclick="restoreBackup()" class="flex-1 py-2 bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 border border-rose-500/40 rounded-xl text-xs font-bold transition">Restaurar BD</button>
+                                <button onclick="document.getElementById('backup-file').click()" class="flex-1 py-2.5 glass-btn text-white font-bold rounded-xl text-xs transition">Seleccionar ZIP</button>
+                                <button onclick="restoreBackup()" class="flex-1 py-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-xl text-xs font-black transition">Restaurar BD</button>
                             </div>
-                            <p id="backup-filename" class="text-2xs text-slate-400 text-center truncate">Ningún archivo seleccionado</p>
+                            <p id="backup-filename" class="text-3xs text-slate-400 text-center truncate font-mono mt-1">Ningún archivo seleccionado</p>
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-slate-700/60">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-white/10">
                         <!-- Limpieza de Datos Actuales -->
                         <div class="space-y-3">
-                            <h4 class="text-sm font-bold text-rose-400">Limpieza de Datos del Inventario Actual</h4>
-                            <p class="text-xs text-slate-400">Selecciona qué secciones deseas vaciar por completo. Se creará un respaldo antes de borrarlas.</p>
-                            <div class="space-y-2 grid grid-cols-2 gap-2" id="wipe-tables-container">
-                                <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" value="substances" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-500"> Reactivos y Sustancias</label>
-                                <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" value="chemical_materials" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-500"> Materiales Químicos</label>
-                                <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" value="didactic_materials" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-500"> Materiales Didácticos</label>
-                                <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" value="equipos" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-500"> Bienes y Equipos</label>
-                                <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" value="loans" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-500"> Préstamos</label>
-                                <label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" value="change_history" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-rose-500"> Historial y Solicitudes</label>
+                            <h4 class="text-sm font-black text-rose-400 flex items-center gap-2">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>
+                                <span>Limpieza de Datos del Inventario Actual</span>
+                            </h4>
+                            <p class="text-xs text-slate-300 leading-relaxed">Selecciona qué secciones deseas vaciar por completo. Se creará un respaldo de seguridad antes de borrarlas.</p>
+                            <div class="space-y-2.5 grid grid-cols-2 gap-2 glass-metric p-3 rounded-2xl" id="wipe-tables-container">
+                                <label class="flex items-center gap-2 text-xs font-semibold text-slate-200 cursor-pointer"><input type="checkbox" value="substances" class="w-4 h-4 rounded border-white/20 bg-slate-900 text-rose-500"> Reactivos y Sustancias</label>
+                                <label class="flex items-center gap-2 text-xs font-semibold text-slate-200 cursor-pointer"><input type="checkbox" value="chemical_materials" class="w-4 h-4 rounded border-white/20 bg-slate-900 text-rose-500"> Materiales Químicos</label>
+                                <label class="flex items-center gap-2 text-xs font-semibold text-slate-200 cursor-pointer"><input type="checkbox" value="didactic_materials" class="w-4 h-4 rounded border-white/20 bg-slate-900 text-rose-500"> Materiales Didácticos</label>
+                                <label class="flex items-center gap-2 text-xs font-semibold text-slate-200 cursor-pointer"><input type="checkbox" value="equipos" class="w-4 h-4 rounded border-white/20 bg-slate-900 text-rose-500"> Bienes y Equipos</label>
+                                <label class="flex items-center gap-2 text-xs font-semibold text-slate-200 cursor-pointer"><input type="checkbox" value="loans" class="w-4 h-4 rounded border-white/20 bg-slate-900 text-rose-500"> Préstamos</label>
+                                <label class="flex items-center gap-2 text-xs font-semibold text-slate-200 cursor-pointer"><input type="checkbox" value="change_history" class="w-4 h-4 rounded border-white/20 bg-slate-900 text-rose-500"> Historial y Solicitudes</label>
                             </div>
-                            <button onclick="wipeCurrentTables()" class="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-md mt-2">
+                            <button onclick="wipeCurrentTables()" class="w-full py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-rose-600/25 mt-2">
                                 <i data-lucide="trash-2" class="w-4 h-4"></i> Vaciar Secciones Seleccionadas
                             </button>
                         </div>
                         
                         <!-- Lista de Respaldos (Archivos) -->
                         <div class="space-y-3">
-                            <h4 class="text-sm font-bold text-slate-200">Archivos de Respaldo Guardados</h4>
-                            <div id="backup-list-container" class="space-y-2 max-h-48 overflow-y-auto pr-2 no-scrollbar">
+                            <h4 class="text-sm font-black text-white">Archivos de Respaldo Guardados</h4>
+                            <div id="backup-list-container" class="space-y-2 max-h-48 overflow-y-auto pr-2 no-scrollbar glass-metric p-3 rounded-2xl">
                                 <p class="text-xs text-slate-400 italic text-center py-4">Cargando respaldos...</p>
                             </div>
-                            <button onclick="deleteSelectedBackups()" class="w-full py-2 bg-slate-800 hover:bg-rose-500/20 text-rose-400 border border-slate-700 hover:border-rose-500/50 rounded-xl text-xs font-bold transition">Eliminar Archivos Seleccionados</button>
+                            <button onclick="deleteSelectedBackups()" class="w-full py-2 glass-btn bg-rose-500/10 hover:bg-rose-500/25 text-rose-300 border-rose-500/30 rounded-xl text-xs font-bold transition">Eliminar Archivos Seleccionados</button>
                         </div>
                     </div>
 
@@ -323,15 +350,18 @@ window.loadNetworkDevices = async function() {
                         </div>
                         <div class="flex items-center gap-2">
                             ${isPending || !isApproved ? `
-                                <button onclick="manageNetworkDevice(${d.id}, 'approve')" class="p-2 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 rounded-lg transition" title="Permitir">
+                                <button onclick="manageNetworkDevice(${d.id}, 'approve')" class="p-2 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 rounded-lg transition" title="Permitir acceso">
                                     <i data-lucide="check" class="w-4 h-4"></i>
                                 </button>
                             ` : ''}
                             ${isPending || isApproved ? `
-                                <button onclick="manageNetworkDevice(${d.id}, 'reject')" class="p-2 bg-rose-500/20 hover:bg-rose-500/40 text-rose-400 rounded-lg transition" title="Bloquear">
-                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                <button onclick="manageNetworkDevice(${d.id}, 'reject')" class="p-2 bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 rounded-lg transition" title="Bloquear acceso">
+                                    <i data-lucide="shield-alert" class="w-4 h-4"></i>
                                 </button>
                             ` : ''}
+                            <button onclick="manageNetworkDevice(${d.id}, 'delete')" class="p-2 bg-rose-500/20 hover:bg-rose-500/40 text-rose-400 rounded-lg transition" title="Eliminar dispositivo">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
                         </div>
                     </div>
                 `;
@@ -346,10 +376,14 @@ window.loadNetworkDevices = async function() {
 };
 
 window.manageNetworkDevice = async function(deviceId, action) {
+    if (action === 'delete') {
+        if (!confirm('¿Estás seguro de eliminar este dispositivo de la lista de seguridad?')) return;
+    }
     try {
         const res = await fetch(`/api/auth/devices/${deviceId}/${action}`, { method: 'POST' }).then(r => r.json());
         if (res.status === 'success') {
-            if (typeof showToast === 'function') showToast(`Dispositivo ${action === 'approve' ? 'aprobado' : 'bloqueado'} con éxito`, 'success');
+            const actionText = action === 'approve' ? 'aprobado' : (action === 'delete' ? 'eliminado' : 'bloqueado');
+            if (typeof showToast === 'function') showToast(`Dispositivo ${actionText} con éxito`, 'success');
             window.loadNetworkDevices();
         } else {
             if (typeof showToast === 'function') showToast(res.message, 'error');
@@ -586,5 +620,22 @@ window.restoreBackup = async function() {
         }
     } catch (err) {
         alert("Error al restaurar respaldo.");
+    }
+};
+
+window.toggleAmbientFromSettings = function() {
+    const current = localStorage.getItem('ambient_bg_enabled') !== 'false';
+    const next = !current;
+    if (typeof window.toggleAmbientBackground === 'function') {
+        window.toggleAmbientBackground(next);
+    } else {
+        localStorage.setItem('ambient_bg_enabled', next ? 'true' : 'false');
+    }
+    const container = document.getElementById('main-content');
+    if (container && typeof window.renderSettings === 'function') {
+        window.renderSettings(container);
+    }
+    if (typeof showToast === 'function') {
+        showToast(next ? '✨ Fondo animado activado' : '⚪ Fondo estático activado (modo ahorro)', 'info');
     }
 };

@@ -2,11 +2,16 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-export const DEFAULT_API_BASE = 'http://10.0.2.2:5000'; // IP por defecto para Emulador de Android en Windows
+export const DEFAULT_API_BASE = 'http://192.168.1.94:5000';
 
 export const getDevServerIpUrl = () => {
   try {
-    const hostUri = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
+    const hostUri = 
+      Constants.expoConfig?.hostUri || 
+      Constants.manifest2?.extra?.expoClient?.hostUri ||
+      Constants.manifest?.debuggerHost || 
+      Constants.manifest?.hostUri;
+      
     if (hostUri) {
       const ip = hostUri.split(':')[0];
       if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
@@ -31,9 +36,9 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(async (config) => {
   try {
     const customUrl = await AsyncStorage.getItem('custom_server_url');
-    if (customUrl) {
-      config.baseURL = customUrl;
-      apiClient.defaults.baseURL = customUrl;
+    if (customUrl && customUrl.trim()) {
+      config.baseURL = customUrl.trim();
+      apiClient.defaults.baseURL = customUrl.trim();
     } else {
       const devUrl = getDevServerIpUrl();
       config.baseURL = devUrl;
@@ -58,9 +63,8 @@ export const getImageUrl = (imagePath, customServerUrl = '') => {
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('file://') || trimmed.startsWith('data:')) return trimmed;
 
   const base = customServerUrl || apiClient.defaults.baseURL || getDevServerIpUrl();
-  const cleanBase = base.replace(/\/+$/, '');
   const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-  return `${cleanBase}${cleanPath}`;
+  return `${base}${cleanPath}`;
 };
 
 export default apiClient;

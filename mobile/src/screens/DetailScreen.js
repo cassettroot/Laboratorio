@@ -11,17 +11,41 @@ import {
   Alert,
   Modal,
   TextInput,
-  ActivityIndicator
+  ActivityIndicator,
+  StatusBar,
+  Dimensions
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as Print from 'expo-print';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 import { apiService } from '../api/services';
 import apiClient, { DEFAULT_API_BASE, getImageUrl } from '../api/client';
 import ChemicalMaterialRegisterModal from '../components/modals/ChemicalMaterialRegisterModal';
+import GlassBackground from '../components/GlassBackground';
+import GlassCard from '../components/GlassCard';
+
+const { width } = Dimensions.get('window');
 
 export default function DetailScreen({ route, navigation }) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0);
+
   const { role, user, serverUrl } = useContext(AuthContext);
+  const { theme } = useContext(ThemeContext);
+  const isDark = theme.isDark !== false;
+
+  const textColor = isDark ? '#ffffff' : '#0f172a';
+  const subtextColor = isDark ? '#94a3b8' : '#64748b';
+  const cardBg = isDark ? 'rgba(10, 20, 38, 0.84)' : 'rgba(255, 255, 255, 0.90)';
+  const cardBorder = isDark ? 'rgba(34, 211, 238, 0.28)' : 'rgba(6, 182, 212, 0.35)';
+  const pillBg = isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.92)';
+  const pillBorder = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(15, 23, 42, 0.10)';
+  const btnBg = isDark ? 'rgba(18, 38, 68, 0.85)' : 'rgba(241, 245, 249, 0.95)';
+  const btnBorder = isDark ? 'rgba(34, 211, 238, 0.25)' : 'rgba(6, 182, 212, 0.30)';
+
   const { type, id: paramId, item: initialItem } = route.params || {};
 
   const [item, setItem] = useState(initialItem || null);
@@ -766,10 +790,40 @@ export default function DetailScreen({ route, navigation }) {
 
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 50 }}>
+    <GlassBackground>
+      {/* 1. BARRA SUPERIOR ELEGANTE CON BOTÓN DE REGRESO Y TÍTULO */}
+      <View style={[styles.topHeader, { paddingTop: topInset + 8 }]}>
+        <TouchableOpacity 
+          style={[styles.backBtnPill, { backgroundColor: pillBg, borderColor: cardBorder }]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.backBtnText, { color: isDark ? '#22d3ee' : '#0891b2' }]}>‹ Volver</Text>
+        </TouchableOpacity>
+
+        {/* LOGO ITMA II */}
+        <View style={styles.headerLogoBox}>
+          <View style={[styles.headerFlaskBadge, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.65)' : 'rgba(255, 255, 255, 0.85)', borderColor: cardBorder }]}>
+            <Text style={styles.headerFlaskIcon}>⚗️</Text>
+          </View>
+          <View>
+            <Text style={[styles.headerLogoTitle, { color: textColor }]}>ITMA II</Text>
+            <Text style={[styles.headerLogoSubtitle, { color: subtextColor }]}>Laboratorio</Text>
+          </View>
+        </View>
+
+        {/* Título de Pantalla al Costado */}
+        <View style={[styles.screenTitleBadgePill, { backgroundColor: isDark ? 'rgba(6, 182, 212, 0.14)' : 'rgba(6, 182, 212, 0.10)', borderColor: cardBorder }]}>
+          <Text style={[styles.screenTitleBadgeText, { color: isDark ? '#22d3ee' : '#0891b2' }]}>
+            Ficha Técnica
+          </Text>
+        </View>
+      </View>
+
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom + 115, paddingHorizontal: 14, paddingTop: 6 }} showsVerticalScrollIndicator={false}>
       {/* VISOR Y GALERÍA MULTI-IMAGEN DE LA SUSTANCIA */}
       {allDetailImages.length > 0 && currentDetailImg && currentDetailImg.uri ? (
-        <View style={styles.imageHeaderContainer}>
+        <View style={[styles.imageHeaderContainer, { borderColor: cardBorder, backgroundColor: cardBg }]}>
           <TouchableOpacity activeOpacity={0.9} onPress={() => openPhotoPreview(currentDetailImg.uri, currentDetailImg.label)}>
             <Image
               source={{ uri: currentDetailImg.uri }}
@@ -780,13 +834,13 @@ export default function DetailScreen({ route, navigation }) {
 
           <View style={styles.imageBadgeOverlay}>
             <Text style={styles.imageBadgeOverlayText}>
-              📷 {currentDetailImg.label} ({safePhotoIndex + 1}/{allDetailImages.length}) — Toca para ampliar 🔍
+              📷 {currentDetailImg.label} ({safePhotoIndex + 1}/{allDetailImages.length}) • Toca para ampliar 🔍
             </Text>
           </View>
 
           {allDetailImages.length > 1 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, padding: 8, backgroundColor: 'rgba(15, 23, 42, 0.85)' }}>
-              {allDetailImages.map((imgObj, idx) => {
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, padding: 8, backgroundColor: isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(241, 245, 249, 0.90)' }}>
+              {allDetailImages.filter(imgObj => imgObj && imgObj.uri).map((imgObj, idx) => {
                 const isActive = idx === safePhotoIndex;
                 return (
                   <TouchableOpacity
@@ -794,40 +848,40 @@ export default function DetailScreen({ route, navigation }) {
                     onPress={() => setActivePhotoIndex(idx)}
                     style={{
                       borderWidth: 2,
-                      borderColor: isActive ? '#38bdf8' : '#334155',
-                      borderRadius: 10,
+                      borderColor: isActive ? (isDark ? '#22d3ee' : '#0891b2') : (isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(15, 23, 42, 0.15)'),
+                      borderRadius: 12,
                       overflow: 'hidden',
-                      opacity: isActive ? 1 : 0.6,
+                      opacity: isActive ? 1 : 0.65,
                     }}
                   >
-                    <Image source={{ uri: imgObj.uri }} style={{ width: 56, height: 56 }} resizeMode="cover" />
+                    <Image source={{ uri: imgObj.uri }} style={{ width: 54, height: 54 }} resizeMode="cover" />
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
           ) : null}
         </View>
-      ) : (
-        <View style={[styles.imageHeaderContainer, { height: 130, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1e293b' }]}>
-          <Text style={{ fontSize: 36 }}>🧪</Text>
-          <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 4 }}>Sin fotografía cargada</Text>
-        </View>
-      )}
+      ) : null}
 
       {/* HEADER DE TÍTULO Y BADGES */}
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+      <View style={[styles.glassDetailCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>{item.name}</Text>
-            <Text style={{ color: '#64748b', fontSize: 11, fontFamily: 'monospace' }}>ID: LAB-{item.id}</Text>
+            <Text style={[styles.title, { color: textColor }]}>{item.name}</Text>
+            <View style={styles.idBadgePill}>
+              <Text style={styles.idBadgePillText}>ID: LAB-{item.id}</Text>
+            </View>
           </View>
 
           {/* Botones de Administración (Editar / Eliminar) */}
           {isAdminOrResp ? (
-            <View style={{ flexDirection: 'row', gap: 6 }}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
               <TouchableOpacity style={styles.editHeaderBtn} onPress={openEditModal}>
-                <Text style={styles.editHeaderBtnText}>✏️ Editar</Text>
+                <LinearGradient colors={['#06b6d4', '#0284c7']} style={styles.editGradientBtn}>
+                  <Text style={styles.editHeaderBtnText}>✏️ Editar</Text>
+                </LinearGradient>
               </TouchableOpacity>
+
               <TouchableOpacity style={styles.deleteHeaderBtn} onPress={handleDelete}>
                 <Text style={styles.deleteHeaderBtnText}>🗑️</Text>
               </TouchableOpacity>
@@ -839,35 +893,34 @@ export default function DetailScreen({ route, navigation }) {
           <Text style={styles.formula}>🧪 Fórmula: {item.chemical_formula}</Text>
         ) : null}
 
-
         <View style={styles.badgeRow}>
           {item.category ? (
-            <View style={[styles.badgePrimary, { backgroundColor: '#ccfbf1', borderColor: '#0d9488' }]}>
-              <Text style={[styles.badgePrimaryText, { color: '#0f766e' }]}>{item.category}</Text>
+            <View style={[styles.badgePrimary, { backgroundColor: isDark ? 'rgba(6, 182, 212, 0.15)' : 'rgba(6, 182, 212, 0.12)', borderColor: isDark ? 'rgba(34, 211, 238, 0.40)' : 'rgba(6, 182, 212, 0.35)' }]}>
+              <Text style={[styles.badgePrimaryText, { color: isDark ? '#22d3ee' : '#0891b2' }]}>📦 {item.category}</Text>
             </View>
           ) : null}
 
-          <View style={styles.badgePrimary}>
-            <Text style={styles.badgePrimaryText}>
+          <View style={[styles.badgePrimary, { backgroundColor: isDark ? 'rgba(234, 179, 8, 0.15)' : 'rgba(234, 179, 8, 0.12)', borderColor: isDark ? 'rgba(234, 179, 8, 0.40)' : 'rgba(234, 179, 8, 0.35)' }]}>
+            <Text style={[styles.badgePrimaryText, { color: '#fbbf24' }]}>
               📦 Stock: {totalSubPieces > 0 ? `${totalSubPieces} piezas en kit` : `${item.quantity || item.stock || 1} ${item.unit || 'piezas'}`}
             </Text>
           </View>
 
           {item.capacity ? (
-            <View style={styles.badgeSecondary}>
-              <Text style={styles.badgeSecondaryText}>🧪 Capacidad: {item.capacity}</Text>
+            <View style={[styles.badgeSecondary, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.75)' : 'rgba(241, 245, 249, 0.90)', borderColor: cardBorder }]}>
+              <Text style={[styles.badgeSecondaryText, { color: subtextColor }]}>🧪 Capacidad: {item.capacity}</Text>
             </View>
           ) : null}
 
           {item.status || item.condition ? (
-            <View style={[styles.badgeSecondary, { backgroundColor: '#d1fae5', borderColor: '#10b981' }]}>
-              <Text style={[styles.badgeSecondaryText, { color: '#047857' }]}>🟢 {item.status || item.condition}</Text>
+            <View style={[styles.badgeSecondary, { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.40)' }]}>
+              <Text style={[styles.badgeSecondaryText, { color: '#34d399' }]}>🟢 {item.status || item.condition}</Text>
             </View>
           ) : null}
 
           {item.cas_number ? (
-            <View style={styles.badgeSecondary}>
-              <Text style={styles.badgeSecondaryText}>CAS: {item.cas_number}</Text>
+            <View style={[styles.badgeSecondary, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.75)' : 'rgba(241, 245, 249, 0.90)', borderColor: cardBorder }]}>
+              <Text style={[styles.badgeSecondaryText, { color: subtextColor }]}>CAS: {item.cas_number}</Text>
             </View>
           ) : null}
         </View>
@@ -876,8 +929,8 @@ export default function DetailScreen({ route, navigation }) {
         {item.substance_group ? (
           <View style={styles.groupBadgesContainer}>
             {item.substance_group.split(/[,/;|]/).map(g => g.trim()).filter(Boolean).map((group, idx) => (
-              <View key={idx} style={styles.groupBadge}>
-                <Text style={styles.groupBadgeText}>{group}</Text>
+              <View key={idx} style={[styles.groupBadge, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.8)' : 'rgba(241, 245, 249, 0.9)', borderColor: cardBorder }]}>
+                <Text style={[styles.groupBadgeText, { color: isDark ? '#22d3ee' : '#0891b2' }]}>{group}</Text>
               </View>
             ))}
           </View>
@@ -887,88 +940,88 @@ export default function DetailScreen({ route, navigation }) {
       </View>
 
       {/* SECCIÓN 1: INVENTARIO Y CUSTODIA */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📦 Inventario y Custodia</Text>
+      <View style={[styles.glassDetailCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>📦 Inventario y Custodia</Text>
 
         {item.category ? (
-          <View style={styles.row}>
-            <Text style={styles.label}>Categoría:</Text>
-            <Text style={[styles.value, { color: '#0d9488', fontWeight: 'bold' }]}>{item.category}</Text>
+          <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+            <Text style={[styles.label, { color: subtextColor }]}>Categoría:</Text>
+            <Text style={[styles.value, { color: isDark ? '#22d3ee' : '#0891b2' }]}>{item.category}</Text>
           </View>
         ) : null}
 
         {item.capacity ? (
-          <View style={styles.row}>
-            <Text style={styles.label}>Capacidad / Especificación:</Text>
-            <Text style={[styles.value, { color: '#0284c7', fontWeight: 'bold' }]}>{item.capacity}</Text>
+          <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+            <Text style={[styles.label, { color: subtextColor }]}>Capacidad / Especificación:</Text>
+            <Text style={[styles.value, { color: textColor }]}>{item.capacity}</Text>
           </View>
         ) : null}
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Ubicación Física:</Text>
-          <Text style={[styles.value, { color: '#10b981', fontWeight: 'bold' }]}>{item.location || 'Laboratorio Principal'}</Text>
+        <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+          <Text style={[styles.label, { color: subtextColor }]}>Ubicación Física:</Text>
+          <Text style={[styles.value, { color: '#10b981' }]}>{item.location || 'Laboratorio Principal'}</Text>
         </View>
 
         {item.inventory_number ? (
-          <View style={styles.row}>
-            <Text style={styles.label}>No. Inventario:</Text>
-            <Text style={[styles.value, { color: '#f59e0b', fontFamily: 'monospace' }]}>{item.inventory_number}</Text>
+          <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+            <Text style={[styles.label, { color: subtextColor }]}>No. Inventario:</Text>
+            <Text style={[styles.value, { color: '#fbbf24', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>{item.inventory_number}</Text>
           </View>
         ) : null}
 
         {item.serial_number ? (
-          <View style={styles.row}>
-            <Text style={styles.label}>No. Serie:</Text>
-            <Text style={[styles.value, { color: '#3b82f6', fontFamily: 'monospace' }]}>{item.serial_number}</Text>
+          <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+            <Text style={[styles.label, { color: subtextColor }]}>No. Serie:</Text>
+            <Text style={[styles.value, { color: isDark ? '#38bdf8' : '#0284c7', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>{item.serial_number}</Text>
           </View>
         ) : null}
 
         {item.no_sep ? (
-          <View style={styles.row}>
-            <Text style={styles.label}>No. SEP:</Text>
-            <Text style={[styles.value, { color: '#10b981', fontFamily: 'monospace' }]}>{item.no_sep}</Text>
+          <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+            <Text style={[styles.label, { color: subtextColor }]}>No. SEP:</Text>
+            <Text style={[styles.value, { color: '#10b981', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>{item.no_sep}</Text>
           </View>
         ) : null}
 
         {item.original_id ? (
-          <View style={styles.row}>
-            <Text style={styles.label}>ID CB / Excel:</Text>
-            <Text style={[styles.value, { color: '#8b5cf6', fontFamily: 'monospace' }]}>{item.original_id}</Text>
+          <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+            <Text style={[styles.label, { color: subtextColor }]}>ID CB / Excel:</Text>
+            <Text style={[styles.value, { color: '#c084fc', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>{item.original_id}</Text>
           </View>
         ) : null}
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Responsable Custodia:</Text>
-          <Text style={styles.value}>{item.responsible || 'No asignado'}</Text>
+        <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+          <Text style={[styles.label, { color: subtextColor }]}>Responsable Custodia:</Text>
+          <Text style={[styles.value, { color: textColor }]}>{item.responsible || 'No asignado'}</Text>
         </View>
 
         {item.status || item.condition ? (
-          <View style={styles.row}>
-            <Text style={styles.label}>Estado / Condición:</Text>
-            <Text style={[styles.value, { color: '#059669', fontWeight: 'bold' }]}>{item.status || item.condition}</Text>
+          <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+            <Text style={[styles.label, { color: subtextColor }]}>Estado / Condición:</Text>
+            <Text style={[styles.value, { color: '#10b981' }]}>{item.status || item.condition}</Text>
           </View>
         ) : null}
 
         {item.container_content ? (
-          <View style={styles.row}>
-            <Text style={styles.label}>Contenido por Envase:</Text>
-            <Text style={styles.value}>{item.container_content}</Text>
+          <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+            <Text style={[styles.label, { color: subtextColor }]}>Contenido por Envase:</Text>
+            <Text style={[styles.value, { color: textColor }]}>{item.container_content}</Text>
           </View>
         ) : null}
 
         {item.entry_date ? (
-          <View style={styles.row}>
-            <Text style={styles.label}>Fecha de Entrada:</Text>
-            <Text style={styles.value}>{item.entry_date}</Text>
+          <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+            <Text style={[styles.label, { color: subtextColor }]}>Fecha de Entrada:</Text>
+            <Text style={[styles.value, { color: textColor }]}>{item.entry_date}</Text>
           </View>
         ) : null}
 
         {item.expiration_date ? (
-          <View style={styles.row}>
-            <Text style={styles.label}>Fecha de Caducidad:</Text>
+          <View style={[styles.row, { borderBottomWidth: 0 }]}>
+            <Text style={[styles.label, { color: subtextColor }]}>Fecha de Caducidad:</Text>
             <Text style={[
               styles.value, 
-              (item.expiration_date === 'Sin caducidad' || item.expiration_date === 'No aplica') ? { color: '#38bdf8' } : {}
+              (item.expiration_date === 'Sin caducidad' || item.expiration_date === 'No aplica') ? { color: isDark ? '#38bdf8' : '#0284c7' } : { color: textColor }
             ]}>
               {item.expiration_date}
             </Text>
@@ -978,14 +1031,14 @@ export default function DetailScreen({ route, navigation }) {
 
       {/* SECCIÓN CONTENIDO DEL KIT Y SUB-OBJETOS */}
       {(kitContentsList.length > 0 || plainTextKitContent !== '') ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+        <View style={[styles.glassDetailCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>
             📦 Contenido del Kit / Sub-objetos {kitContentsList.length > 0 ? `(${totalSubPieces} piezas en ${kitContentsList.length} tipos)` : ''}
           </Text>
 
           {plainTextKitContent !== '' ? (
-            <View style={{ backgroundColor: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', marginTop: 8 }}>
-              <Text style={{ fontSize: 13, color: '#334155', lineHeight: 18 }}>{plainTextKitContent}</Text>
+            <View style={{ backgroundColor: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(241, 245, 249, 0.8)', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: cardBorder, marginTop: 8 }}>
+              <Text style={{ fontSize: 13, color: textColor, lineHeight: 18 }}>{plainTextKitContent}</Text>
             </View>
           ) : null}
 
@@ -994,24 +1047,24 @@ export default function DetailScreen({ route, navigation }) {
               {kitContentsList.map((sub, idx) => {
                 const subPhotoUri = getImageUri(sub.localUri || sub.imageUri || sub.image_path || sub.photo);
                 return (
-                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', padding: 10, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', gap: 10 }}>
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(241, 245, 249, 0.85)', padding: 10, borderRadius: 14, borderWidth: 1, borderColor: cardBorder, gap: 10 }}>
                     {subPhotoUri ? (
                       <TouchableOpacity onPress={() => openPhotoPreview(subPhotoUri, sub.name || `Sub-objeto #${idx + 1}`)}>
-                        <Image source={{ uri: subPhotoUri }} style={{ width: 48, height: 48, borderRadius: 10, borderWidth: 1.5, borderColor: '#0d9488' }} resizeMode="cover" />
+                        <Image source={{ uri: subPhotoUri }} style={{ width: 48, height: 48, borderRadius: 10, borderWidth: 1.5, borderColor: isDark ? '#22d3ee' : '#0891b2' }} resizeMode="cover" />
                       </TouchableOpacity>
                     ) : (
-                      <View style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: '#ccfbf1', justifyContent: 'center', alignItems: 'center' }}>
+                      <View style={{ width: 48, height: 48, borderRadius: 10, backgroundColor: isDark ? 'rgba(6, 182, 212, 0.15)' : '#ccfbf1', justifyContent: 'center', alignItems: 'center' }}>
                         <Text style={{ fontSize: 20 }}>📦</Text>
                       </View>
                     )}
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#0f172a' }}>{sub.name || `Sub-objeto #${idx + 1}`}</Text>
-                      <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Cantidad en paquete: {sub.quantity || 1} piezas</Text>
+                      <Text style={{ fontWeight: 'bold', fontSize: 13, color: textColor }}>{sub.name || `Sub-objeto #${idx + 1}`}</Text>
+                      <Text style={{ fontSize: 11, color: subtextColor, marginTop: 2 }}>Cantidad en paquete: {sub.quantity || 1} piezas</Text>
                       {subPhotoUri ? (
-                        <Text style={{ fontSize: 10, color: '#0d9488', fontWeight: 'bold', marginTop: 2 }}>🔍 Toca la foto para ampliar</Text>
+                        <Text style={{ fontSize: 10, color: isDark ? '#22d3ee' : '#0891b2', fontWeight: 'bold', marginTop: 2 }}>🔍 Toca la foto para ampliar</Text>
                       ) : null}
                     </View>
-                    <View style={{ backgroundColor: '#0d9488', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                    <View style={{ backgroundColor: isDark ? 'rgba(6, 182, 212, 0.25)' : '#0891b2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: isDark ? '#22d3ee' : '#0891b2' }}>
                       <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>x{sub.quantity || 1}</Text>
                     </View>
                   </View>
@@ -1024,14 +1077,13 @@ export default function DetailScreen({ route, navigation }) {
 
       {/* SECCIÓN UNIDADES FÍSICAS REGISTRADAS (MISMO PRODUCTO CON DIFERENTE NO. SEP / INVENTARIO) */}
       {(type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material' || siblingsList.length > 0) ? (
-        <View style={[styles.section, { backgroundColor: '#0f172a', borderColor: '#334155', borderWidth: 1 }]}>
+        <View style={[styles.glassDetailCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
           <Text style={[styles.sectionTitle, { color: '#10b981', marginBottom: 4 }]}>
             📦 Unidades Físicas Registradas ({siblingsList.length || 1})
           </Text>
-          <Text style={{ color: '#94a3b8', fontSize: 11, marginBottom: 12 }}>
+          <Text style={{ color: subtextColor, fontSize: 11, marginBottom: 12 }}>
             Lista de copias físicas de este mismo producto con diferente No. SEP o No. Inventario:
           </Text>
-
 
           {siblingsList.map((sib) => {
             const isCurrent = sib.id === item.id;
@@ -1046,9 +1098,9 @@ export default function DetailScreen({ route, navigation }) {
                   }
                 }}
                 style={{
-                  backgroundColor: isCurrent ? '#064e3b' : '#1e293b',
+                  backgroundColor: isCurrent ? (isDark ? 'rgba(16, 185, 129, 0.2)' : '#d1fae5') : (isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(241, 245, 249, 0.85)'),
                   borderWidth: 1,
-                  borderColor: isCurrent ? '#10b981' : '#334155',
+                  borderColor: isCurrent ? '#10b981' : cardBorder,
                   borderRadius: 14,
                   padding: 12,
                   marginBottom: 8,
@@ -1059,22 +1111,22 @@ export default function DetailScreen({ route, navigation }) {
               >
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <Text style={{ color: isCurrent ? '#6ee7b7' : '#ffffff', fontWeight: 'bold', fontSize: 13 }}>
+                    <Text style={{ color: isCurrent ? '#10b981' : textColor, fontWeight: 'bold', fontSize: 13 }}>
                       {isCurrent ? '👉 ' : ''}ID #{sib.id}
                     </Text>
                     {sib.no_sep ? (
-                      <Text style={{ color: '#10b981', fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', backgroundColor: '#064e3b', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#10b981', fontSize: 11, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#d1fae5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
                         SEP: {sib.no_sep}
                       </Text>
                     ) : null}
                     {sib.inventory_number ? (
-                      <Text style={{ color: '#f59e0b', fontSize: 11, fontFamily: 'monospace', fontWeight: 'bold', backgroundColor: '#451a03', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#f59e0b', fontSize: 11, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
                         Inv: {sib.inventory_number}
                       </Text>
                     ) : null}
                   </View>
 
-                  <Text style={{ color: '#cbd5e1', fontSize: 11, marginTop: 4 }}>
+                  <Text style={{ color: subtextColor, fontSize: 11, marginTop: 4 }}>
                     Ubicación: {sib.location || 'Laboratorio'} | Estado: {sib.status || 'Buenas condiciones'}
                   </Text>
                 </View>
@@ -1084,7 +1136,7 @@ export default function DetailScreen({ route, navigation }) {
                     <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>Actual</Text>
                   </View>
                 ) : (
-                  <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>Ver ➔</Text>
+                  <Text style={{ color: isDark ? '#38bdf8' : '#0284c7', fontSize: 12, fontWeight: 'bold' }}>Ver ➔</Text>
                 )}
               </TouchableOpacity>
             );
@@ -1095,47 +1147,47 @@ export default function DetailScreen({ route, navigation }) {
       {/* SECCIÓN 2: PROPIEDADES FÍSICAS Y QUÍMICAS */}
       {(type === 'substance' || item.physical_state) ? (
         <>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⚗️ Propiedades Físicas y Químicas</Text>
-            <View style={styles.row}>
-              <Text style={styles.label}>Estado Físico:</Text>
+          <View style={[styles.glassDetailCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+            <Text style={[styles.sectionTitle, { color: textColor }]}>⚗️ Propiedades Físicas y Químicas</Text>
+            <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+              <Text style={[styles.label, { color: subtextColor }]}>Estado Físico:</Text>
               <Text style={[styles.value, { color: '#10b981', fontWeight: 'bold' }]}>{item.physical_state || 'N/A'}</Text>
             </View>
 
             {item.composition ? (
-              <View style={styles.row}>
-                <Text style={styles.label}>Composición / Pureza:</Text>
-                <Text style={styles.value}>{item.composition}</Text>
+              <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+                <Text style={[styles.label, { color: subtextColor }]}>Composición / Pureza:</Text>
+                <Text style={[styles.value, { color: textColor }]}>{item.composition}</Text>
               </View>
             ) : null}
 
             {item.concentration ? (
-              <View style={styles.row}>
-                <Text style={styles.label}>Concentración:</Text>
-                <Text style={styles.value}>{item.concentration}</Text>
+              <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+                <Text style={[styles.label, { color: subtextColor }]}>Concentración:</Text>
+                <Text style={[styles.value, { color: textColor }]}>{item.concentration}</Text>
               </View>
             ) : null}
 
             {item.color ? (
-              <View style={styles.row}>
-                <Text style={styles.label}>Color:</Text>
-                <Text style={styles.value}>{item.color}</Text>
+              <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+                <Text style={[styles.label, { color: subtextColor }]}>Color:</Text>
+                <Text style={[styles.value, { color: textColor }]}>{item.color}</Text>
               </View>
             ) : null}
 
             {item.odor ? (
-              <View style={styles.row}>
-                <Text style={styles.label}>Olor:</Text>
-                <Text style={styles.value}>{item.odor}</Text>
+              <View style={[styles.row, { borderBottomWidth: 0 }]}>
+                <Text style={[styles.label, { color: subtextColor }]}>Olor:</Text>
+                <Text style={[styles.value, { color: textColor }]}>{item.odor}</Text>
               </View>
             ) : null}
           </View>
 
           {/* RIESGOS SGA / ADVERTENCIAS */}
           {item.risks_warnings ? (
-            <View style={[styles.section, { borderLeftColor: '#ef4444', borderLeftWidth: 4 }]}>
+            <View style={[styles.glassDetailCard, { backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(254, 242, 242, 0.95)', borderColor: 'rgba(239, 68, 68, 0.35)', borderLeftColor: '#ef4444', borderLeftWidth: 4 }]}>
               <Text style={[styles.sectionTitle, { color: '#f87171' }]}>⚠️ Riesgos y Advertencias (SGA)</Text>
-              <Text style={styles.descText}>{item.risks_warnings}</Text>
+              <Text style={[styles.descText, { color: textColor }]}>{item.risks_warnings}</Text>
             </View>
           ) : null}
         </>
@@ -1146,17 +1198,17 @@ export default function DetailScreen({ route, navigation }) {
 
       {/* SECCIÓN 3: OBSERVACIONES */}
       {item.observations ? (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📝 Observaciones</Text>
-          <Text style={styles.descText}>{item.observations}</Text>
+        <View style={[styles.glassDetailCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>📝 Observaciones</Text>
+          <Text style={[styles.descText, { color: textColor }]}>{item.observations}</Text>
         </View>
       ) : null}
 
       {/* SECCIÓN CÓDIGO QR DE INVENTARIO */}
-      <View style={[styles.section, { alignItems: 'center', backgroundColor: '#0f172a', borderColor: '#334155', borderWidth: 1 }]}>
-        <Text style={[styles.sectionTitle, { color: '#38bdf8', alignSelf: 'flex-start' }]}>📱 Código QR de Inventario</Text>
+      <View style={[styles.glassDetailCard, { alignItems: 'center', backgroundColor: cardBg, borderColor: cardBorder }]}>
+        <Text style={[styles.sectionTitle, { color: isDark ? '#22d3ee' : '#0891b2', alignSelf: 'flex-start' }]}>📱 Código QR de Inventario</Text>
 
-        <View style={{ backgroundColor: '#ffffff', padding: 12, borderRadius: 16, marginVertical: 10, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 8, elevation: 4 }}>
+        <View style={{ backgroundColor: '#ffffff', padding: 12, borderRadius: 18, marginVertical: 10, shadowColor: '#00f2fe', shadowOpacity: 0.15, shadowRadius: 10, elevation: 4 }}>
           <Image
             source={{
               uri: item.qr_path
@@ -1168,12 +1220,12 @@ export default function DetailScreen({ route, navigation }) {
           />
         </View>
 
-        <Text style={{ color: '#cbd5e1', fontSize: 11, fontFamily: 'monospace', textAlign: 'center', backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginBottom: 8 }}>
+        <Text style={{ color: subtextColor, fontSize: 11, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', textAlign: 'center', backgroundColor: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(241, 245, 249, 0.85)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginBottom: 8, borderWidth: 1, borderColor: cardBorder }}>
           {item.qr_content || `LAB-CHEMICAL_MATERIALS-${item.id}`}
         </Text>
 
         <TouchableOpacity 
-          style={{ backgroundColor: '#0284c7', paddingVertical: 10, paddingHorizontal: 18, borderRadius: 12, marginVertical: 4, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          style={{ borderRadius: 14, overflow: 'hidden', marginVertical: 4, width: '100%' }}
           onPress={async () => {
             try {
               const qrImageUrl = item.qr_path
@@ -1212,23 +1264,28 @@ export default function DetailScreen({ route, navigation }) {
             }
           }}
         >
-          <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 13 }}>🖨️ Generar e Imprimir QR</Text>
+          <LinearGradient colors={['#06b6d4', '#0284c7']} style={{ paddingVertical: 12, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 13 }}>🖨️ Generar e Imprimir QR</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
       {/* BOTÓN SOLICITAR PRÉSTAMO (Solo Docentes / Admin) */}
       {(type === 'substance' && isAdminOrResp) ? (
-        <TouchableOpacity style={styles.loanRequestBtn} onPress={openLoanModal}>
-          <Text style={styles.loanRequestBtnText}>🤝 Solicitar Préstamo de Sustancia</Text>
+        <TouchableOpacity style={{ borderRadius: 14, overflow: 'hidden', marginBottom: 12 }} onPress={openLoanModal}>
+          <LinearGradient colors={['#eab308', '#d97706']} style={{ paddingVertical: 14, alignItems: 'center' }}>
+            <Text style={styles.loanRequestBtnText}>🤝 Solicitar Préstamo de Sustancia</Text>
+          </LinearGradient>
         </TouchableOpacity>
       ) : null}
 
       {/* BOTÓN VER FICHA HDS / PDF */}
       {pdfUri ? (
-        <TouchableOpacity style={styles.pdfButton} onPress={openPdfLink}>
-          <Text style={styles.pdfButtonText}>📄 Ver Hoja de Datos de Seguridad (HDS / FDS)</Text>
+        <TouchableOpacity style={[styles.pdfButton, { backgroundColor: cardBg, borderColor: cardBorder }]} onPress={openPdfLink}>
+          <Text style={[styles.pdfButtonText, { color: isDark ? '#22d3ee' : '#0891b2' }]}>📄 Ver Hoja de Datos de Seguridad (HDS / FDS)</Text>
         </TouchableOpacity>
       ) : null}
+      </ScrollView>
 
       {/* MODAL PARA REGISTRAR OTRA UNIDAD DEL MISMO PRODUCTO */}
       <ChemicalMaterialRegisterModal
@@ -1824,15 +1881,73 @@ export default function DetailScreen({ route, navigation }) {
           ) : null}
         </View>
       </Modal>
-    </ScrollView>
+    </GlassBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    zIndex: 10,
+  },
+  backBtnPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  backBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  headerLogoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerFlaskBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerFlaskIcon: {
+    fontSize: 17,
+  },
+  headerLogoTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+    lineHeight: 16,
+  },
+  headerLogoSubtitle: {
+    fontSize: 10,
+    fontWeight: '600',
+    lineHeight: 12,
+  },
+  screenTitleBadgePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  screenTitleBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
-    padding: 16,
   },
   emptyContainer: {
     flex: 1,
@@ -1846,12 +1961,14 @@ const styles = StyleSheet.create({
   },
   imageHeaderContainer: {
     width: '100%',
-    borderRadius: 20,
+    borderRadius: 22,
     overflow: 'hidden',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-    backgroundColor: '#0f172a',
+    marginBottom: 14,
+    borderWidth: 1.2,
+    shadowColor: '#00f2fe',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
   },
   headerImage: {
     width: '100%',
@@ -1873,25 +1990,42 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
   },
-  header: {
-    backgroundColor: '#1e293b',
-    borderRadius: 20,
+  glassDetailCard: {
+    borderRadius: 22,
     padding: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
-    marginBottom: 16,
+    borderWidth: 1.2,
+    marginBottom: 14,
+    shadowColor: '#00f2fe',
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    elevation: 3,
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
+    fontWeight: '900',
+    lineHeight: 24,
+    marginBottom: 6,
+  },
+  idBadgePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.35)',
+  },
+  idBadgePillText: {
+    color: '#fbbf24',
+    fontSize: 11,
     fontWeight: '800',
-    color: '#ffffff',
-    marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   formula: {
     fontSize: 13,
     color: '#38bdf8',
     fontWeight: '700',
-    marginTop: 4,
+    marginTop: 6,
   },
   badgeRow: {
     flexDirection: 'row',
@@ -1900,125 +2034,91 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   badgePrimary: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#f59e0b',
   },
   badgePrimaryText: {
-    color: '#fbbf24',
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 11.5,
+    fontWeight: '800',
   },
   badgeSecondary: {
-    backgroundColor: '#334155',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  badgeSecondaryText: {
-    color: '#cbd5e1',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  badgeUnits: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#10b981',
   },
-  badgeUnitsText: {
-    color: '#34d399',
-    fontSize: 12,
-    fontWeight: 'bold',
+  badgeSecondaryText: {
+    fontSize: 11.5,
+    fontWeight: '700',
   },
   groupBadgesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 12,
+    marginTop: 10,
   },
   groupBadge: {
-    backgroundColor: '#0f172a',
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#334155',
   },
   groupBadgeText: {
-    color: '#f59e0b',
     fontSize: 11,
     fontWeight: '700',
   },
   editHeaderBtn: {
-    backgroundColor: '#f59e0b',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  editGradientBtn: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
+    paddingVertical: 7,
+    borderRadius: 12,
   },
   editHeaderBtnText: {
-    color: '#0f172a',
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontWeight: '900',
     fontSize: 12,
   },
   deleteHeaderBtn: {
-    backgroundColor: '#ef4444',
+    backgroundColor: 'rgba(239, 68, 68, 0.20)',
+    borderColor: '#ef4444',
+    borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 10,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   deleteHeaderBtnText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  section: {
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
+    fontSize: 13,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#f8fafc',
+    fontWeight: '900',
     marginBottom: 10,
+    letterSpacing: 0.2,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 5,
+    paddingVertical: 7,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
   },
   label: {
-    fontSize: 12,
-    color: '#94a3b8',
+    fontSize: 12.5,
     fontWeight: '600',
   },
   value: {
-    fontSize: 12,
-    color: '#f8fafc',
+    fontSize: 12.5,
     fontWeight: '700',
   },
   descText: {
     fontSize: 13,
-    color: '#cbd5e1',
-    lineHeight: 18,
-  },
-  loanRequestBtn: {
-    backgroundColor: '#d97706',
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 12,
+    lineHeight: 19,
   },
   loanRequestBtnText: {
     color: '#ffffff',

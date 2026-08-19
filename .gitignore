@@ -1,4 +1,14 @@
-__pycache__
+__pycache__/
+**/__pycache__/
+*.pyc
 ANALISIS.md
 .app_token
 .flask_secret
+scratch/
+mobile/.expo/
+mobile/node_modules/
+dist/
+build/
+venv_build/
+*.deb
+

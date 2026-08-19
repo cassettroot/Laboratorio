@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,8 +10,12 @@ import {
 } from 'react-native';
 import { apiService } from '../api/services';
 import { normalizeText } from '../utils/textUtils';
+import { ThemeContext } from '../context/ThemeContext';
+import GlassBackground from '../components/GlassBackground';
+import GlassCard from '../components/GlassCard';
 
 export default function WarehouseScreen({ navigation }) {
+  const { theme } = useContext(ThemeContext);
   const [activeTab, setActiveTab] = useState('visual'); // 'visual' | 'shelf_list'
   const [mode, setMode] = useState('optimized'); // 'photo' | 'optimized'
   const [substances, setSubstances] = useState([]);
@@ -226,54 +230,55 @@ export default function WarehouseScreen({ navigation }) {
   const searchNorm = normalizeText(search);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 60 }}>
-      {/* HEADER DE ALMACÉN CON BUSCADOR GLOBAL */}
-      <View style={styles.headerCard}>
-        <Text style={styles.badgeText}>🏢 Infraestructura & Estantería Metálica</Text>
-        <Text style={styles.mainTitle}>Almacén de Reactivos</Text>
-        <Text style={styles.subtitleText}>
-          Organización SGA por estantes y niveles. Escribe para buscar cualquier sustancia por nombre, CAS o fórmula sin importar acentos o mayúsculas.
-        </Text>
+    <GlassBackground>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 60 }}>
+        {/* HEADER DE ALMACÉN CON BUSCADOR GLOBAL */}
+        <GlassCard style={styles.headerCard}>
+          <Text style={[styles.badgeText, { color: theme.brand }]}>🏢 Infraestructura & Estantería Metálica</Text>
+          <Text style={[styles.mainTitle, { color: theme.text }]}>Almacén de Reactivos</Text>
+          <Text style={[styles.subtitleText, { color: theme.subtext }]}>
+            Organización SGA por estantes y niveles. Escribe para buscar cualquier sustancia por nombre, CAS o fórmula sin importar acentos o mayúsculas.
+          </Text>
 
-        {/* BARRA DE BÚSQUEDA GLOBAL DEL ALMACÉN */}
-        <View style={styles.searchBarBox}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <TextInput
-            style={styles.searchBarInput}
-            placeholder="Buscar por sustancia, CAS, fórmula o nivel (ej. A2, Cloruro)..."
-            placeholderTextColor="#94a3b8"
-            value={search}
-            onChangeText={setSearch}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {search ? (
-            <TouchableOpacity onPress={() => setSearch('')} style={styles.clearBtn}>
-              <Text style={styles.clearBtnText}>✕</Text>
+          {/* BARRA DE BÚSQUEDA GLOBAL DEL ALMACÉN */}
+          <View style={[styles.searchBarBox, { backgroundColor: theme.glassInput, borderColor: theme.glassBorder }]}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={[styles.searchBarInput, { color: theme.text }]}
+              placeholder="Buscar por sustancia, CAS, fórmula o nivel (ej. A2, Cloruro)..."
+              placeholderTextColor={theme.subtext}
+              value={search}
+              onChangeText={setSearch}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {search ? (
+              <TouchableOpacity onPress={() => setSearch('')} style={styles.clearBtn}>
+                <Text style={styles.clearBtnText}>✕</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {/* PESTAÑAS DE VISTA */}
+          <View style={[styles.sectionTabs, { backgroundColor: theme.glassPill, borderColor: theme.glassBorder }]}>
+            <TouchableOpacity
+              style={[styles.sectionBtn, activeTab === 'visual' ? { backgroundColor: theme.brand } : {}]}
+              onPress={() => setActiveTab('visual')}
+            >
+              <Text style={[styles.sectionBtnText, activeTab === 'visual' ? { color: '#ffffff', fontWeight: '800' } : { color: theme.subtext }]}>
+                🗺️ Estantería Visual
+              </Text>
             </TouchableOpacity>
-          ) : null}
-        </View>
-
-        {/* PESTAÑAS DE VISTA */}
-        <View style={styles.sectionTabs}>
-          <TouchableOpacity
-            style={[styles.sectionBtn, activeTab === 'visual' ? styles.sectionBtnActive : {}]}
-            onPress={() => setActiveTab('visual')}
-          >
-            <Text style={[styles.sectionBtnText, activeTab === 'visual' ? styles.sectionBtnTextActive : {}]}>
-              🗺️ Estantería Visual
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.sectionBtn, activeTab === 'shelf_list' ? styles.sectionBtnActive : {}]}
-            onPress={() => setActiveTab('shelf_list')}
-          >
-            <Text style={[styles.sectionBtnText, activeTab === 'shelf_list' ? styles.sectionBtnTextActive : {}]}>
-              📋 Listado por Niveles
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            <TouchableOpacity
+              style={[styles.sectionBtn, activeTab === 'shelf_list' ? { backgroundColor: theme.brand } : {}]}
+              onPress={() => setActiveTab('shelf_list')}
+            >
+              <Text style={[styles.sectionBtnText, activeTab === 'shelf_list' ? { color: '#ffffff', fontWeight: '800' } : { color: theme.subtext }]}>
+                📋 Listado por Niveles
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </GlassCard>
 
       {activeTab === 'visual' ? (
         <View>
@@ -461,14 +466,14 @@ export default function WarehouseScreen({ navigation }) {
           )}
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </GlassBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
     paddingHorizontal: 14,
     paddingTop: 12,
   },

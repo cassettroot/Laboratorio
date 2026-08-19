@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import {
   Modal,
   View,
@@ -7,8 +7,11 @@ import {
   StyleSheet,
   Platform
 } from 'react-native';
+import { ThemeContext } from '../../context/ThemeContext';
 
 export default function RegistrationSelectorModal({ visible, onClose, onSelectType }) {
+  const { theme } = useContext(ThemeContext);
+
   const options = [
     {
       id: 'substances',
@@ -16,7 +19,7 @@ export default function RegistrationSelectorModal({ visible, onClose, onSelectTy
       subtitle: 'Reactivos, solventes y soluciones',
       icon: '🧪',
       color: '#0d9488',
-      bgColor: '#ccfbf1',
+      bgColor: 'rgba(13, 148, 136, 0.15)',
     },
     {
       id: 'chemical_materials',
@@ -24,40 +27,40 @@ export default function RegistrationSelectorModal({ visible, onClose, onSelectTy
       subtitle: 'Cristalería, utensilios y recipientes',
       icon: '💧',
       color: '#0284c7',
-      bgColor: '#e0f2fe',
+      bgColor: 'rgba(2, 132, 199, 0.15)',
     },
     {
       id: 'didactic_materials',
       title: 'Material Didáctico',
       subtitle: 'Modelos, maquetas, kits y sensores',
       icon: '🎓',
-      color: '#4f46e5',
-      bgColor: '#e0e7ff',
+      color: '#8b5cf6',
+      bgColor: 'rgba(139, 92, 246, 0.15)',
     },
     {
       id: 'equipos',
       title: 'Bien / Equipo (Oficina / Sistemas)',
       subtitle: 'Equipos informáticos, mobiliario y activos',
       icon: '💻',
-      color: '#2563eb',
-      bgColor: '#dbeafe',
+      color: '#3b82f6',
+      bgColor: 'rgba(59, 130, 246, 0.15)',
     },
   ];
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <View style={styles.container} onStartShouldSetResponder={() => true}>
-          <View style={styles.handle} />
+        <View style={[styles.container, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, borderTopWidth: 1 }]} onStartShouldSetResponder={() => true}>
+          <View style={[styles.handle, { backgroundColor: theme.subtext }]} />
           
-          <Text style={styles.title}>¿Qué deseas registrar?</Text>
-          <Text style={styles.subtitle}>Selecciona el tipo de elemento para abrir su formulario correspondiente</Text>
+          <Text style={[styles.title, { color: theme.text }]}>¿Qué deseas registrar?</Text>
+          <Text style={[styles.subtitle, { color: theme.subtext }]}>Selecciona el tipo de elemento para abrir su formulario correspondiente</Text>
 
           <View style={styles.optionsList}>
             {options.map((opt) => (
               <TouchableOpacity
                 key={opt.id}
-                style={styles.optionCard}
+                style={[styles.optionCard, { backgroundColor: theme.glassPill, borderColor: theme.glassBorder }]}
                 activeOpacity={0.7}
                 onPress={() => {
                   onSelectType(opt.id);
@@ -68,16 +71,16 @@ export default function RegistrationSelectorModal({ visible, onClose, onSelectTy
                   <Text style={styles.icon}>{opt.icon}</Text>
                 </View>
                 <View style={styles.textContainer}>
-                  <Text style={styles.optionTitle}>{opt.title}</Text>
-                  <Text style={styles.optionSubtitle}>{opt.subtitle}</Text>
+                  <Text style={[styles.optionTitle, { color: theme.text }]}>{opt.title}</Text>
+                  <Text style={[styles.optionSubtitle, { color: theme.subtext }]}>{opt.subtitle}</Text>
                 </View>
                 <Text style={[styles.arrow, { color: opt.color }]}>→</Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>Cancelar</Text>
+          <TouchableOpacity style={[styles.closeButton, { borderColor: theme.glassBorder, backgroundColor: theme.glassPill }]} onPress={onClose}>
+            <Text style={[styles.closeButtonText, { color: theme.text }]}>Cancelar</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -92,7 +95,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: '#ffffff',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
@@ -102,20 +104,18 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: '#cbd5e1',
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 16,
+    opacity: 0.4,
   },
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#0f172a',
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 12,
-    color: '#64748b',
     textAlign: 'center',
     marginTop: 4,
     marginBottom: 20,
@@ -127,11 +127,9 @@ const styles = StyleSheet.create({
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
   iconContainer: {
     width: 44,
@@ -150,11 +148,9 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0f172a',
   },
   optionSubtitle: {
     fontSize: 11,
-    color: '#64748b',
     marginTop: 2,
   },
   arrow: {
@@ -166,11 +162,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
     alignItems: 'center',
   },
   closeButtonText: {
-    color: '#64748b',
     fontWeight: '700',
     fontSize: 13,
   },

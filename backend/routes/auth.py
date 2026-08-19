@@ -294,7 +294,7 @@ def delete_user(user_id):
 @require_role('admin', 'jefe')
 def list_devices():
     try:
-        conn = get_db_connection()
+        conn = get_users_db_connection()
         cursor = conn.cursor()
         cursor.execute('SELECT id, alias, status, created_at FROM device_approvals ORDER BY created_at DESC')
         rows = cursor.fetchall()
@@ -303,16 +303,22 @@ def list_devices():
     except Exception as e:
         return safe_db_error(e)
 
-@auth_bp.route('/api/auth/devices/<int:device_id>/<action>', methods=['POST'])
+@auth_bp.route('/api/auth/devices/<int:device_id>/<action>', methods=['POST', 'DELETE'])
 @require_role('admin', 'jefe')
 def manage_device(device_id, action):
-    if action not in ['approve', 'reject']:
+    if action not in ['approve', 'reject', 'delete']:
         return jsonify({"status": "error", "message": "Acción inválida"}), 400
     
-    new_status = 'APPROVED' if action == 'approve' else 'REJECTED'
     try:
-        conn = get_db_connection()
+        conn = get_users_db_connection()
         cursor = conn.cursor()
+        if action == 'delete':
+            cursor.execute('DELETE FROM device_approvals WHERE id = ?', (device_id,))
+            conn.commit()
+            conn.close()
+            return jsonify({"status": "success", "message": "Dispositivo eliminado exitosamente."})
+
+        new_status = 'APPROVED' if action == 'approve' else 'REJECTED'
         cursor.execute('UPDATE device_approvals SET status = ? WHERE id = ?', (new_status, device_id))
         conn.commit()
         conn.close()

@@ -19,11 +19,29 @@ window.fetch = async function() {
     return originalFetch(resource, config);
 };
 
+window.toggleSidebarGroup = function(groupId, forceOpen = null) {
+    const group = document.getElementById(groupId);
+    if (!group) return;
+    const isExpanded = group.classList.contains('expanded');
+    const shouldOpen = forceOpen !== null ? forceOpen : !isExpanded;
+    if (shouldOpen) {
+        group.classList.add('expanded');
+    } else {
+        group.classList.remove('expanded');
+    }
+};
+
 function setActiveTab(id) {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
     const tab = document.getElementById(id);
     if (tab) {
-        tab.classList.remove('text-slate-300', 'hover:bg-slate-800', 'hover:text-white');
-        tab.classList.add('bg-brand-500', 'text-slate-900', 'font-bold');
+        tab.classList.add('active');
+        const parentGroup = tab.closest('.nav-group');
+        if (parentGroup) {
+            parentGroup.classList.add('expanded');
+        }
     }
 }
 
@@ -115,11 +133,6 @@ function router() {
             navInvCheck.classList.add('hidden');
         }
     }
-
-    document.querySelectorAll('aside nav a').forEach(a => {
-        a.classList.remove('bg-brand-500', 'text-slate-900', 'bg-slate-800', 'text-white');
-        a.classList.add('text-slate-300', 'hover:bg-slate-800', 'hover:text-white');
-    });
 
     const titleEl = document.getElementById('page-title');
     const mainEl = document.getElementById('main-content');
@@ -372,8 +385,173 @@ function initRealtimeSync() {
     }, 4000);
 }
 
+// ── Motor Ambiental Ultra-Optimizado (Orbes Multicolor Fluidos + Estrellas 60FPS) ───────────
+let _ambientLoopRunning = false;
+let _ambientAnimationId = null;
+
+window.toggleAmbientBackground = function(enable) {
+    localStorage.setItem('ambient_bg_enabled', enable ? 'true' : 'false');
+    const canvas = document.getElementById('ambient-bg-canvas');
+    if (!canvas) return;
+
+    if (!enable) {
+        if (_ambientAnimationId) {
+            cancelAnimationFrame(_ambientAnimationId);
+            _ambientAnimationId = null;
+        }
+        _ambientLoopRunning = false;
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.style.display = 'none';
+    } else {
+        canvas.style.display = 'block';
+        if (!_ambientLoopRunning) {
+            initAmbientBackground();
+        }
+    }
+};
+
+function initAmbientBackground() {
+    const isEnabled = localStorage.getItem('ambient_bg_enabled') !== 'false';
+    const canvas = document.getElementById('ambient-bg-canvas');
+    if (!canvas) return;
+
+    if (!isEnabled) {
+        canvas.style.display = 'none';
+        return;
+    }
+
+    canvas.style.display = 'block';
+    const ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) return;
+
+    let width = 0;
+    let height = 0;
+
+    function resize() {
+        width = canvas.width = Math.floor(window.innerWidth * 0.75);
+        height = canvas.height = Math.floor(window.innerHeight * 0.75);
+    }
+    resize();
+    window.addEventListener('resize', resize, { passive: true });
+
+    // 34 Estrellas con matices vibrantes para ambos temas
+    const stars = Array.from({ length: 34 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        size: 0.9 + Math.random() * 2.0,
+        baseAlpha: 0.25 + Math.random() * 0.7,
+        speed: 0.5 + Math.random() * 1.5,
+        phase: Math.random() * Math.PI * 2,
+        hue: Math.random() > 0.4 ? 185 + Math.random() * 85 : 35 + Math.random() * 25
+    }));
+
+    let startTime = performance.now();
+    let isVisible = true;
+
+    document.addEventListener('visibilitychange', () => {
+        isVisible = !document.hidden;
+        if (isVisible && isEnabled && !_ambientLoopRunning) {
+            startTime = performance.now();
+            loop();
+        }
+    });
+
+    _ambientLoopRunning = true;
+
+    function loop() {
+        const isCurrentEnabled = localStorage.getItem('ambient_bg_enabled') !== 'false';
+        if (!isVisible || !isCurrentEnabled) {
+            _ambientLoopRunning = false;
+            return;
+        }
+
+        const now = performance.now();
+        const t = (now - startTime) * 0.0006;
+
+        ctx.clearRect(0, 0, width, height);
+
+        const isDark = !document.body.classList.contains('theme-light');
+        // En tema blanco aumentamos la presencia de color para que no se pierda
+        const orbAlpha = isDark ? 0.17 : 0.28;
+        const orbLightness = isDark ? '55%' : '60%';
+
+        // Orbe 1 (Cian a Violeta a Magenta a Ámbar)
+        const hue1 = (t * 24) % 360;
+        const x1 = width * (0.35 + 0.25 * Math.sin(t * 0.7));
+        const y1 = height * (0.30 + 0.20 * Math.cos(t * 0.8));
+        const r1 = Math.min(width, height) * (isDark ? 0.45 : 0.50);
+        const grad1 = ctx.createRadialGradient(x1, y1, 0, x1, y1, r1);
+        grad1.addColorStop(0, `hsla(${hue1}, 95%, ${orbLightness}, ${orbAlpha * 1.3})`);
+        grad1.addColorStop(0.5, `hsla(${(hue1 + 40) % 360}, 90%, ${orbLightness}, ${orbAlpha * 0.65})`);
+        grad1.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad1;
+        ctx.beginPath();
+        ctx.arc(x1, y1, r1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Orbe 2 (Índigo a Esmeralda a Fucsia)
+        const hue2 = (t * 24 + 130) % 360;
+        const x2 = width * (0.70 + 0.22 * Math.cos(t * 0.6));
+        const y2 = height * (0.70 + 0.22 * Math.sin(t * 0.75));
+        const r2 = Math.min(width, height) * (isDark ? 0.50 : 0.55);
+        const grad2 = ctx.createRadialGradient(x2, y2, 0, x2, y2, r2);
+        grad2.addColorStop(0, `hsla(${hue2}, 95%, ${orbLightness}, ${orbAlpha * 1.25})`);
+        grad2.addColorStop(0.5, `hsla(${(hue2 + 50) % 360}, 90%, ${orbLightness}, ${orbAlpha * 0.55})`);
+        grad2.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad2;
+        ctx.beginPath();
+        ctx.arc(x2, y2, r2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Orbe 3 (Esmeralda a Ámbar a Azul Zafiro)
+        const hue3 = (t * 24 + 250) % 360;
+        const x3 = width * (0.20 + 0.18 * Math.cos(t * 0.9));
+        const y3 = height * (0.80 + 0.18 * Math.sin(t * 0.5));
+        const r3 = Math.min(width, height) * (isDark ? 0.42 : 0.46);
+        const grad3 = ctx.createRadialGradient(x3, y3, 0, x3, y3, r3);
+        grad3.addColorStop(0, `hsla(${hue3}, 95%, ${orbLightness}, ${orbAlpha * 1.15})`);
+        grad3.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad3;
+        ctx.beginPath();
+        ctx.arc(x3, y3, r3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. Destellos y Estrellas Shimmering
+        for (let i = 0; i < stars.length; i++) {
+            const s = stars[i];
+            const starAlpha = Math.max(0.12, Math.min(1, s.baseAlpha + 0.40 * Math.sin(t * s.speed + s.phase)));
+            const sx = s.x * width;
+            const sy = s.y * height;
+
+            // En tema claro, usamos mayor saturación y contraste para que brillen
+            ctx.fillStyle = isDark 
+                ? `hsla(${s.hue}, 90%, 75%, ${starAlpha})`
+                : `hsla(${s.hue}, 95%, 38%, ${starAlpha * 0.85})`;
+            ctx.beginPath();
+            ctx.arc(sx, sy, s.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Resplandor
+            if (starAlpha > 0.65) {
+                ctx.fillStyle = isDark 
+                    ? `hsla(${s.hue}, 95%, 85%, ${starAlpha * 0.35})`
+                    : `hsla(${s.hue}, 90%, 50%, ${starAlpha * 0.25})`;
+                ctx.beginPath();
+                ctx.arc(sx, sy, s.size * 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        _ambientAnimationId = requestAnimationFrame(loop);
+    }
+
+    loop();
+}
+
 window.addEventListener('hashchange', router);
 window.addEventListener('DOMContentLoaded', () => {
     initApp();
     initRealtimeSync();
+    initAmbientBackground();
 });

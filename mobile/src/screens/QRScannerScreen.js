@@ -3,12 +3,14 @@ import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator, Tex
 import { CameraView, useCameraPermissions, Camera } from 'expo-camera';
 import { apiService } from '../api/services';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function QRScannerScreen({ navigation }) {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
   const { updateServerUrl } = useContext(AuthContext) || {};
+  const { theme } = useContext(ThemeContext);
 
   // Modal para ingreso manual de código
   const [manualModalVisible, setManualModalVisible] = useState(false);
@@ -197,41 +199,40 @@ export default function QRScannerScreen({ navigation }) {
         barcodeScannerSettings={{
           barcodeTypes: ["qr", "code128", "datamatrix", "ean13"],
         }}
-      >
-        <View style={styles.overlay}>
-          <View style={styles.scanTarget} />
-          <Text style={styles.scanText}>Apunta la cámara al código QR impreso</Text>
+      />
+      <View style={[styles.overlay, StyleSheet.absoluteFillObject]}>
+        <View style={styles.scanTarget} />
+        <Text style={styles.scanText}>Apunta la cámara al código QR impreso</Text>
 
-          <TouchableOpacity style={styles.manualBtnTop} onPress={() => setManualModalVisible(true)}>
-            <Text style={styles.manualBtnTopText}>⌨️ Buscar por Código Manual</Text>
+        <TouchableOpacity style={[styles.manualBtnTop, { backgroundColor: theme.glassPill, borderColor: theme.brand }]} onPress={() => setManualModalVisible(true)}>
+          <Text style={[styles.manualBtnTopText, { color: theme.brand }]}>⌨️ Buscar por Código Manual</Text>
+        </TouchableOpacity>
+
+        {loading ? (
+          <View style={[styles.loadingBox, { backgroundColor: theme.brand }]}>
+            <ActivityIndicator size="large" color="#ffffff" />
+            <Text style={styles.loadingText}>Buscando en inventario...</Text>
+          </View>
+        ) : null}
+
+        {scanned && !loading ? (
+          <TouchableOpacity style={[styles.rescanBtn, { backgroundColor: theme.brand }]} onPress={() => setScanned(false)}>
+            <Text style={styles.rescanBtnText}>Presiona para escanear otro QR</Text>
           </TouchableOpacity>
-
-          {loading ? (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator size="large" color="#ffffff" />
-              <Text style={styles.loadingText}>Buscando en inventario...</Text>
-            </View>
-          ) : null}
-
-          {scanned && !loading ? (
-            <TouchableOpacity style={styles.rescanBtn} onPress={() => setScanned(false)}>
-              <Text style={styles.rescanBtnText}>Presiona para escanear otro QR</Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      </CameraView>
+        ) : null}
+      </View>
 
       {/* Modal para ingresar código manual */}
       <Modal visible={manualModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>⌨️ Búsqueda Manual de Código</Text>
-            <Text style={styles.modalSub}>Ingresa el código QR o ID del reactivo/material (ej. LAB-SUB-1, CAS, o Nombre):</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>⌨️ Búsqueda Manual de Código</Text>
+            <Text style={[styles.modalSub, { color: theme.subtext }]}>Ingresa el código QR o ID del reactivo/material (ej. LAB-SUB-1, CAS, o Nombre):</Text>
             
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: theme.glassInput, color: theme.text, borderColor: theme.glassBorder }]}
               placeholder="Ej. LAB-SUB-1, 7647-01-0, Ácido Clorhídrico"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.subtext}
               value={manualCode}
               onChangeText={setManualCode}
               autoCapitalize="none"
@@ -239,11 +240,11 @@ export default function QRScannerScreen({ navigation }) {
             />
 
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#334155' }]} onPress={() => setManualModalVisible(false)}>
-                <Text style={styles.modalBtnText}>Cancelar</Text>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: 'rgba(100, 116, 139, 0.3)' }]} onPress={() => setManualModalVisible(false)}>
+                <Text style={[styles.modalBtnText, { color: theme.text }]}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: '#0284c7' }]} onPress={submitManualCode}>
-                <Text style={styles.modalBtnText}>Buscar</Text>
+              <TouchableOpacity style={[styles.modalBtn, { backgroundColor: theme.brand }]} onPress={submitManualCode}>
+                <Text style={[styles.modalBtnText, { color: '#ffffff' }]}>Buscar</Text>
               </TouchableOpacity>
             </View>
           </View>

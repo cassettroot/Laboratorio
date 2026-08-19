@@ -255,16 +255,11 @@ function openSpaceSelectModal() {
             if (localStorage.getItem('inventory_selected')) {
                 closeBtn.classList.remove('hidden');
             } else {
-                closeBtn.classList.add('hidden');
+                closeBtn.classList.remove('hidden');
             }
         }
         updateSpaceSelectAuthStatus();
-
-        if (state.isLoggedIn && state.userRole === 'responsable') {
-            switchSpaceModalTab('profile');
-        } else {
-            switchSpaceModalTab('spaces');
-        }
+        switchSpaceModalTab('spaces');
     }
 }
 
@@ -279,24 +274,25 @@ function selectSpace(spaceId) {
     closeSpaceSelectModal();
     
     // Actualizar nombre del espacio activo en el header si existe
-    const badge = document.getElementById('current-space-badge');
+    const badge = document.getElementById('active-space-badge');
     if (badge) {
         const names = {
-            'inventario': '🧪 Lab. de Química',
+            'inventario': '🧪 Laboratorio de Química',
             'oficina': '💼 Inventario de Oficina',
-            'sistemas': '💻 Lab. de Sistemas'
+            'sistemas': '💻 Laboratorio de Sistemas'
         };
         badge.innerHTML = `<span class="font-extrabold">${names[spaceId] || spaceId}</span>`;
     }
     
-    // Recargar vista según espacio
-    if (spaceId === 'inventario') {
-        window.location.hash = '#/chemical-materials';
-    } else {
-        window.location.hash = '#/chemical-materials';
-    }
+    // Redirigir a vista principal del espacio seleccionado
+    window.location.hash = '#/';
     window.location.reload();
 }
+
+window.openSpaceSelectModal = openSpaceSelectModal;
+window.closeSpaceSelectModal = closeSpaceSelectModal;
+window.selectSpace = selectSpace;
+window.switchSpaceModalTab = switchSpaceModalTab;
 
 function switchSpaceModalTab(tabName) {
     const spacesTab = document.getElementById('space-tab-content-spaces');
@@ -563,42 +559,42 @@ async function loadSpaceUsersList() {
             };
 
             tbody.innerHTML = res.data.map(u => {
-                let badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                let badgeClass = 'bg-blue-500/20 text-blue-300 border-blue-500/40';
                 let badgeText = '🔑 Responsable';
 
                 if (u.role === 'admin') {
-                    badgeClass = 'bg-purple-50 text-purple-700 border-purple-200';
+                    badgeClass = 'bg-purple-500/20 text-purple-300 border-purple-500/40';
                     badgeText = '👑 Admin';
                 } else if (u.role === 'jefe') {
-                    badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                    badgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
                     badgeText = '⭐ Jefe de Área';
                 }
 
                 return `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="p-3 font-bold text-slate-900">${escHtml(u.username)}</td>
-                    <td class="p-3 text-slate-500">${escHtml(u.email || '-')}</td>
-                    <td class="p-3">
-                        <span class="px-2 py-0.5 rounded-lg text-2xs font-bold border ${badgeClass}">
+                <tr class="hover:bg-white/5 transition border-b border-white/5">
+                    <td class="p-3.5 font-bold text-white">${escHtml(u.username)}</td>
+                    <td class="p-3.5 text-slate-300 font-medium">${escHtml(u.email || '-')}</td>
+                    <td class="p-3.5">
+                        <span class="px-2.5 py-1 rounded-xl text-3xs font-extrabold border ${badgeClass}">
                             ${badgeText}
                         </span>
                     </td>
-                    <td class="p-3 text-slate-600">
-                        <span class="px-2 py-0.5 rounded-lg text-2xs font-bold bg-slate-100 border border-slate-200">
+                    <td class="p-3.5 text-slate-300">
+                        <span class="px-2.5 py-1 rounded-xl text-3xs font-extrabold bg-sky-500/15 text-sky-300 border border-sky-500/30">
                             ${escHtml(labsNames[u.assigned_labs] || u.assigned_labs || 'Todos')}
                         </span>
                     </td>
-                    <td class="p-3 text-center">
-                        <span class="px-2 py-0.5 rounded-lg text-2xs font-bold ${u.active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}">
+                    <td class="p-3.5 text-center">
+                        <span class="px-2.5 py-1 rounded-xl text-3xs font-black uppercase tracking-wider ${u.active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'}">
                             ${u.active ? 'Activo' : 'Inactivo'}
                         </span>
                     </td>
-                    <td class="p-3 text-center">
-                        <div class="flex items-center justify-center gap-1">
-                            <button onclick="openSpaceUserEditById(${u.id})" class="p-1 text-slate-400 hover:text-brand-600 rounded-lg hover:bg-brand-50" title="Editar">
+                    <td class="p-3.5 text-center">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="openSpaceUserEditById(${u.id})" class="p-1.5 glass-btn text-amber-400 hover:text-amber-300 rounded-xl" title="Editar">
                                 ✏️
                             </button>
-                            <button onclick="deleteSpaceUser(${u.id})" class="p-1 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50" title="Eliminar">
+                            <button onclick="deleteSpaceUser(${u.id})" class="p-1.5 glass-btn text-rose-400 hover:text-rose-300 rounded-xl" title="Eliminar">
                                 🗑️
                             </button>
                         </div>

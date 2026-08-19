@@ -18,20 +18,25 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = async () => {
     try {
       const savedUrl = await AsyncStorage.getItem('custom_server_url');
-      if (savedUrl) setServerUrl(savedUrl);
+      if (savedUrl) {
+        setServerUrl(savedUrl);
+        apiClient.defaults.baseURL = savedUrl;
+      }
 
       const res = await apiService.checkStatus();
       if (res.status === 'success' && res.logged_in) {
         setUser(res.user);
         setRole(res.role);
       } else {
-        setUser('Estudiante');
-        setRole('estudiante');
+        setUser(null);
+        setRole(null);
       }
     } catch (error) {
-      console.log('Error de verificación de sesión:', error.message);
-      setUser('Estudiante');
-      setRole('estudiante');
+      if (error.response?.status !== 401 && error.response?.status !== 403) {
+        console.warn('Verificación de sesión:', error.message);
+      }
+      setUser(null);
+      setRole(null);
     } finally {
       setLoading(false);
     }
@@ -42,6 +47,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    if (!user) return;
+
     let isMounted = true;
     const interval = setInterval(async () => {
       try {
@@ -88,12 +95,19 @@ export const AuthProvider = ({ children }) => {
   }, [user, role]);
 
   const login = async (username, password) => {
-    const res = await apiService.login(username, password);
-    if (res.status === 'success') {
-      await checkAuthStatus();
-      return { success: true };
+    try {
+      const res = await apiService.login(username, password);
+      if (res && res.status === 'success') {
+        setUser(res.user || username);
+        setRole(res.role || 'docente');
+        await checkAuthStatus();
+        return { success: true };
+      }
+      return { success: false, message: res?.message || 'Error al iniciar sesión' };
+    } catch (err) {
+      console.warn('Login request error:', err);
+      return { success: false, message: 'No se pudo conectar al servidor' };
     }
-    return { success: false, message: res.message || 'Error al iniciar sesión' };
   };
 
   const logout = async () => {
@@ -102,14 +116,15 @@ export const AuthProvider = ({ children }) => {
     } catch (e) {
       console.warn("Logout error:", e);
     } finally {
-      setUser('Estudiante');
-      setRole('estudiante');
+      setUser(null);
+      setRole(null);
     }
   };
 
   const updateServerUrl = async (newUrl) => {
     const cleanUrl = newUrl.replace(/\/+$/, '');
     await AsyncStorage.setItem('custom_server_url', cleanUrl);
+    apiClient.defaults.baseURL = cleanUrl;
     setServerUrl(cleanUrl);
     await checkAuthStatus();
   };

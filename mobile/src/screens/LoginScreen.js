@@ -13,10 +13,14 @@ import {
   ScrollView
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
+import { ThemeContext } from '../context/ThemeContext';
 import { DEFAULT_API_BASE } from '../api/client';
+import GlassBackground from '../components/GlassBackground';
+import GlassCard from '../components/GlassCard';
 
 export default function LoginScreen({ navigation }) {
   const { login, loginAsStudent, serverUrl, updateServerUrl } = useContext(AuthContext);
+  const { theme } = useContext(ThemeContext);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,11 +38,7 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     try {
       const res = await login(username.trim(), password.trim());
-      if (res.success) {
-        if (navigation) {
-          navigation.navigate('Main', { screen: 'Inicio' });
-        }
-      } else {
+      if (!res.success) {
         Alert.alert('Error de Autenticación', res.message);
       }
     } catch (err) {
@@ -50,9 +50,6 @@ export default function LoginScreen({ navigation }) {
 
   const handleStudentAccess = () => {
     loginAsStudent();
-    if (navigation) {
-      navigation.navigate('Main', { screen: 'Inicio' });
-    }
   };
 
   const handleSaveUrl = async () => {
@@ -66,288 +63,268 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.header}>
-          <Text style={styles.badgeText}>TecNM - Instituto Tecnológico de Milpa Alta II</Text>
-          <Text style={styles.title}>LabKeep Mobile</Text>
-          <Text style={styles.subtitle}>Gestión e Inventario de Laboratorios</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Iniciar Sesión</Text>
-
-          <Text style={styles.label}>Usuario</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ej. admin_lab_2026"
-            value={username}
-            onChangeText={setUsername}
-            autoCapitalize="none"
-            placeholderTextColor="#94a3b8"
-          />
-
-          <Text style={styles.label}>Contraseña</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="••••••••"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            placeholderTextColor="#94a3b8"
-          />
-
-          <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]} 
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Ingresar como Personal</Text>
-            )}
-          </TouchableOpacity>
-
-          {/* Botón de Acceso Directo para Estudiantes */}
-          <TouchableOpacity 
-            style={styles.studentButton} 
-            onPress={handleStudentAccess}
-          >
-            <Text style={styles.studentButtonText}>🎓 Modo Estudiantes / Consultar Sustancias</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.configLink} 
-            onPress={() => setShowConfigModal(true)}
-          >
-            <Text style={styles.configLinkText}>
-              ⚙ Servidor actual: <Text style={{fontWeight: 'bold'}}>{serverUrl || DEFAULT_API_BASE}</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {/* Modal para Cambiar Dirección IP / Servidor */}
-      <Modal
-        visible={showConfigModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowConfigModal(false)}
+    <GlassBackground>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Configurar Servidor Backend</Text>
-            <Text style={styles.modalDesc}>
-              Si estás probando en tu celular mediante Wi-Fi local, ingresa la dirección IP de tu computadora (Ej. http://192.168.1.50:5000):
-            </Text>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.header}>
+            <View style={[styles.badge, { backgroundColor: theme.accentBg, borderColor: theme.glassBorderGlow }]}>
+              <Text style={[styles.badgeText, { color: theme.brand }]}>TecNM • Campus Milpa Alta II</Text>
+            </View>
+            <Text style={[styles.title, { color: theme.text }]}>LabKeep Mobile</Text>
+            <Text style={[styles.subtitle, { color: theme.subtext }]}>Gestión e Inventario de Laboratorios</Text>
+          </View>
 
+          <GlassCard style={styles.card}>
+            <Text style={[styles.cardTitle, { color: theme.text }]}>Iniciar Sesión</Text>
+
+            <Text style={[styles.label, { color: theme.text }]}>Usuario</Text>
             <TextInput
-              style={styles.input}
-              value={tempUrl}
-              onChangeText={setTempUrl}
-              placeholder="http://192.168.1.XX:5000"
+              style={[styles.input, { backgroundColor: theme.glassInput, color: theme.text, borderColor: theme.glassBorder }]}
+              placeholder="Ej. admin_lab_2026"
+              value={username}
+              onChangeText={setUsername}
               autoCapitalize="none"
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={theme.subtext}
+            />
+
+            <Text style={[styles.label, { color: theme.text }]}>Contraseña</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.glassInput, color: theme.text, borderColor: theme.glassBorder }]}
+              placeholder="••••••••"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholderTextColor={theme.subtext}
             />
 
             <TouchableOpacity 
-              style={{
-                backgroundColor: '#0284c7',
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderRadius: 12,
-                alignItems: 'center',
-                marginVertical: 12,
-                flexDirection: 'row',
-                justifyContent: 'center',
-                gap: 8
-              }}
-              onPress={() => {
-                setShowConfigModal(false);
-                if (navigation) {
-                  navigation.navigate('QRScanner');
-                }
-              }}
+              style={[styles.button, { backgroundColor: theme.brand }, loading && styles.buttonDisabled]} 
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.85}
             >
-              <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14 }}>
-                📷 Escanear QR para Vincular App
-              </Text>
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Ingresar como Personal</Text>
+              )}
             </TouchableOpacity>
 
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowConfigModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
+            {/* Botón de Acceso Directo para Estudiantes */}
+            <TouchableOpacity 
+              style={[styles.studentButton, { backgroundColor: theme.glassPill, borderColor: theme.glassBorder }]} 
+              onPress={handleStudentAccess}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.studentButtonText, { color: theme.text }]}>🎓 Modo Estudiantes / Consultas</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.configLink} 
+              onPress={() => setShowConfigModal(true)}
+            >
+              <Text style={[styles.configLinkText, { color: theme.subtext }]}>
+                ⚙ Servidor actual: <Text style={{ fontWeight: 'bold', color: theme.brand }}>{serverUrl || DEFAULT_API_BASE}</Text>
+              </Text>
+            </TouchableOpacity>
+          </GlassCard>
+        </ScrollView>
+
+        {/* Modal para Cambiar Dirección IP / Servidor */}
+        <Modal
+          visible={showConfigModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowConfigModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Configurar Servidor Backend</Text>
+              <Text style={[styles.modalDesc, { color: theme.subtext }]}>
+                Si estás probando en tu celular mediante Wi-Fi local, ingresa la dirección IP de tu computadora (Ej. http://192.168.1.50:5000):
+              </Text>
+
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.glassInput, color: theme.text, borderColor: theme.glassBorder }]}
+                value={tempUrl}
+                onChangeText={setTempUrl}
+                placeholder="http://192.168.1.XX:5000"
+                autoCapitalize="none"
+                placeholderTextColor={theme.subtext}
+              />
 
               <TouchableOpacity 
-                style={[styles.modalButton, styles.saveButton]}
-                onPress={handleSaveUrl}
+                style={[styles.qrConnectBtn, { backgroundColor: theme.brand }]}
+                onPress={() => {
+                  setShowConfigModal(false);
+                  if (navigation) {
+                    navigation.navigate('QRScanner');
+                  }
+                }}
               >
-                <Text style={styles.saveButtonText}>Guardar IP</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14 }}>
+                  📷 Escanear QR para Vincular App
+                </Text>
               </TouchableOpacity>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={[styles.modalButton, { backgroundColor: 'rgba(100, 116, 139, 0.25)' }]}
+                  onPress={() => setShowConfigModal(false)}
+                >
+                  <Text style={{ color: theme.text, fontWeight: '700' }}>Cancelar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.modalButton, { backgroundColor: theme.brand }]}
+                  onPress={handleSaveUrl}
+                >
+                  <Text style={{ color: '#ffffff', fontWeight: '800' }}>Guardar IP</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-    </KeyboardAvoidingView>
+        </Modal>
+      </KeyboardAvoidingView>
+    </GlassBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0f172a',
-  },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: 20,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
+  },
+  badge: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 10,
   },
   badgeText: {
-    color: '#0284c7',
-    fontSize: 12,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-    textAlign: 'center'
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   title: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '900',
-    color: '#ffffff',
+    letterSpacing: -0.5,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#94a3b8',
+    fontSize: 13,
+    fontWeight: '500',
   },
   card: {
-    backgroundColor: '#1e293b',
     borderRadius: 24,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 8,
   },
   cardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 20,
+    fontSize: 19,
+    fontWeight: '900',
+    marginBottom: 18,
+    textAlign: 'center',
   },
   label: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#94a3b8',
-    textTransform: 'uppercase',
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#0f172a',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: '#ffffff',
-    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    marginBottom: 14,
   },
   button: {
-    backgroundColor: '#0284c7',
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 3,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
   },
   studentButton: {
-    backgroundColor: '#059669',
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 13,
     alignItems: 'center',
     marginTop: 12,
+    borderWidth: 1,
   },
   studentButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
   configLink: {
-    marginTop: 18,
+    marginTop: 20,
     alignItems: 'center',
   },
   configLinkText: {
-    color: '#94a3b8',
-    fontSize: 12,
+    fontSize: 11,
+    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#1e293b',
-    borderRadius: 20,
-    padding: 24,
+    width: '100%',
+    borderRadius: 22,
+    padding: 20,
+    borderWidth: 1,
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontWeight: '800',
     marginBottom: 8,
   },
   modalDesc: {
-    fontSize: 13,
-    color: '#94a3b8',
-    marginBottom: 16,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 14,
+  },
+  qrConnectBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginVertical: 10,
   },
   modalButtons: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 12,
-    gap: 12,
+    gap: 10,
+    marginTop: 6,
   },
   modalButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  cancelButton: {
-    backgroundColor: '#334155',
-  },
-  cancelButtonText: {
-    color: '#cbd5e1',
-    fontWeight: '600',
-  },
-  saveButton: {
-    backgroundColor: '#0284c7',
-  },
-  saveButtonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-  },
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  }
 });

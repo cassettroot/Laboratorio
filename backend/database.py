@@ -248,6 +248,18 @@ def init_db():
         )
     ''')
 
+    # 8. Tabla de Aprobación de Dispositivos Móviles
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS device_approvals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_token TEXT UNIQUE NOT NULL,
+            alias TEXT,
+            status TEXT DEFAULT 'PENDING',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     # Migraciones para agregar columnas nuevas si la base de datos ya existía
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'responsable'")

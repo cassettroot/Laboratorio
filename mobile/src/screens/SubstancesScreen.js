@@ -13,8 +13,10 @@ import {
   Alert,
   Image,
   RefreshControl,
-  Platform
+  Platform,
+  StatusBar
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 
 import { AuthContext } from '../context/AuthContext';
@@ -29,9 +31,23 @@ import EquipoRegisterModal from '../components/modals/EquipoRegisterModal';
 import RegistrationSelectorModal from '../components/modals/RegistrationSelectorModal';
 import QRBatchPrintModal from '../components/modals/QRBatchPrintModal';
 
+import GlassBackground from '../components/GlassBackground';
+import GlassCard from '../components/GlassCard';
+
 export default function SubstancesScreen({ route, navigation }) {
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0);
+
   const { user, role, serverUrl } = useContext(AuthContext);
   const { theme } = useContext(ThemeContext);
+  const isDark = theme.isDark !== false;
+
+  const textColor = isDark ? '#ffffff' : '#0f172a';
+  const subtextColor = isDark ? '#94a3b8' : '#64748b';
+  const cardBg = isDark ? 'rgba(10, 20, 38, 0.84)' : 'rgba(255, 255, 255, 0.90)';
+  const cardBorder = isDark ? 'rgba(34, 211, 238, 0.28)' : 'rgba(6, 182, 212, 0.35)';
+  const pillBg = isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.92)';
+  const pillBorder = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(15, 23, 42, 0.10)';
 
   const [substances, setSubstances] = useState([]);
   const [filtered, setFiltered] = useState([]);
@@ -242,6 +258,11 @@ export default function SubstancesScreen({ route, navigation }) {
     setFiltered(result);
   };
 
+  const handleSearch = (text) => {
+    setSearch(text);
+    applyFilters(substances, text, dateFilter);
+  };
+
   const fetchSubstances = async () => {
     try {
       const res = await apiService.getSubstances();
@@ -267,7 +288,7 @@ export default function SubstancesScreen({ route, navigation }) {
   useFocusEffect(
     useCallback(() => {
       fetchSubstances();
-    }, [search])
+    }, [])
   );
 
   useEffect(() => {
@@ -433,11 +454,6 @@ export default function SubstancesScreen({ route, navigation }) {
     }
   };
 
-  const handleSearch = (text) => {
-    setSearch(text);
-    applyFilters(substances, text, dateFilter);
-  };
-
   const openLoanModal = async (substance) => {
     setSelectedSubstance(substance);
     setLoanQuantity('1');
@@ -544,149 +560,233 @@ export default function SubstancesScreen({ route, navigation }) {
         }
       } catch (e) {}
     }
-    const photoUri = getImageUri(mainPhotoPath);
+    const photoUri = getImageUrl(mainPhotoPath, serverUrl);
     const formattedFormula = formatChemicalFormula(item.chemical_formula);
     const isNoExp = item.expiration_date === 'Sin caducidad' || item.expiration_date === 'No aplica';
 
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}
-        activeOpacity={0.7}
+        activeOpacity={0.85}
         onPress={() => navigation.navigate('Detail', { id: item.id, item: item, type: 'substance' })}
+        style={{ marginBottom: 14 }}
       >
-        <View style={styles.cardMainRow}>
-          <View style={styles.imageContainer}>
-            {photoUri ? (
-              <Image source={{ uri: photoUri }} style={styles.substanceImage} resizeMode="cover" />
-            ) : (
-              <View style={[styles.placeholderImage, { backgroundColor: 'rgba(56, 189, 248, 0.15)', borderColor: 'rgba(56, 189, 248, 0.3)' }]}>
-                <Text style={{ fontSize: 26 }}>🧪</Text>
-              </View>
-            )}
+        <GlassCard style={styles.substanceItemCard}>
+          {/* Fila 1: Header con Código ID a la izquierda y Fecha a la derecha */}
+          <View style={styles.itemHeaderTopRow}>
+            <View style={styles.codeBadgePill}>
+              <Text style={styles.codeBadgePillText}>LAB-SUB-{item.id}</Text>
+            </View>
+
             {isNoExp ? (
-              <View style={{ position: 'absolute', top: 4, left: 4, backgroundColor: '#0ea5e9', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 6 }}>
-                <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900', textTransform: 'uppercase' }}>Sin Caducidad</Text>
+              <View style={styles.noExpPill}>
+                <Text style={styles.noExpPillText}>Sin Caducidad</Text>
               </View>
+            ) : null}
+
+            <View style={{ flex: 1 }} />
+
+            {getAddedDateFormattedMobile(item) ? (
+              <Text style={styles.itemDateLabel}>
+                🗓️ {getAddedDateFormattedMobile(item)}
+              </Text>
             ) : null}
           </View>
 
-          <View style={styles.cardDetails}>
-            <View style={styles.cardHeader}>
-              <Text style={{ color: theme.id === 'light' ? '#c2410c' : '#fbbf24', fontSize: 10, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: '900' }}>LAB-SUB-{item.id}</Text>
-              <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>{item.name}</Text>
-              {getAddedDateFormattedMobile(item) ? (
-                <View style={{ marginTop: 2, flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 9, fontWeight: '800', color: isRecentlyAddedMobile(item, 7) ? '#059669' : theme.subtext }}>
-                    🗓️ Agregado: {getAddedDateFormattedMobile(item)} {isRecentlyAddedMobile(item, 7) ? '✨ (Nuevo)' : ''}
-                  </Text>
+          {/* Fila 2: Título Limpio de la Sustancia en Grande */}
+          <Text style={styles.itemSubstanceName} numberOfLines={2}>
+            {item.name}
+          </Text>
+
+          {/* Fila 3: Imagen y Datos Técnicos Alineados a la Izquierda */}
+          <View style={styles.itemBodyRow}>
+            <View style={styles.itemImageContainer}>
+              {photoUri ? (
+                <Image source={{ uri: photoUri }} style={styles.substanceImage} resizeMode="cover" />
+              ) : (
+                <View style={styles.placeholderImage}>
+                  <Text style={{ fontSize: 32 }}>🧪</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.itemDetailsCol}>
+              {item.chemical_formula ? (
+                <View style={styles.fieldRow}>
+                  <Text style={styles.fieldLabel}>Fórmula:</Text>
+                  <Text style={styles.fieldValueFormula} numberOfLines={1}>{formattedFormula}</Text>
                 </View>
               ) : null}
-            </View>
 
-            {item.chemical_formula ? (
-              <Text style={[styles.formula, { color: theme.brand }]}>Fórmula: {formattedFormula}</Text>
-            ) : null}
+              {item.cas_number ? (
+                <View style={styles.fieldRow}>
+                  <Text style={styles.fieldLabel}>CAS:</Text>
+                  <Text style={styles.fieldValueText}>{item.cas_number}</Text>
+                </View>
+              ) : null}
 
-            {item.cas_number ? (
-              <Text style={[styles.meta, { color: theme.subtext }]}>CAS: {item.cas_number}</Text>
-            ) : null}
+              <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>Ubicación:</Text>
+                <Text style={styles.fieldValueText} numberOfLines={1}>{item.location || 'Estante A/B'}</Text>
+              </View>
 
-            {renderSgaBadgesMobile(item.substance_group)}
-
-            <View style={styles.cardFooter}>
-              <View style={[styles.quantityBadge, { backgroundColor: theme.id === 'light' ? '#f1f5f9' : 'rgba(15, 23, 42, 0.9)', borderColor: theme.cardBorder }]}>
-                <Text style={[styles.quantityText, { color: theme.text }]}>📦 {item.container_content || `${item.stock_units || 1} envase(s) (${item.quantity || 1} ${item.unit || 'g'})`}</Text>
+              <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>Stock:</Text>
+                <Text style={styles.fieldValueStock}>
+                  📦 {item.container_content || `${item.stock_units || 1} envase(s) (${item.quantity || 1} ${item.unit || 'g'})`}
+                </Text>
               </View>
             </View>
           </View>
-        </View>
+
+          {/* Fila 4: Clasificación SGA y Grupos */}
+          {renderSgaBadgesMobile(item.substance_group)}
+
+          {/* Fila 5: Botones de Acción Neumórficos */}
+          <View style={styles.cardActionButtonsRow}>
+            <TouchableOpacity
+              style={styles.cardNeumorphActionBtn}
+              onPress={() => navigation.navigate('Detail', { id: item.id, item: item, type: 'substance' })}
+            >
+              <Text style={styles.cardNeumorphBtnText}>⛶ Ver QR</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.cardNeumorphActionBtn}
+              onPress={() => navigation.navigate('Detail', { id: item.id, item: item, type: 'substance' })}
+            >
+              <Text style={styles.cardNeumorphBtnText}>✏️ Editar</Text>
+            </TouchableOpacity>
+
+            {role !== 'estudiante' ? (
+              <TouchableOpacity
+                style={[styles.cardNeumorphActionBtn, { borderColor: 'rgba(6, 182, 212, 0.45)', backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}
+                onPress={() => openLoanModal(item)}
+              >
+                <Text style={[styles.cardNeumorphBtnText, { color: '#22d3ee' }]}>🤝 Prestar</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </GlassCard>
       </TouchableOpacity>
     );
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.bg }]}>
-      <View style={{ marginBottom: 12 }}>
-        {/* Fila Superior: Buscador Ancho Completo */}
-        <View style={[styles.searchBox, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder, marginBottom: 4 }]}>
-          <Text style={{ fontSize: 16, marginRight: 6 }}>🔍</Text>
-          <TextInput
-            style={[styles.searchInput, { flex: 1, color: theme.text }]}
-            placeholder="Buscar por nombre, CAS, fórmula..."
-            value={search}
-            onChangeText={handleSearch}
-            placeholderTextColor={theme.subtext}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {search ? (
-            <TouchableOpacity onPress={() => handleSearch('')} style={{ padding: 4 }}>
-              <Text style={{ color: theme.subtext, fontSize: 14, fontWeight: 'bold' }}>✕</Text>
-            </TouchableOpacity>
-          ) : null}
+    <GlassBackground>
+      {/* 1. BARRA SUPERIOR ELEGANTE Y COMPACTA */}
+      <View style={[styles.topHeader, { paddingTop: topInset + 8 }]}>
+        <View style={styles.headerLogoBox}>
+          <View style={[styles.headerFlaskBadge, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.65)' : 'rgba(255, 255, 255, 0.85)', borderColor: cardBorder }]}>
+            <Text style={styles.headerFlaskIcon}>⚗️</Text>
+          </View>
+          <View>
+            <Text style={[styles.headerLogoTitle, { color: textColor }]}>ITMA II</Text>
+            <Text style={[styles.headerLogoSubtitle, { color: subtextColor }]}>Laboratorio</Text>
+          </View>
         </View>
 
-        {/* Chips de Filtro por Fecha de Agregado */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 4 }} contentContainerStyle={{ gap: 6, paddingHorizontal: 2 }}>
-          {[
-            { id: 'all', label: 'Todas' },
-            { id: 'today', label: '🆕 Agregados Hoy' },
-            { id: '7d', label: '📅 Últimos 7 días' },
-            { id: '30d', label: '📅 Últimos 30 días' },
-            { id: '90d', label: '📅 Últimos 90 días' }
-          ].map((chip) => {
-            const isActive = dateFilter === chip.id;
-            return (
-              <TouchableOpacity
-                key={chip.id}
-                onPress={() => {
-                  setDateFilter(chip.id);
-                  applyFilters(substances, search, chip.id);
-                }}
-                style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 5,
-                  borderRadius: 12,
-                  backgroundColor: isActive ? (theme.id === 'light' ? '#0d9488' : '#14b8a6') : (theme.id === 'light' ? '#e2e8f0' : 'rgba(30, 41, 59, 0.8)'),
-                  borderWidth: 1,
-                  borderColor: isActive ? '#0d9488' : (theme.id === 'light' ? '#cbd5e1' : 'rgba(51, 65, 85, 0.8)')
-                }}
-              >
-                <Text style={{ fontSize: 11, fontWeight: '700', color: isActive ? '#ffffff' : theme.text }}>
-                  {chip.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        {/* Fila Inferior: Botones de Acción */}
-        {(role === 'admin' || role === 'responsable') ? (
-          <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
-            <TouchableOpacity style={[styles.qrBtnHeader, { backgroundColor: 'rgba(20, 184, 166, 0.2)', borderColor: 'rgba(20, 184, 166, 0.4)' }]} onPress={() => setShowQRModal(true)}>
-              <Text style={[styles.qrBtnHeaderText, { color: '#2dd4bf' }]}>🖨️ QR Masivo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.addBtnHeader, { backgroundColor: theme.brand }]} onPress={() => setShowSelectorModal(true)}>
-              <Text style={styles.addBtnHeaderText}>+ Registrar</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
+        {/* Título de Pantalla al Costado (Sin emojis y perfectamente integrado) */}
+        <View style={[
+          styles.screenTitleBadgePill, 
+          { 
+            backgroundColor: isDark ? 'rgba(6, 182, 212, 0.14)' : 'rgba(6, 182, 212, 0.10)', 
+            borderColor: isDark ? 'rgba(34, 211, 238, 0.35)' : 'rgba(6, 182, 212, 0.35)' 
+          }
+        ]}>
+          <Text style={[styles.screenTitleBadgeText, { color: isDark ? '#22d3ee' : '#0891b2' }]}>
+            Sustancias y Reactivos
+          </Text>
+        </View>
       </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#38bdf8" style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContainer}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchSubstances(); }} tintColor="#38bdf8" />}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No se encontraron sustancias químicas.</Text>
-          }
-        />
-      )}
+      <View style={styles.container}>
+        <View style={{ marginBottom: 10, marginTop: -2 }}>
+          {/* Fila Superior: Buscador Ancho Completo */}
+          <View style={[styles.searchBox, { backgroundColor: isDark ? 'rgba(13, 26, 48, 0.75)' : 'rgba(241, 245, 249, 0.90)', borderColor: cardBorder, marginBottom: 8 }]}>
+            <Text style={{ fontSize: 16, marginRight: 6 }}>🔍</Text>
+            <TextInput
+              style={[styles.searchInput, { flex: 1, color: textColor }]}
+              placeholder="Buscar por nombre, CAS, fórmula..."
+              value={search}
+              onChangeText={handleSearch}
+              placeholderTextColor={subtextColor}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {search ? (
+              <TouchableOpacity onPress={() => handleSearch('')} style={{ padding: 4 }}>
+                <Text style={{ color: subtextColor, fontSize: 14, fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          {/* Chips de Filtro y Botones de Acción */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ gap: 6, paddingRight: 6 }}>
+              {[
+                { id: 'all', label: 'Todas' },
+                { id: 'today', label: '🆕 Agregados Hoy' },
+                { id: '7d', label: '📅 Últimos 7 días' },
+                { id: '30d', label: '📅 Últimos 30 días' },
+                { id: '90d', label: '📅 Últimos 90 días' }
+              ].map((chip) => {
+                const isActive = dateFilter === chip.id;
+                return (
+                  <TouchableOpacity
+                    key={chip.id}
+                    onPress={() => {
+                      setDateFilter(chip.id);
+                      applyFilters(substances, search, chip.id);
+                    }}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderRadius: 14,
+                      backgroundColor: isActive ? (isDark ? '#06b6d4' : '#0891b2') : pillBg,
+                      borderWidth: 1,
+                      borderColor: isActive ? (isDark ? '#22d3ee' : '#0891b2') : cardBorder
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: isActive ? '#ffffff' : textColor }}>
+                      {chip.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {(role === 'admin' || role === 'responsable') ? (
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <TouchableOpacity style={[styles.qrBtnHeader, { backgroundColor: isDark ? 'rgba(6, 182, 212, 0.15)' : 'rgba(6, 182, 212, 0.12)', borderColor: cardBorder }]} onPress={() => setShowQRModal(true)}>
+                  <Text style={[styles.qrBtnHeaderText, { color: isDark ? '#22d3ee' : '#0891b2' }]}>🖨️ QR</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.addBtnHeader} onPress={() => setShowSelectorModal(true)}>
+                  <Text style={styles.addBtnHeaderText}>+ Registrar</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+          </View>
+        </View>
+
+        {loading ? (
+          <ActivityIndicator size="large" color={isDark ? '#22d3ee' : '#0891b2'} style={{ marginTop: 40 }} />
+        ) : (
+          <FlatList
+            data={filtered}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={renderItem}
+            contentContainerStyle={styles.listContainer}
+            initialNumToRender={6}
+            maxToRenderPerBatch={8}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchSubstances(); }} tintColor={isDark ? '#22d3ee' : '#0891b2'} />}
+            ListEmptyComponent={
+              <Text style={[styles.emptyText, { color: subtextColor }]}>No se encontraron sustancias químicas.</Text>
+            }
+          />
+        )}
+      </View>
 
       {/* MODAL IMPRESIÓN Y DESCARGA MASIVA CÓDIGOS QR */}
       <QRBatchPrintModal
@@ -1207,16 +1307,69 @@ export default function SubstancesScreen({ route, navigation }) {
         onClose={() => setShowEquipoModal(false)}
         onSuccess={fetchSubstances}
       />
-    </View>
+    </GlassBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    zIndex: 10,
+  },
+  headerLogoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerFlaskBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 13,
+    borderWidth: 1.2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#22d3ee',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  headerFlaskIcon: {
+    fontSize: 22,
+  },
+  headerLogoTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  headerLogoSubtitle: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    marginTop: -2,
+  },
+  screenTitleBadgePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 16,
+    borderWidth: 1,
+    shadowColor: '#00f2fe',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  screenTitleBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: 14,
+    paddingTop: 4,
   },
   headerRow: {
     flexDirection: 'row',
@@ -1227,37 +1380,34 @@ const styles = StyleSheet.create({
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1.2,
   },
   searchInput: {
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
+    padding: 0,
   },
   addBtnHeader: {
-    backgroundColor: '#0284c7',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    borderRadius: 14,
+    backgroundColor: '#06b6d4',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
   addBtnHeaderText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: 'bold',
   },
   qrBtnHeader: {
-    backgroundColor: '#0f766e',
     paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#14b8a6',
   },
   qrBtnHeaderText: {
     color: '#ffffff',
@@ -1265,29 +1415,80 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   listContainer: {
-    paddingBottom: 30,
+    paddingBottom: 120,
   },
-  card: {
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#334155',
+  substanceItemCard: {
+    borderRadius: 20,
+    padding: 14,
+    backgroundColor: 'rgba(10, 24, 46, 0.82)',
+    borderWidth: 1.2,
+    borderColor: 'rgba(34, 211, 238, 0.28)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  cardMainRow: {
+  itemHeaderTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
+    marginBottom: 8,
   },
-  imageContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    backgroundColor: '#0f172a',
+  codeBadgePill: {
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.40)',
+  },
+  codeBadgePillText: {
+    color: '#fbbf24',
+    fontSize: 10.5,
+    fontWeight: '900',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  noExpPill: {
+    backgroundColor: 'rgba(14, 165, 233, 0.18)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.45)',
+  },
+  noExpPillText: {
+    color: '#38bdf8',
+    fontSize: 9.5,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  itemDateLabel: {
+    fontSize: 10,
+    color: '#94a3b8',
+    fontWeight: '700',
+  },
+  itemSubstanceName: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
+    lineHeight: 20,
+    marginBottom: 10,
+  },
+  itemBodyRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  itemImageContainer: {
+    width: 76,
+    height: 76,
+    borderRadius: 14,
+    backgroundColor: '#071526',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(34, 211, 238, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1299,67 +1500,63 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(15, 30, 56, 0.6)',
   },
-  cardDetails: {
+  itemDetailsCol: {
+    flex: 1,
+    gap: 4,
+  },
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  fieldLabel: {
+    color: '#94a3b8',
+    fontSize: 11,
+    fontWeight: '800',
+    width: 64,
+  },
+  fieldValueFormula: {
+    color: '#22d3ee',
+    fontSize: 12,
+    fontWeight: '900',
     flex: 1,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  formula: {
-    fontSize: 12,
-    color: '#38bdf8',
-    marginTop: 2,
-  },
-  meta: {
-    fontSize: 11,
-    color: '#94a3b8',
-    marginTop: 2,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 6,
-  },
-  quantityBadge: {
-    backgroundColor: '#0f172a',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#38bdf8',
-  },
-  quantityText: {
-    color: '#38bdf8',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  groupBadgeTag: {
-    backgroundColor: '#0284c7',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginTop: 4,
-    alignSelf: 'flex-start',
-  },
-  groupBadgeTagText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  location: {
-    fontSize: 11,
-    color: '#f59e0b',
+  fieldValueText: {
+    color: '#f8fafc',
+    fontSize: 11.5,
     fontWeight: '600',
-    maxWidth: '60%',
+    flex: 1,
+  },
+  fieldValueStock: {
+    color: '#38bdf8',
+    fontSize: 11.5,
+    fontWeight: '700',
+    flex: 1,
+  },
+  cardActionButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  cardNeumorphActionBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(18, 38, 68, 0.85)',
+    borderRadius: 10,
+    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 211, 238, 0.22)',
+  },
+  cardNeumorphBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '800',
   },
   emptyText: {
     color: '#94a3b8',

@@ -119,27 +119,33 @@ function getMissingSubstanceFields(s) {
 }
 
 function toggleSubstancesFilterActiveMode() {
-    if (!state.substancesFilters) state.substancesFilters = {};
-    state.substancesFilters.areFiltersActive = !state.substancesFilters.areFiltersActive;
-    if (state.substancesFilters.areFiltersActive) {
-        state.substancesFilters.isPanelOpen = true;
-    } else {
-        state.substancesFilters.isPanelOpen = false;
-        state.substancesFilters.completeness = '';
-        state.substancesFilters.risk = '';
-    }
-    if (window._triggerSubstancesFetch) window._triggerSubstancesFetch();
+    toggleSubstancesFiltersPanel();
 }
 window.toggleSubstancesFilterActiveMode = toggleSubstancesFilterActiveMode;
 
 function toggleSubstancesFiltersPanel() {
     const panel = document.getElementById('substances-filters-panel');
-    if (panel) {
-        panel.classList.toggle('hidden');
-        if (!state.substancesFilters) state.substancesFilters = {};
-        state.substancesFilters.isPanelOpen = !panel.classList.contains('hidden');
+    if (!panel) return;
+    
+    panel.classList.toggle('hidden');
+    const isOpen = !panel.classList.contains('hidden');
+    if (!state.substancesFilters) state.substancesFilters = {};
+    state.substancesFilters.isPanelOpen = isOpen;
+    state.substancesFilters.areFiltersActive = isOpen;
+
+    const btn = document.getElementById('btn-toggle-filter-mode');
+    if (btn) {
+        if (isOpen) {
+            btn.className = 'px-3.5 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 transition shadow-md shrink-0 bg-gradient-to-r from-teal-500 to-emerald-600 text-slate-950 cursor-pointer';
+            btn.innerHTML = `<i data-lucide="filter" class="w-4 h-4 text-slate-950"></i><span>Filtros Activos</span>`;
+        } else {
+            btn.className = 'px-3.5 py-2.5 rounded-xl font-black text-xs flex items-center gap-2 transition border shadow-sm shrink-0 glass-btn text-white cursor-pointer';
+            btn.innerHTML = `<i data-lucide="filter" class="w-4 h-4 text-teal-400"></i><span>Activar Filtros</span>`;
+        }
+        if (window.lucide) window.lucide.createIcons();
     }
 }
+window.toggleSubstancesFiltersPanel = toggleSubstancesFiltersPanel;
 
 function resetSubstancesFilters() {
     state.substancesFilters = {
@@ -254,22 +260,22 @@ async function renderSubstancesList(container) {
                 </div>
 
                 <!-- Panel Plegable de Filtros Avanzados y Ordenamiento -->
-                <div id="substances-filters-panel" class="${f.isPanelOpen ? '' : 'hidden'} bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 shadow-2xl animate-fade-in space-y-3 text-white">
-                    <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                            <i data-lucide="filter" class="w-3.5 h-3.5 text-brand-600"></i>
+                <div id="substances-filters-panel" class="${f.isPanelOpen ? '' : 'hidden'} glass-card border border-white/10 rounded-2xl p-5 shadow-2xl animate-fade-in space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-white/10">
+                        <span class="text-xs font-black uppercase tracking-wider text-teal-300 flex items-center gap-2">
+                            <i data-lucide="filter" class="w-4 h-4 text-teal-400"></i>
                             Opciones de Filtro y Ordenamiento
                         </span>
-                        <button onclick="resetSubstancesFilters()" class="text-xs font-bold text-brand-600 hover:text-brand-800 transition flex items-center gap-1">
-                            <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
+                        <button onclick="resetSubstancesFilters()" class="text-xs font-black text-teal-400 hover:text-teal-300 transition flex items-center gap-1 cursor-pointer">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                             <span>Restablecer Filtros</span>
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3.5">
                         <div>
-                            <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ordenar por</label>
-                            <select id="sort-substances" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
+                            <label class="block text-3xs font-black uppercase tracking-wider mb-1.5 opacity-80">Ordenar por</label>
+                            <select id="sort-substances" class="w-full glass-input px-3 py-2 rounded-xl text-xs font-semibold">
                                 <option value="name_asc" ${f.sort === 'name_asc' ? 'selected' : ''}>🔤 Nombre (A - Z)</option>
                                 <option value="name_desc" ${f.sort === 'name_desc' ? 'selected' : ''}>🔤 Nombre (Z - A)</option>
                                 <option value="cas_asc" ${f.sort === 'cas_asc' ? 'selected' : ''}>🔢 Número CAS (A - Z)</option>
@@ -282,8 +288,8 @@ async function renderSubstancesList(container) {
                         </div>
 
                         <div>
-                            <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">📅 Agregado Recientemente</label>
-                            <select id="filter-added-recent" class="w-full bg-emerald-50/60 border border-emerald-300 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-950 outline-none focus:border-brand-500">
+                            <label class="block text-3xs font-black uppercase tracking-wider mb-1.5 opacity-80">📅 Agregado Recientemente</label>
+                            <select id="filter-added-recent" class="w-full glass-input px-3 py-2 rounded-xl text-xs font-semibold">
                                 <option value="" ${!f.added_recent ? 'selected' : ''}>-- Todas las fechas --</option>
                                 <option value="today" ${f.added_recent === 'today' ? 'selected' : ''}>🆕 Agregados Hoy</option>
                                 <option value="7d" ${f.added_recent === '7d' ? 'selected' : ''}>📅 Últimos 7 días</option>
@@ -293,8 +299,8 @@ async function renderSubstancesList(container) {
                         </div>
 
                         <div>
-                            <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Agrupar por</label>
-                            <select id="group-substances" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
+                            <label class="block text-3xs font-black uppercase tracking-wider mb-1.5 opacity-80">Agrupar por</label>
+                            <select id="group-substances" class="w-full glass-input px-3 py-2 rounded-xl text-xs font-semibold">
                                 <option value="" ${!f.group ? 'selected' : ''}>-- Sin Agrupar --</option>
                                 <option value="physical_state" ${f.group === 'physical_state' ? 'selected' : ''}>📁 Estado Físico</option>
                                 <option value="location" ${f.group === 'location' ? 'selected' : ''}>📍 Ubicación</option>
@@ -303,8 +309,8 @@ async function renderSubstancesList(container) {
                         </div>
 
                         <div>
-                            <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Estado Físico</label>
-                            <select id="filter-state" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
+                            <label class="block text-3xs font-black uppercase tracking-wider mb-1.5 opacity-80">Estado Físico</label>
+                            <select id="filter-state" class="w-full glass-input px-3 py-2 rounded-xl text-xs font-semibold">
                                 <option value="" ${!f.physical_state ? 'selected' : ''}>-- Todos --</option>
                                 <option value="Sólido" ${f.physical_state === 'Sólido' ? 'selected' : ''}>Sólido</option>
                                 <option value="Líquido" ${f.physical_state === 'Líquido' ? 'selected' : ''}>Líquido</option>
@@ -313,8 +319,8 @@ async function renderSubstancesList(container) {
                         </div>
 
                         <div>
-                            <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Incompletos / Faltan Datos</label>
-                            <select id="filter-completeness" class="w-full bg-amber-50/50 border border-amber-200 px-3 py-2 rounded-xl text-xs font-semibold text-amber-900 outline-none focus:border-brand-500">
+                            <label class="block text-3xs font-black uppercase tracking-wider mb-1.5 opacity-80">Incompletos / Faltantes</label>
+                            <select id="filter-completeness" class="w-full glass-input px-3 py-2 rounded-xl text-xs font-semibold">
                                 <option value="" ${!f.completeness ? 'selected' : ''}>-- Todos los reactivos --</option>
                                 <option value="incomplete" ${f.completeness === 'incomplete' ? 'selected' : ''}>⚠️ Ver solo Incompletos</option>
                                 <option value="missing_location" ${f.completeness === 'missing_location' ? 'selected' : ''}>📍 Falta Ubicación</option>
@@ -327,8 +333,8 @@ async function renderSubstancesList(container) {
                         </div>
 
                         <div>
-                            <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Peligrosidad (SGA)</label>
-                            <select id="filter-risk" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
+                            <label class="block text-3xs font-black uppercase tracking-wider mb-1.5 opacity-80">Peligrosidad (SGA)</label>
+                            <select id="filter-risk" class="w-full glass-input px-3 py-2 rounded-xl text-xs font-semibold">
                                 <option value="" ${!f.risk ? 'selected' : ''}>-- Todos --</option>
                                 <option value="corrosive" ${f.risk === 'corrosive' ? 'selected' : ''}>⚠️ Corrosivos</option>
                                 <option value="toxic" ${f.risk === 'toxic' ? 'selected' : ''}>☠️ Tóxicos</option>
@@ -340,8 +346,8 @@ async function renderSubstancesList(container) {
                         </div>
 
                         <div>
-                            <label class="block text-3xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ubicación</label>
-                            <input id="filter-location" type="text" value="${f.location || ''}" placeholder="Ej. Estante 1..." class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 outline-none focus:border-brand-500">
+                            <label class="block text-3xs font-black uppercase tracking-wider mb-1.5 opacity-80">Ubicación</label>
+                            <input id="filter-location" type="text" value="${f.location || ''}" placeholder="Ej. Estante 1..." class="w-full glass-input px-3 py-2 rounded-xl text-xs font-semibold">
                         </div>
                     </div>
                 </div>
@@ -583,11 +589,11 @@ function renderSubstancesBlock(items, mode) {
     const f = state.substancesFilters || {};
     if (mode === 'list') {
         return `
-            <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
+            <div class="glass-table-container">
+                <div class="overflow-x-auto no-scrollbar">
+                    <table class="glass-table w-full text-left text-xs sm:text-sm">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-xs">
+                            <tr>
                                 <th class="py-4 px-4 text-center w-12">#</th>
                                 <th class="py-4 px-6">Sustancia</th>
                                 <th class="py-4 px-6">Grupo SGA</th>
@@ -599,21 +605,21 @@ function renderSubstancesBlock(items, mode) {
                                 <th class="py-4 px-6 no-print text-right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
+                        <tbody class="divide-y divide-white/5 font-medium">
                             ${items.map((s, idx) => {
                                 const today = new Date();
                                 const cardImage = getSubstanceMainImage(s);
-                                let expBadge = `<span class="text-slate-600">${s.expiration_date || 'N/D'}</span>`;
+                                let expBadge = `<span class="text-slate-300 font-semibold">${s.expiration_date || 'N/D'}</span>`;
                                 if (s.expiration_date === 'Sin caducidad' || s.expiration_date === 'No aplica') {
-                                    expBadge = `<span class="bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded-lg text-2xs font-bold uppercase shrink-0">Sin Caducidad</span>`;
+                                    expBadge = `<span class="bg-sky-500/20 text-sky-300 border border-sky-500/40 px-2 py-0.5 rounded-lg text-3xs font-extrabold uppercase shrink-0">Sin Caducidad</span>`;
                                 } else if (s.expiration_date) {
                                     const exp = new Date(s.expiration_date);
                                     if (!isNaN(exp)) {
                                         const diff = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
                                         if (diff < 0) {
-                                            expBadge = `<span class="bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-lg text-2xs font-bold uppercase shrink-0">Caducado</span>`;
+                                            expBadge = `<span class="bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded-lg text-3xs font-extrabold uppercase shrink-0">Caducado</span>`;
                                         } else if (diff <= 30) {
-                                            expBadge = `<span class="bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-lg text-2xs font-bold uppercase shrink-0">Por caducar</span>`;
+                                            expBadge = `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-lg text-3xs font-extrabold uppercase shrink-0">Por caducar</span>`;
                                         }
                                     }
                                 }
@@ -621,29 +627,29 @@ function renderSubstancesBlock(items, mode) {
                                 const missingFields = getMissingSubstanceFields(s);
                                 const missingBadge = (missingFields.length > 0 && f.areFiltersActive) ? `
                                     <div class="mt-1 flex flex-wrap gap-1">
-                                        <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-3xs font-extrabold flex items-center gap-1">
+                                        <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 text-3xs font-black flex items-center gap-1">
                                             <span>⚠️ Falta: ${missingFields.join(', ')}</span>
                                         </span>
                                     </div>
                                 ` : '';
 
-                                const stateColor = s.physical_state === 'Líquido' ? 'bg-cyan-100 text-cyan-800 border border-cyan-200' : (s.physical_state === 'Sólido' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-purple-100 text-purple-800 border border-purple-200');
+                                const stateColor = s.physical_state === 'Líquido' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : (s.physical_state === 'Sólido' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-purple-500/20 text-purple-300 border border-purple-500/40');
 
                                 return `
-                                    <tr class="hover:bg-slate-50/80 transition">
+                                    <tr class="hover:bg-white/5 transition">
                                         <td class="py-4 px-4 text-center">
-                                            <span class="inline-flex items-center justify-center w-7 h-7 bg-slate-100 text-slate-700 font-extrabold text-xs font-mono rounded-full border border-slate-200 shadow-2xs">${idx + 1}</span>
+                                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-xl bg-white/5 text-slate-300 font-black text-xs font-mono border border-white/10 shadow-2xs">${idx + 1}</span>
                                         </td>
                                         <td class="py-4 px-6">
                                             <div class="flex items-center gap-3">
-                                                <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 overflow-hidden border border-slate-200/60 shrink-0 shadow-2xs ${cardImage ? 'cursor-pointer hover:ring-2 hover:ring-brand-500 transition' : ''}" ${cardImage ? `onclick="openImageViewer('${cardImage}', '${(s.name || '').replace(/'/g, "\\'")}')" title="Haz clic para ver foto en tamaño completo"` : ''}>
-                                                    ${cardImage ? `<img src="${cardImage}" class="w-full h-full object-cover">` : `<i data-lucide="flask-conical" class="w-5 h-5 text-slate-400"></i>`}
+                                                <div class="w-11 h-11 rounded-xl bg-slate-900/80 flex items-center justify-center text-slate-400 overflow-hidden border border-white/10 shrink-0 shadow-sm ${cardImage ? 'cursor-pointer hover:border-teal-400 transition' : ''}" ${cardImage ? `onclick="openImageViewer('${cardImage}', '${(s.name || '').replace(/'/g, "\\'")}')" title="Haz clic para ver foto en tamaño completo"` : ''}>
+                                                    ${cardImage ? `<img src="${cardImage}" class="w-full h-full object-cover">` : `<i data-lucide="flask-conical" class="w-5 h-5 text-teal-400"></i>`}
                                                 </div>
                                                 <div>
-                                                    <a href="#/substances/${s.id}" class="text-sm font-bold text-slate-900 hover:text-brand-600 transition block">${s.name}</a>
+                                                    <a href="#/substances/${s.id}" class="text-xs sm:text-sm font-black text-white hover:text-teal-400 transition block">${s.name}</a>
                                                     <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-                                                        <span class="text-3xs text-slate-400 uppercase tracking-wider font-mono">LAB-SUB-${s.id}</span>
-                                                        ${getAddedDateFormatted(s) ? `<span class="text-3xs font-extrabold ${isRecentlyAdded(s, 7) ? 'text-emerald-600 bg-emerald-50 border border-emerald-200' : 'text-slate-500 bg-slate-100 border border-slate-200'} px-2 py-0.5 rounded-md inline-flex items-center gap-1">🗓️ Agregado: ${getAddedDateFormatted(s)}</span>` : ''}
+                                                        <span class="text-3xs text-teal-300/80 uppercase tracking-wider font-mono font-bold">LAB-SUB-${s.id}</span>
+                                                        ${getAddedDateFormatted(s) ? `<span class="text-3xs font-extrabold ${isRecentlyAdded(s, 7) ? 'text-emerald-300 bg-emerald-500/15 border border-emerald-500/30' : 'text-slate-400 bg-white/5 border border-white/10'} px-2 py-0.5 rounded-lg inline-flex items-center gap-1">🗓️ Agregado: ${getAddedDateFormatted(s)}</span>` : ''}
                                                     </div>
                                                     ${missingBadge}
                                                 </div>
@@ -653,40 +659,40 @@ function renderSubstancesBlock(items, mode) {
                                             ${buildGroupBadgesHtml(s.substance_group, s.risks_warnings) || '<span class="text-xs text-slate-400">Sin grupo</span>'}
                                         </td>
                                         <td class="py-4 px-6">
-                                            <div class="text-sm text-slate-800 font-semibold">${s.chemical_formula || '-'}</div>
-                                            <div class="text-2xs text-slate-400 font-medium">CAS: ${s.cas_number || '-'}</div>
+                                            <div class="text-xs sm:text-sm text-white font-bold">${formatChemicalFormulaHtml(s.chemical_formula) || '-'}</div>
+                                            <div class="text-3xs text-slate-400 font-semibold font-mono">CAS: ${s.cas_number || '-'}</div>
                                         </td>
                                         <td class="py-4 px-6">
                                             <div class="flex flex-col gap-1 items-start">
-                                                <span class="text-2xs font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg inline-block max-w-[180px] truncate" title="${s.location || 'No asignada'}">
+                                                <span class="text-3xs font-black text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-xl inline-block max-w-[180px] truncate" title="${s.location || 'No asignada'}">
                                                     📍 ${s.location || 'No asignada'}
                                                 </span>
                                             </div>
                                         </td>
                                         <td class="py-4 px-6">
                                             <div class="flex flex-col gap-1 items-start">
-                                                <span class="px-2 py-0.5 rounded-md text-2xs font-bold ${stateColor}">${s.physical_state || 'N/D'}</span>
+                                                <span class="px-2.5 py-1 rounded-xl text-3xs font-black uppercase tracking-wider ${stateColor}">${s.physical_state || 'N/D'}</span>
                                             </div>
                                         </td>
-                                        <td class="py-4 px-6 text-xs text-slate-500">
-                                            <div class="text-sm font-bold text-slate-900">${s.quantity} <span class="text-xs font-normal text-slate-500">${s.unit}</span></div>
+                                        <td class="py-4 px-6">
+                                            <div class="text-xs sm:text-sm font-black text-white">${s.quantity} <span class="text-xs font-semibold text-slate-400">${s.unit}</span></div>
                                             ${s.container_content ? `<div class="text-3xs text-slate-400 font-bold">Contenido: ${s.container_content}</div>` : ''}
                                         </td>
                                         <td class="py-4 px-6">
                                             <div class="flex flex-col gap-1 items-start">
                                                 ${expBadge}
-                                                <span class="text-3xs text-slate-400">${s.expiration_date || ''}</span>
+                                                <span class="text-3xs text-slate-400 font-medium">${s.expiration_date || ''}</span>
                                             </div>
                                         </td>
                                         <td class="py-4 px-6 no-print text-right">
                                             <div class="flex items-center justify-end gap-1.5">
-                                                <a href="#/substances/${s.id}" class="p-2 bg-slate-50 hover:bg-brand-50 text-slate-600 hover:text-brand-700 border border-slate-200 hover:border-brand-200 rounded-xl transition shadow-2xs flex items-center gap-1 text-xs font-bold" title="Ver Detalle y Editar">
-                                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                                <a href="#/substances/${s.id}" class="glass-btn px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer" title="Ver Detalle y Editar">
+                                                    <i data-lucide="eye" class="w-3.5 h-3.5 text-teal-400"></i>
                                                     <span>Ver</span>
                                                 </a>
                                                 ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
-                                                    <button onclick="deleteItem('substances', ${s.id})" class="p-2 bg-slate-50 hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-xl transition" title="Eliminar">
-                                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                    <button onclick="deleteItem('substances', ${s.id})" class="p-1.5 glass-btn rounded-xl text-rose-400 hover:text-rose-300 hover:border-rose-500/50 transition cursor-pointer" title="Eliminar">
+                                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                                     </button>
                                                 ` : ''}
                                             </div>
@@ -732,22 +738,22 @@ function renderSubstancesBlock(items, mode) {
                     }
 
                     return `
-                        <div class="glass-card-premium border border-slate-700/60 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl hover:-translate-y-1 transition duration-300 flex flex-col group relative bg-slate-900/90 text-white">
-                            <div class="relative w-full aspect-square bg-slate-950 border-b border-slate-800 flex items-center justify-center text-slate-300 overflow-hidden shrink-0 group/img ${cardImage ? 'cursor-pointer' : ''}" ${cardImage ? `onclick="openImageViewer('${cardImage}', '${(s.name || '').replace(/'/g, "\\'")}')"` : ''}>
+                        <div class="glass-card border border-white/10 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl hover:-translate-y-1 transition duration-300 flex flex-col group relative">
+                            <div class="relative w-full aspect-square bg-slate-900/30 border-b border-white/10 flex items-center justify-center text-slate-300 overflow-hidden shrink-0 group/img ${cardImage ? 'cursor-pointer' : ''}" ${cardImage ? `onclick="openImageViewer('${cardImage}', '${(s.name || '').replace(/'/g, "\\'")}')"` : ''}>
                                 ${expBadge}
                                 ${presBadge}
                                 ${cardImage ? `
-                                    <img src="${cardImage}" class="w-full h-full object-cover group-hover/img:scale-105 transition duration-500">
-                                    <div class="absolute inset-0 bg-slate-950/60 opacity-0 group-hover/img:opacity-100 transition flex items-center justify-center text-white text-xs font-extrabold gap-1.5 backdrop-blur-[2px]">
-                                        <i data-lucide="maximize-2" class="w-4 h-4 text-cyan-400"></i>
+                                    <img src="${cardImage}" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover/img:scale-105 transition duration-500">
+                                    <div class="substance-img-overlay absolute inset-0 opacity-0 group-hover/img:opacity-100 transition duration-300 flex items-center justify-center text-xs font-black gap-1.5 backdrop-blur-[3px]">
+                                        <i data-lucide="maximize-2" class="w-4 h-4 text-teal-400"></i>
                                         <span>Ver Foto Completa</span>
                                     </div>
                                 ` : `
                                     <i data-lucide="flask-conical" class="w-12 h-12 text-slate-500"></i>
                                 `}
-                                <div class="substance-container-badge absolute bottom-3 left-3 right-3 bg-slate-900/90 backdrop-blur-md text-white text-xs rounded-2xl p-2.5 flex justify-center items-center shadow-xl border border-slate-700/80 z-10">
+                                <div class="substance-container-badge absolute bottom-3 left-3 right-3 glass-modal backdrop-blur-md text-xs rounded-2xl p-2.5 flex justify-center items-center shadow-xl border border-white/10 z-10">
                                     <span class="font-black flex items-center gap-1.5">
-                                        <i data-lucide="scale" class="w-4 h-4 text-cyan-400"></i>
+                                        <i data-lucide="scale" class="w-4 h-4 text-teal-400"></i>
                                         <span>${s.container_content || (s.quantity + ' ' + (s.unit || ''))}</span>
                                     </span>
                                 </div>

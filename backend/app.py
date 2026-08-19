@@ -77,19 +77,26 @@ def create_app():
         if request.remote_addr in ['127.0.0.1', '::1', 'localhost']:
             return
             
-        # 4. Permitir App Móvil si trae el token maestro
+        # 4. Permitir App Móvil o clientes si traen el token maestro o sesión iniciada
         client_token = request.headers.get('X-App-Token')
-        if client_token == app.config['MASTER_APP_TOKEN']:
+        if client_token and client_token == app.config.get('MASTER_APP_TOKEN'):
+            return
+            
+        if 'user' in session:
+            return
+
+        # Permitir rutas de login y autenticación sin bloquear
+        if request.path.startswith('/api/auth/'):
             return
             
         # 5. Lógica de Sala de Espera para navegadores en la red local
         device_token = request.cookies.get('device_token')
         
-        from backend.database import get_db_connection
+        from backend.database import get_users_db_connection
         import sqlite3
         from flask import make_response
         
-        conn = get_db_connection()
+        conn = get_users_db_connection()
         c = conn.cursor()
         
         # Permitir la ruta de verificación de status para la sala de espera
@@ -206,6 +213,7 @@ def create_app():
         if not user_logged_in:
             if request.path.startswith('/api/'):
                 allowed_logged_out = (
+                    request.path.startswith('/api/auth/') or
                     (request.method == 'GET' and (
                         request.path.startswith('/api/substances') or
                         request.path.startswith('/api/chemical-materials') or
@@ -297,6 +305,7 @@ if __name__ == '__main__':
         level=logging.INFO,
         format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
     )
+    init_db()
     app = create_app()
-    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
-    app.run(host='127.0.0.1', port=5000, debug=debug_mode)
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() in ('true', '1')
+    app.run(host='0.0.0.0', port=5000, debug=debug_mode)

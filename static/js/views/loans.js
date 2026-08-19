@@ -13,29 +13,29 @@ async function renderLoansView(container) {
     const isLoggedIn = state.isLoggedIn;
 
     container.innerHTML = `
-        <div class="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
+        <div class="p-4 md:p-6 max-w-7xl mx-auto space-y-6 animate-fade-in">
             
             <!-- HEADER PRINCIPAL -->
-            <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-xl border border-slate-700/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div class="glass-card p-6 md:p-8 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                    <div class="flex items-center gap-3 mb-2">
-                        <span class="bg-amber-500/20 text-amber-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-amber-500/30">
+                    <div class="flex items-center gap-3 mb-2 flex-wrap">
+                        <span class="bg-amber-500/20 text-amber-300 text-xs font-black px-3 py-1 rounded-xl uppercase tracking-wider border border-amber-500/40">
                             📋 Préstamos con QR & Evidencia en Estante
                         </span>
-                        <span class="${isAdmin ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'bg-blue-500/20 text-blue-300 border-blue-500/30'} text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border">
+                        <span class="${isAdmin ? 'bg-purple-500/20 text-purple-300 border-purple-500/40' : 'bg-sky-500/20 text-sky-300 border-sky-500/40'} text-xs font-black px-3 py-1 rounded-xl uppercase tracking-wider border">
                             ${isAdmin ? '👑 ADMIN: APROBACIÓN Y VERIFICACIÓN EN ESTANTE' : '🔑 ENCARGADO / RESPONSABLE: REGISTRO Y FOTO DE ENTREGA'}
                         </span>
                     </div>
-                    <h2 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+                    <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight">
                         Control de Préstamos y Devoluciones
                     </h2>
-                    <p class="text-slate-400 text-sm mt-1 max-w-2xl">
+                    <p class="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl font-medium">
                         Escaneo de QR en lista, autenticación con usuarios registrados, evidencia fotográfica de guardado y aprobación por Administrador.
                     </p>
                 </div>
 
                 ${isLoggedIn ? `
-                    <button onclick="openCreateLoanModal()" class="w-full md:w-auto bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-6 py-3 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 text-sm shrink-0">
+                    <button onclick="openCreateLoanModal()" class="w-full md:w-auto bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-6 py-3 rounded-2xl shadow-lg transition flex items-center justify-center gap-2 text-xs sm:text-sm shrink-0 cursor-pointer">
                         <i data-lucide="qr-code" class="w-5 h-5"></i>
                         <span>+ Registrar Préstamo por QR</span>
                     </button>
@@ -43,44 +43,44 @@ async function renderLoansView(container) {
             </div>
 
             <!-- TARJETAS DE ESTADÍSTICAS -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div class="p-3 bg-amber-100 text-amber-700 rounded-xl">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-card p-5 flex items-center gap-4">
+                    <div class="w-13 h-13 rounded-2xl bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-md">
                         <i data-lucide="handshake" class="w-6 h-6"></i>
                     </div>
                     <div>
-                        <span class="text-xs font-semibold text-slate-500 uppercase">En Préstamo</span>
-                        <h4 class="text-2xl font-extrabold text-amber-600" id="count-active-loans">0</h4>
+                        <span class="text-3xs font-black text-slate-400 uppercase tracking-wider block">En Préstamo</span>
+                        <h4 class="text-2xl font-black text-amber-400 tracking-tight" id="count-active-loans">0</h4>
                     </div>
                 </div>
 
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div class="p-3 bg-orange-100 text-orange-700 rounded-xl">
+                <div class="glass-card p-5 flex items-center gap-4">
+                    <div class="w-13 h-13 rounded-2xl bg-orange-500/15 text-orange-400 border border-orange-500/30 flex items-center justify-center shrink-0 shadow-md">
                         <i data-lucide="clock" class="w-6 h-6"></i>
                     </div>
                     <div>
-                        <span class="text-xs font-semibold text-slate-500 uppercase">Pendientes Aprobar</span>
-                        <h4 class="text-2xl font-extrabold text-orange-600" id="count-pending-loans">0</h4>
+                        <span class="text-3xs font-black text-slate-400 uppercase tracking-wider block">Pendientes Aprobar</span>
+                        <h4 class="text-2xl font-black text-orange-400 tracking-tight" id="count-pending-loans">0</h4>
                     </div>
                 </div>
 
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div class="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
+                <div class="glass-card p-5 flex items-center gap-4">
+                    <div class="w-13 h-13 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 shadow-md">
                         <i data-lucide="check-check" class="w-6 h-6"></i>
                     </div>
                     <div>
-                        <span class="text-xs font-semibold text-slate-500 uppercase">Devueltos Aprobados</span>
-                        <h4 class="text-2xl font-extrabold text-emerald-600" id="count-returned-loans">0</h4>
+                        <span class="text-3xs font-black text-slate-400 uppercase tracking-wider block">Devueltos Aprobados</span>
+                        <h4 class="text-2xl font-black text-emerald-400 tracking-tight" id="count-returned-loans">0</h4>
                     </div>
                 </div>
 
-                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div class="p-3 bg-blue-100 text-blue-700 rounded-xl">
+                <div class="glass-card p-5 flex items-center gap-4">
+                    <div class="w-13 h-13 rounded-2xl bg-sky-500/15 text-sky-400 border border-sky-500/30 flex items-center justify-center shrink-0 shadow-md">
                         <i data-lucide="list-ordered" class="w-6 h-6"></i>
                     </div>
                     <div>
-                        <span class="text-xs font-semibold text-slate-500 uppercase">Total Registros</span>
-                        <h4 class="text-2xl font-extrabold text-slate-900" id="count-total-loans">0</h4>
+                        <span class="text-3xs font-black text-slate-400 uppercase tracking-wider block">Total Registros</span>
+                        <h4 class="text-2xl font-black text-white tracking-tight" id="count-total-loans">0</h4>
                     </div>
                 </div>
             </div>
@@ -89,21 +89,21 @@ async function renderLoansView(container) {
             <div id="admin-pending-alert-container"></div>
 
             <!-- FILTROS Y BÚSQUEDA -->
-            <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex flex-wrap bg-slate-100 p-1 rounded-xl w-full md:w-auto gap-1">
-                    <button onclick="setLoansFilter('all')" id="btn-filter-all" class="px-3.5 py-2 rounded-lg font-bold text-xs transition bg-white text-slate-900 shadow-xs">
+            <div class="glass-toolbar p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex flex-wrap p-1 rounded-2xl w-full md:w-auto gap-1 bg-white/5 border border-white/10">
+                    <button onclick="setLoansFilter('all')" id="btn-filter-all" class="px-3.5 py-2 rounded-xl font-extrabold text-xs transition bg-teal-500/20 text-teal-300 border border-teal-500/40">
                         Todos
                     </button>
-                    <button onclick="setLoansFilter('Pendiente Aprobación Admin')" id="btn-filter-req-pending" class="px-3.5 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900">
+                    <button onclick="setLoansFilter('Pendiente Aprobación Admin')" id="btn-filter-req-pending" class="px-3.5 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white">
                         ⏳ Solicitudes Pendientes
                     </button>
-                    <button onclick="setLoansFilter('Prestado')" id="btn-filter-active" class="px-3.5 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900">
+                    <button onclick="setLoansFilter('Prestado')" id="btn-filter-active" class="px-3.5 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white">
                         🟡 En Préstamo
                     </button>
-                    <button onclick="setLoansFilter('Pendiente Verificación Admin')" id="btn-filter-pending" class="px-3.5 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900">
+                    <button onclick="setLoansFilter('Pendiente Verificación Admin')" id="btn-filter-pending" class="px-3.5 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white">
                         📷 Pendientes Verificación
                     </button>
-                    <button onclick="setLoansFilter('Devuelto')" id="btn-filter-returned" class="px-3.5 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900">
+                    <button onclick="setLoansFilter('Devuelto')" id="btn-filter-returned" class="px-3.5 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white">
                         🟢 Devueltos
                     </button>
                 </div>
@@ -114,18 +114,18 @@ async function renderLoansView(container) {
                         id="search-loans-input" 
                         oninput="onSearchLoans(this.value)"
                         placeholder="Buscar elemento o docente/usuario..." 
-                        class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
+                        class="glass-input w-full pl-10 pr-4 py-2.5 text-xs"
                     />
                     <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
                 </div>
             </div>
 
             <!-- TABLA DE CONTROL DE PRÉSTAMOS -->
-            <div class="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+            <div class="glass-table-container">
+                <div class="overflow-x-auto no-scrollbar">
+                    <table class="glass-table w-full text-left">
                         <thead>
-                            <tr class="bg-slate-900 text-white text-xs font-bold uppercase tracking-wider">
+                            <tr>
                                 <th class="py-4 px-6">Folio / ID</th>
                                 <th class="py-4 px-6">Lista de Elementos Prestados</th>
                                 <th class="py-4 px-6">Usuario Registrado</th>
@@ -135,10 +135,10 @@ async function renderLoansView(container) {
                                 <th class="py-4 px-6 text-right">Acciones</th>
                             </tr>
                         </thead>
-                        <tbody id="loans-table-body" class="divide-y divide-slate-100 text-xs font-sans">
+                        <tbody id="loans-table-body" class="divide-y divide-white/5 text-xs font-sans">
                             <tr>
                                 <td colspan="7" class="py-12 text-center text-slate-400">
-                                    <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2 text-amber-500"></i>
+                                    <i data-lucide="loader-2" class="w-6 h-6 animate-spin mx-auto mb-2 text-teal-400"></i>
                                     <span>Cargando datos de préstamos...</span>
                                 </td>
                             </tr>

@@ -111,14 +111,14 @@ async function renderItemDetail(container, typePath, itemId) {
         }
 
         container.innerHTML = `
-            <div class="space-y-8 animate-fade-in print-card bg-white p-8 rounded-3xl border border-slate-200 shadow-xl relative">
-                <div class="no-print flex items-center justify-between gap-3 mb-2">
-                    <a href="${backPath}" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-brand-600 transition">
+            <div class="space-y-8 animate-fade-in print-card glass-card p-6 sm:p-8 rounded-3xl relative">
+                <div class="no-print flex items-center justify-between gap-3 mb-2 flex-wrap">
+                    <a href="${backPath}" class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-teal-400 hover:text-teal-300 transition">
                         <i data-lucide="arrow-left" class="w-4 h-4"></i>
                         <span>${backText}</span>
                     </a>
                     ${(state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
-                        <button onclick="openEditModal('${typePath}', ${item.id})" class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs shadow-md transition">
+                        <button onclick="openEditModal('${typePath}', ${item.id})" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs shadow-md transition cursor-pointer">
                             <i data-lucide="edit-3" class="w-4 h-4"></i>
                             <span>✏️ Editar ${typePath === 'substances' ? 'Sustancia' : (typePath === 'equipos' ? 'Equipo / Bien' : 'Material')}</span>
                         </button>
@@ -126,55 +126,55 @@ async function renderItemDetail(container, typePath, itemId) {
                 </div>
                 <div class="flex flex-col md:flex-row justify-between items-start gap-6">
                     <div class="flex-1 space-y-4">
-                        <div class="flex flex-wrap items-center gap-3">
-                            <span class="px-3 py-1 rounded-xl text-xs font-bold bg-brand-100 text-brand-800 uppercase tracking-wider no-print">
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            <span class="px-3 py-1 rounded-xl text-xs font-black bg-teal-500/15 text-teal-300 border border-teal-500/30 uppercase tracking-wider no-print">
                                 ${typePath === 'substances' ? 'Sustancia Química' : (typePath === 'chemical-materials' ? 'Material / Equipo' : (typePath === 'equipos' ? 'Bien o Equipo de Sistemas' : 'Material Didáctico'))}
                             </span>
-                            <span class="text-xs text-slate-500 font-bold bg-slate-100 px-2.5 py-0.5 rounded-lg border border-slate-200">ID Lab: #${item.id}</span>
-                            ${item.original_id ? `<span class="text-xs text-amber-800 font-extrabold bg-amber-50 px-2.5 py-0.5 rounded-lg border border-amber-200">ID Excel DEPTO CB: #${item.original_id}</span>` : ''}
+                            <span class="text-xs text-slate-300 font-extrabold glass-card px-2.5 py-0.5 rounded-lg border border-white/10">ID Lab: #${item.id}</span>
+                            ${item.original_id ? `<span class="text-xs text-amber-300 font-black bg-amber-500/15 px-2.5 py-0.5 rounded-lg border border-amber-500/30">ID Excel DEPTO CB: #${item.original_id}</span>` : ''}
                         </div>
-                        <h2 class="text-3xl font-extrabold text-slate-900 leading-tight border-b pb-2 border-slate-100">${item.name}</h2>
+                        <h2 class="text-2xl sm:text-3xl font-black text-white leading-tight border-b pb-3 border-white/10">${item.name}</h2>
 
                         ${typePath === 'substances' ? `
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3.5 text-sm pt-2">
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Grupo Químico</span><div class="flex flex-wrap gap-1.5 mt-1">${buildGroupBadgesHtml(item.substance_group) || '<span class="px-2 py-0.5 rounded bg-brand-100 text-brand-800 text-xs font-bold inline-block border border-brand-200">General / Ninguno</span>'}</div></div>
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Fórmula Química</span><span class="font-bold text-slate-800 text-base">${item.chemical_formula || 'Sin fórmula'}</span></div>
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Número CAS</span><span class="font-bold text-slate-800 text-base">${item.cas_number || 'N/D'}</span></div>
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Concentración</span><span>${item.concentration || '-'}</span></div>
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Composición / Pureza</span><span>${item.composition || '-'}</span></div>
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Estado Físico</span><span class="px-2 py-0.5 rounded bg-slate-100 font-bold">${item.physical_state || '-'}</span></div>
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Advertencias de Riesgo</span><span class="text-red-600 font-semibold">${item.risks_warnings || 'Ninguno'}</span></div>
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Fecha Caducidad</span><span class="font-semibold ${isExpired(item.expiration_date) ? 'text-red-600' : ''}">${item.expiration_date || 'N/D'}</span></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-xs sm:text-sm pt-2">
+                                <div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Grupo Químico</span><div class="flex flex-wrap gap-1.5 mt-1">${buildGroupBadgesHtml(item.substance_group) || '<span class="px-2 py-0.5 rounded bg-teal-500/20 text-teal-300 text-xs font-bold inline-block border border-teal-500/30">General / Ninguno</span>'}</div></div>
+                                <div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Fórmula Química</span><span class="font-black text-white text-sm sm:text-base">${formatChemicalFormulaHtml(item.chemical_formula) || 'Sin fórmula'}</span></div>
+                                <div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Número CAS</span><span class="font-black text-teal-300 text-sm sm:text-base font-mono">${item.cas_number || 'N/D'}</span></div>
+                                <div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Concentración</span><span class="font-semibold text-slate-200">${item.concentration || '-'}</span></div>
+                                <div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Composición / Pureza</span><span class="font-semibold text-slate-200">${item.composition || '-'}</span></div>
+                                <div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Estado Físico</span><span class="px-2.5 py-0.5 rounded-lg bg-white/5 border border-white/10 font-bold text-slate-200 inline-block mt-0.5">${item.physical_state || '-'}</span></div>
+                                <div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Advertencias de Riesgo</span><span class="text-rose-400 font-bold">${item.risks_warnings || 'Ninguno'}</span></div>
+                                <div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Fecha Caducidad</span><span class="font-bold ${isExpired(item.expiration_date) ? 'text-rose-400' : 'text-slate-200'}">${item.expiration_date || 'N/D'}</span></div>
                             </div>
                         ` : `
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3.5 text-sm pt-2">
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">ID Original Excel (DEPTO CB)</span><span class="font-bold text-amber-700 font-mono text-base">${item.original_id ? '#' + item.original_id : 'N/D'}</span></div>
-                                <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Estado de conservación</span><span class="font-bold">${item.status || 'Buenas Condiciones'}</span></div>
-                                ${item.inventory_number ? `<div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">No. Inventario</span><span class="font-bold text-amber-700 font-mono">${item.inventory_number}</span></div>` : ''}
-                                ${item.serial_number ? `<div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">No. Serie</span><span class="font-bold text-blue-700 font-mono">${item.serial_number}</span></div>` : ''}
-                                ${item.no_sep ? `<div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">No. SEP</span><span class="font-bold text-emerald-700 font-mono">${item.no_sep}</span></div>` : ''}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-xs sm:text-sm pt-2">
+                                <div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">ID Original Excel (DEPTO CB)</span><span class="font-black text-amber-400 font-mono text-base">${item.original_id ? '#' + item.original_id : 'N/D'}</span></div>
+                                <div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Estado de conservación</span><span class="font-bold text-slate-200">${item.status || 'Buenas Condiciones'}</span></div>
+                                ${item.inventory_number ? `<div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">No. Inventario</span><span class="font-bold text-amber-300 font-mono">${item.inventory_number}</span></div>` : ''}
+                                ${item.serial_number ? `<div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">No. Serie</span><span class="font-bold text-sky-300 font-mono">${item.serial_number}</span></div>` : ''}
+                                ${item.no_sep ? `<div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">No. SEP</span><span class="font-bold text-emerald-300 font-mono">${item.no_sep}</span></div>` : ''}
                             </div>
                         `}
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3.5 text-sm pt-3 border-t border-slate-100">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 text-xs sm:text-sm pt-3.5 border-t border-white/10">
                             <div>
-                                <span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Stock Disponible</span>
+                                <span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Stock Disponible</span>
                                 <div class="flex items-baseline gap-2 mt-0.5">
-                                    <span class="text-xl font-bold text-brand-600">${item.stock_units || 1} envase(s)</span>
-                                    <span class="text-sm font-semibold text-slate-600">(${item.quantity} ${item.unit || 'g'} c/u)</span>
+                                    <span class="text-xl font-black text-teal-400">${item.stock_units || 1} envase(s)</span>
+                                    <span class="text-xs font-semibold text-slate-300">(${item.quantity} ${item.unit || 'g'} c/u)</span>
                                 </div>
                                 ${typePath === 'substances' && item.container_content ? `
-                                    <div class="text-2xs text-slate-500 font-medium mt-1">Presentación: ${item.container_content}</div>
+                                    <div class="text-3xs text-slate-400 font-medium mt-1">Presentación: ${item.container_content}</div>
                                 ` : ''}
                             </div>
                             <div>
-                                <span class="text-slate-400 block text-xs uppercase font-bold tracking-wider mb-1">Ubicación Física</span>
+                                <span class="text-slate-400 block text-3xs uppercase font-black tracking-wider mb-1">Ubicación Física</span>
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="font-bold text-slate-800 text-sm bg-slate-100 px-3 py-1 rounded-xl border border-slate-200">${item.location || 'Sin asignar'}</span>
+                                    <span class="font-black text-white text-xs sm:text-sm glass-card px-3 py-1 rounded-xl border border-white/10">${item.location || 'Sin asignar'}</span>
                                 </div>
                             </div>
-                            <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Responsable Custodia</span><span>${item.responsible || '-'}</span></div>
-                            <div><span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Última Modificación</span><span class="text-xs text-slate-500">${item.updated_at}</span></div>
+                            <div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Responsable Custodia</span><span class="font-semibold text-slate-200">${item.responsible || '-'}</span></div>
+                            <div><span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Última Modificación</span><span class="text-xs text-slate-400">${item.updated_at}</span></div>
                         </div>
 
                         ${(() => {
@@ -190,10 +190,10 @@ async function renderItemDetail(container, typePath, itemId) {
                             if (parsedContents.length === 0) return '';
                             const totalWebPieces = parsedContents.reduce((acc, s) => acc + (parseInt(s.quantity, 10) || 1), 0);
                             return `
-                                <div class="pt-4 border-t border-slate-100 space-y-3">
+                                <div class="pt-4 border-t border-white/10 space-y-3">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-xs uppercase font-extrabold tracking-wider text-teal-700 flex items-center gap-1.5">
-                                            <i data-lucide="layers" class="w-4 h-4 text-teal-600"></i>
+                                        <span class="text-xs uppercase font-black tracking-wider text-teal-400 flex items-center gap-1.5">
+                                            <i data-lucide="layers" class="w-4 h-4 text-teal-400"></i>
                                             <span>📦 Sub-objetos e Inventario Interno (${totalWebPieces} piezas en ${parsedContents.length} tipo(s) de objeto)</span>
                                         </span>
                                     </div>
@@ -202,15 +202,15 @@ async function renderItemDetail(container, typePath, itemId) {
                                              let subPhotoPath = sub.image_path || sub.imageUri || sub.photo;
                                              if (!isValidServerImageUrl(subPhotoPath)) subPhotoPath = null;
                                              return `
-                                                 <div class="flex items-center gap-3 bg-slate-50 border border-slate-200/90 p-3 rounded-2xl shadow-2xs">
+                                                 <div class="flex items-center gap-3 glass-card p-3 rounded-2xl">
                                                      ${subPhotoPath ? `
-                                                         <img src="${subPhotoPath}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 shrink-0 cursor-pointer hover:opacity-90 hover:scale-105 transition" onclick="openImageViewer('${subPhotoPath}', '${(sub.name || 'Sub-objeto').replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.outerHTML='<div class=\\'w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shrink-0 font-extrabold text-xs\\'>📦</div>';" />
+                                                         <img src="${subPhotoPath}" class="w-12 h-12 rounded-xl object-cover border border-white/10 shrink-0 cursor-pointer hover:scale-105 transition" onclick="openImageViewer('${subPhotoPath}', '${(sub.name || 'Sub-objeto').replace(/'/g, "\\'")}')" onerror="this.onerror=null; this.outerHTML='<div class=\\'w-12 h-12 rounded-xl bg-teal-500/20 border border-teal-500/30 text-teal-300 flex items-center justify-center shrink-0 font-black text-xs\\'>📦</div>';" />
                                                      ` : `
-                                                         <div class="w-12 h-12 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shrink-0 font-extrabold text-xs">📦</div>
+                                                         <div class="w-12 h-12 rounded-xl bg-teal-500/20 border border-teal-500/30 text-teal-300 flex items-center justify-center shrink-0 font-black text-xs">📦</div>
                                                      `}
                                                      <div class="flex-1 min-w-0">
-                                                         <span class="block text-xs font-bold text-slate-800 truncate">${sub.name || 'Objeto sin nombre'}</span>
-                                                         <span class="inline-block px-2 py-0.5 mt-1 bg-teal-100/80 text-teal-900 font-extrabold text-3xs rounded-md border border-teal-200">${sub.quantity || 1} unidad(es)</span>
+                                                         <span class="block text-xs font-bold text-white truncate">${sub.name || 'Objeto sin nombre'}</span>
+                                                         <span class="inline-block px-2 py-0.5 mt-1 bg-teal-500/15 text-teal-300 font-black text-3xs rounded-lg border border-teal-500/30">${sub.quantity || 1} unidad(es)</span>
                                                      </div>
                                                  </div>
                                              `;
@@ -221,28 +221,28 @@ async function renderItemDetail(container, typePath, itemId) {
                         })()}
 
                         ${item.observations ? `
-                            <div class="pt-4 border-t border-slate-100 text-sm">
-                                <span class="text-slate-400 block text-xs uppercase font-bold tracking-wider">Observaciones</span>
-                                <p class="text-slate-600 italic bg-slate-50 p-3 rounded-xl border mt-1">${item.observations}</p>
+                            <div class="pt-4 border-t border-white/10 text-xs sm:text-sm">
+                                <span class="text-slate-400 block text-3xs uppercase font-black tracking-wider">Observaciones</span>
+                                <p class="text-slate-300 italic glass-card p-3 rounded-xl border border-white/10 mt-1">${item.observations}</p>
                             </div>
                         ` : ''}
 
                         ${typePath === 'substances' ? `
-                            <div class="pt-4 border-t border-slate-100 text-sm grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="pt-4 border-t border-white/10 text-xs sm:text-sm grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <span class="text-slate-400 block text-xs uppercase font-bold tracking-wider mb-2">Documentación (PDF)</span>
+                                    <span class="text-slate-400 block text-3xs uppercase font-black tracking-wider mb-2">Documentación (PDF)</span>
                                     ${item.pdf_path ? `
-                                        <a href="${item.pdf_path}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2.5 border border-brand-200 hover:border-brand-300 bg-brand-50/50 hover:bg-brand-50 text-brand-700 font-bold rounded-xl text-xs transition shadow-sm no-print">
+                                        <a href="${item.pdf_path}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2.5 border border-teal-500/30 hover:border-teal-400/50 bg-teal-500/15 text-teal-300 font-extrabold rounded-xl text-xs transition shadow-sm no-print">
                                             <i data-lucide="file-text" class="w-4 h-4"></i>
                                             <span>Ver Ficha de Seguridad / PDF</span>
                                         </a>
-                                        <span class="hidden print:inline font-semibold text-slate-700 text-xs">${item.pdf_path}</span>
+                                        <span class="hidden print:inline font-semibold text-slate-300 text-xs">${item.pdf_path}</span>
                                     ` : `
                                         <span class="text-xs text-slate-400 italic">No hay documento PDF guardado</span>
                                     `}
                                 </div>
                                 <div>
-                                    <span class="text-slate-400 block text-xs uppercase font-bold tracking-wider mb-2">Enlaces de Referencia</span>
+                                    <span class="text-slate-400 block text-3xs uppercase font-black tracking-wider mb-2">Enlaces de Referencia</span>
                                     ${item.external_links ? `
                                         <div class="flex flex-col gap-2">
                                             ${item.external_links.split('\n').filter(l => l.trim()).map(link => {
@@ -251,11 +251,11 @@ async function renderItemDetail(container, typePath, itemId) {
                                                     cleanLink = 'https://' + cleanLink;
                                                 }
                                                 return `
-                                                    <a href="${cleanLink}" target="_blank" class="inline-flex items-center gap-1.5 text-brand-600 hover:text-brand-700 font-semibold hover:underline text-xs no-print">
+                                                    <a href="${cleanLink}" target="_blank" class="inline-flex items-center gap-1.5 text-teal-400 hover:text-teal-300 font-semibold hover:underline text-xs no-print">
                                                         <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
                                                         <span class="truncate max-w-[280px]">${link.trim()}</span>
                                                     </a>
-                                                    <span class="hidden print:inline font-semibold text-slate-700 text-xs">${link.trim()}</span>
+                                                    <span class="hidden print:inline font-semibold text-slate-300 text-xs">${link.trim()}</span>
                                                 `;
                                             }).join('')}
                                         </div>
@@ -267,56 +267,56 @@ async function renderItemDetail(container, typePath, itemId) {
                         ` : ''}
                     </div>
 
-                    <div class="w-full md:w-64 shrink-0 flex flex-col gap-5 items-center bg-slate-50/50 p-5 rounded-3xl border border-slate-100">
-                        <div class="w-full aspect-square rounded-2xl border border-slate-200 overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-sm flex items-center justify-center text-slate-300 relative group/dethead cursor-pointer" onclick="openImageViewer(document.getElementById('web-main-img')?.src || '${mainPhotoPath || ''}', '${(item.name || '').replace(/'/g, "\\'")}')" title="Haz clic para ver la foto completa">
+                    <div class="w-full md:w-64 shrink-0 flex flex-col gap-4 items-center glass-card p-5 rounded-3xl">
+                        <div class="w-full aspect-square rounded-2xl border border-white/10 overflow-hidden bg-slate-900/60 shadow-sm flex items-center justify-center text-slate-400 relative group/dethead cursor-pointer" onclick="openImageViewer(document.getElementById('web-main-img')?.src || '${mainPhotoPath || ''}', '${(item.name || '').replace(/'/g, "\\'")}')" title="Haz clic para ver la foto completa">
                             ${allWebImages.length > 0 ? `
-                                <img id="web-main-img" src="${allWebImages[0].src}" class="w-full h-full object-cover group-hover/dethead:scale-105 transition duration-300 bg-white" onerror="this.onerror=null; this.src='https://api.iconify.design/lucide/package-open.svg?color=%2394a3b8';">
-                                <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover/dethead:opacity-100 transition flex items-center justify-center text-white text-3xs font-bold gap-1 backdrop-blur-[1px]">
-                                    <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-brand-400"></i>
+                                <img id="web-main-img" src="${allWebImages[0].src}" class="w-full h-full object-cover group-hover/dethead:scale-105 transition duration-300" onerror="this.onerror=null; this.src='https://api.iconify.design/lucide/package-open.svg?color=%2394a3b8';">
+                                <div class="absolute inset-0 bg-slate-950/50 opacity-0 group-hover/dethead:opacity-100 transition flex items-center justify-center text-white text-3xs font-bold gap-1 backdrop-blur-[2px]">
+                                    <i data-lucide="maximize-2" class="w-3.5 h-3.5 text-teal-400"></i>
                                     <span>Ampliar Foto</span>
                                 </div>
-                                <div id="web-img-label-badge" class="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-md text-white text-3xs rounded-lg px-2 py-1 border border-white/20 font-bold">
+                                <div id="web-img-label-badge" class="absolute top-2 left-2 bg-slate-950/80 backdrop-blur-md text-white text-3xs rounded-lg px-2 py-1 border border-white/20 font-bold">
                                     📷 ${allWebImages[0].label}
                                 </div>
                             ` : `
                                 <div class="flex flex-col items-center gap-2">
-                                    <i data-lucide="image" class="w-10 h-10 text-slate-300"></i>
+                                    <i data-lucide="image" class="w-10 h-10 text-slate-400"></i>
                                     <span class="text-3xs text-slate-400">Sin foto cargada</span>
                                 </div>
                             `}
                         </div>
 
                         ${allWebImages.length > 1 ? `
-                            <div class="w-full flex items-center gap-2 overflow-x-auto pb-1">
+                            <div class="w-full flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
                                 ${allWebImages.map((img, iIdx) => `
-                                    <button type="button" onclick="changeWebDetailPhoto('${img.src}', '${img.label.replace(/'/g, "\\'")}', this)" class="w-12 h-12 rounded-xl border-2 ${iIdx === 0 ? 'border-brand-500 ring-2 ring-brand-200 opacity-100' : 'border-slate-200 opacity-90 hover:opacity-100'} overflow-hidden shrink-0 transition web-thumb-btn">
+                                    <button type="button" onclick="changeWebDetailPhoto('${img.src}', '${img.label.replace(/'/g, "\\'")}', this)" class="w-12 h-12 rounded-xl border-2 ${iIdx === 0 ? 'border-teal-400 ring-2 ring-teal-400/30 opacity-100' : 'border-white/10 opacity-80 hover:opacity-100'} overflow-hidden shrink-0 transition web-thumb-btn cursor-pointer">
                                         <img src="${img.src}" class="w-full h-full object-cover" onerror="this.closest('.web-thumb-btn')?.remove();">
                                     </button>
                                 `).join('')}
                             </div>
                         ` : ''}
 
-                        <div class="flex flex-col items-center border border-slate-200 p-3.5 rounded-2xl bg-white w-full text-center shadow-xs">
-                            <span class="text-3xs font-extrabold uppercase text-slate-400 tracking-wider mb-2">📱 Código QR de Inventario</span>
+                        <div class="flex flex-col items-center border border-white/10 p-3.5 rounded-2xl bg-white/5 w-full text-center shadow-xs">
+                            <span class="text-3xs font-black uppercase text-slate-300 tracking-wider mb-2">📱 Código QR de Inventario</span>
                             <img src="${item.qr_path || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(item.qr_content || `LAB-${typePath.toUpperCase()}-${item.id}`)}`}" 
                                  onerror="this.onerror=null; this.src='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(item.qr_content || `LAB-${typePath.toUpperCase()}-${item.id}`)}';"
-                                 class="w-36 h-36 object-contain rounded-xl p-1 bg-white border border-slate-100 shadow-2xs" alt="Código QR">
-                            <span class="text-3xs text-slate-600 font-mono font-bold mt-2 truncate max-w-full bg-slate-100 px-2 py-0.5 rounded">${item.qr_content || `LAB-${typePath.toUpperCase()}-${item.id}`}</span>
-                            <a href="${item.qr_path || `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(item.qr_content || `LAB-${typePath.toUpperCase()}-${item.id}`)}`}" download="qr_${(item.name || 'material').replace(/\s+/g, '_')}.png" target="_blank" class="text-xs font-extrabold text-teal-600 hover:text-teal-700 hover:underline mt-2 inline-flex items-center gap-1 no-print">
+                                 class="w-36 h-36 object-contain rounded-xl p-1.5 bg-white border border-white/10 shadow-md" alt="Código QR">
+                            <span class="text-3xs text-teal-300 font-mono font-bold mt-2 truncate max-w-full bg-white/5 px-2 py-0.5 rounded">${item.qr_content || `LAB-${typePath.toUpperCase()}-${item.id}`}</span>
+                            <a href="${item.qr_path || `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(item.qr_content || `LAB-${typePath.toUpperCase()}-${item.id}`)}`}" download="qr_${(item.name || 'material').replace(/\s+/g, '_')}.png" target="_blank" class="text-xs font-black text-teal-400 hover:text-teal-300 hover:underline mt-2 inline-flex items-center gap-1 no-print">
                                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
                                 <span>Descargar Código QR</span>
                             </a>
                         </div>
 
-                        <button onclick="window.print()" class="w-full no-print bg-slate-800 hover:bg-slate-900 font-bold py-2.5 rounded-xl text-xs text-white flex items-center justify-center gap-2 transition">
-                            <i data-lucide="printer" class="w-4 h-4"></i>
+                        <button onclick="window.print()" class="w-full no-print glass-btn font-extrabold py-2.5 rounded-xl text-xs text-white flex items-center justify-center gap-2 transition cursor-pointer">
+                            <i data-lucide="printer" class="w-4 h-4 text-teal-400"></i>
                             <span>Imprimir Ficha / Etiqueta</span>
                         </button>
 
                         ${(typePath === 'substances' && state.isLoggedIn && state.userActive === 1 && (state.userRole === 'admin' || state.userRole === 'responsable')) ? `
-                            <button onclick="openSubstanceLoanModal(${item.id})" class="w-full no-print bg-amber-500 hover:bg-amber-400 font-extrabold py-2.5 rounded-xl text-xs text-slate-950 flex items-center justify-center gap-2 transition shadow-md">
+                            <button onclick="openSubstanceLoanModal(${item.id})" class="w-full no-print bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 font-black py-2.5 rounded-xl text-xs text-slate-950 flex items-center justify-center gap-2 transition shadow-md cursor-pointer">
                                 <i data-lucide="handshake" class="w-4 h-4"></i>
-                                <span>Solicitar Préstamo de Sustancia</span>
+                                <span>Solicitar Préstamo</span>
                             </button>
                         ` : ''}
                     </div>

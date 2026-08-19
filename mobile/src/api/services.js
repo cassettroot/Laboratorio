@@ -103,6 +103,12 @@ export const apiService = {
     return response.data;
   },
 
+  // Historial de Cambios y Auditoría
+  getHistory: async () => {
+    const response = await apiClient.get('/api/history');
+    return response.data;
+  },
+
   // Solicitudes de cambio
   getChangeRequests: async () => {
     const response = await apiClient.get('/api/change-requests');
