@@ -1392,29 +1392,108 @@ window.downloadSingleSubstanceQRPDF = async function(substanceId) {
     const s = allSubstances.find(item => item.id === substanceId);
     if (!s) return;
 
+// Helper para construir tarjetas de etiquetas QR impresas uniformes y de alta densidad
+function buildQRPrintCardHTML(s, item, entityType) {
+    const prefix = entityType === 'chemical_materials' ? 'LAB-MAT-' : (entityType === 'didactic_materials' ? 'LAB-DID-' : 'LAB-SUB-');
+    
+    let subInfo = '';
+    if (entityType === 'chemical_materials') {
+        const parts = [];
+        if (s.material_type || s.capacity) parts.push(s.material_type ? `${s.material_type} (${s.capacity || ''})` : s.capacity);
+        if (s.inventory_number) parts.push(`Inv: ${s.inventory_number}`);
+        subInfo = parts.join(' | ') || (s.brand ? `Marca: ${s.brand}` : '');
+    } else if (entityType === 'didactic_materials') {
+        const parts = [];
+        if (s.category) parts.push(s.category);
+        if (s.no_sep || s.inventory_number) parts.push(`SEP: ${s.no_sep || s.inventory_number}`);
+        subInfo = parts.join(' | ');
+    } else {
+        const parts = [];
+        if (s.chemical_formula) parts.push(s.chemical_formula);
+        if (s.cas_number) parts.push(`CAS: ${s.cas_number}`);
+        subInfo = parts.join(' | ');
+    }
+
+    let stockText = '';
+    if (entityType === 'chemical_materials') {
+        stockText = s.quantity ? `${s.quantity} ${s.unit || 'pza(s)'}` : (s.stock ? `${s.stock} pza(s)` : '1 pza');
+    } else if (entityType === 'didactic_materials') {
+        stockText = `${s.quantity || s.stock || 1} ${s.unit || 'pza(s)'}`;
+    } else {
+        stockText = s.container_content || `${s.quantity || s.stock || 1} ${s.unit || 'pza'}`;
+    }
+
+    const regDate = getAddedDateFormatted(s);
+
+    return `
+        <div class="qr-print-card" style="width: calc(33.333% - 6px); max-width: calc(33.333% - 6px); min-width: 0; box-sizing: border-box; border: 1.5px dashed #475569; border-radius: 8px; padding: 6px 5px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 215px; margin-bottom: 6px;">
+            <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8; line-height: 1;">✂️</span>
+            
+            <div>
+                <div style="font-size: 8.5pt; font-weight: 800; color: #0f172a; line-height: 1.15; max-height: 2.3em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 2px; padding: 0 10px 0 2px;">
+                    ${s.name}
+                </div>
+                ${subInfo ? `
+                    <div style="font-size: 7.5pt; font-weight: 700; color: #0284c7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; margin-bottom: 2px;">
+                        ${subInfo}
+                    </div>
+                ` : `<div style="height: 10px;"></div>`}
+            </div>
+            
+            <div style="display: flex; align-items: center; justify-content: center; margin: 2px 0;">
+                ${s.qr_path ? `
+                    <img src="${s.qr_path}" style="width: 82px; height: 82px; display: block; object-fit: contain; background-color: #ffffff; image-rendering: -webkit-optimize-contrast;">
+                ` : `
+                    <div style="width: 82px; height: 82px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 8pt; color: #94a3b8; background-color: #f8fafc; border-radius: 4px;">Sin QR</div>
+                `}
+            </div>
+            
+            <div>
+                <div style="font-size: 8pt; font-family: monospace; font-weight: 800; color: #1e293b; line-height: 1.1; margin-bottom: 1px;">
+                    ${prefix}${s.id}
+                </div>
+                <div style="font-size: 7pt; font-weight: 700; color: #15803d; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    Stock: ${stockText} ${item.totalCopies > 1 ? `<span style="color:#0284c7; font-weight:800;">[${item.copyIndex}/${item.totalCopies}]</span>` : ''}
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 2px; margin-top: 2px; border-top: 1px dashed #e2e8f0; padding-top: 2px; font-size: 6.5pt; color: #64748b; font-weight: 600;">
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.substance_group || s.category || 'Lab ITMA II'}</span>
+                    ${regDate ? `<span style="color: #047857; font-weight: 700; white-space: nowrap;">${regDate}</span>` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+window.downloadSingleSubstanceQRPDF = async function(substanceId) {
+    const allSubstances = state.currentQRItems || state.substances || [];
+    const s = allSubstances.find(item => item.id === substanceId);
+    if (!s) return;
+
+    const entityType = qrBatchModalState.entityType || 'substances';
+    const prefix = entityType === 'chemical_materials' ? 'LAB-MAT-' : (entityType === 'didactic_materials' ? 'LAB-DID-' : 'LAB-SUB-');
     const copies = (qrBatchModalState.itemCopies && qrBatchModalState.itemCopies[s.id]) || 1;
 
     // Si es solo 1 copia y tiene qr_path, ofrecer descarga directa del archivo PNG
     if (copies === 1 && s.qr_path) {
         const link = document.createElement('a');
         link.href = s.qr_path;
-        link.download = `qr_${s.name.replace(/ /g, '_')}_LAB-SUB-${s.id}.png`;
+        link.download = `qr_${s.name.replace(/ /g, '_')}_${prefix}${s.id}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         return;
     }
 
-    // Si son múltiples copias (2, 3 o más), generar el documento PDF unificado de etiquetas repetidas
+    // Si son múltiples copias, generar el documento PDF unificado de etiquetas repetidas
     const expandedLabels = [];
     for (let i = 0; i < copies; i++) {
         expandedLabels.push({ substance: s, copyIndex: i + 1, totalCopies: copies });
     }
 
-    const fileName = `etiquetas_qr_${s.name.replace(/ /g, '_')}_LAB-SUB-${s.id}_(${copies}_copias).pdf`;
+    const fileName = `etiquetas_qr_${s.name.replace(/ /g, '_')}_${prefix}${s.id}_(${copies}_copias).pdf`;
 
     const pdfContainer = document.createElement('div');
-    pdfContainer.style.padding = '12px';
+    pdfContainer.style.padding = '8px';
     pdfContainer.style.backgroundColor = '#ffffff';
     pdfContainer.style.color = '#0f172a';
     pdfContainer.style.fontFamily = 'sans-serif';
@@ -1422,36 +1501,15 @@ window.downloadSingleSubstanceQRPDF = async function(substanceId) {
     pdfContainer.style.boxSizing = 'border-box';
 
     const headerHtml = `
-        <div style="text-align: center; margin-bottom: 12px; border-bottom: 2px solid #0f172a; padding-bottom: 6px; background-color: #ffffff;">
-            <h2 style="font-size: 15pt; font-weight: bold; margin: 0; color: #0f172a;">ETIQUETAS QR - ${s.name.toUpperCase()}</h2>
-            <p style="font-size: 8.5pt; margin: 3px 0 0 0; color: #475569;">LAB-SUB-${s.id} | Copias a imprimir: ${copies} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
+        <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #0f172a; padding-bottom: 4px; background-color: #ffffff;">
+            <h2 style="font-size: 13pt; font-weight: bold; margin: 0; color: #0f172a;">ETIQUETAS QR - ${s.name.toUpperCase()}</h2>
+            <p style="font-size: 8pt; margin: 2px 0 0 0; color: #475569;">${prefix}${s.id} | Total etiquetas: ${copies} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
         </div>
     `;
 
     const labelGridHtml = `
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; box-sizing: border-box; background-color: #ffffff;">
-            ${expandedLabels.map(item => `
-                <div style="border: 1.5px dashed #475569; border-radius: 8px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; box-sizing: border-box;">
-                    <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
-                    
-                    <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>
-                    
-                    <div style="font-size: 8pt; font-weight: 700; color: #0284c7; margin-bottom: 3px;">${s.chemical_formula || ''} ${s.cas_number ? `| CAS: ${s.cas_number}` : ''}</div>
-                    
-                    ${s.qr_path ? `
-                        <img src="${s.qr_path}" style="width: 100px; height: 100px; margin: 0 auto; display: block; object-fit: contain; background-color: #ffffff;">
-                    ` : `
-                        <div style="width: 100px; height: 100px; margin: 0 auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; color: #999; background-color: #ffffff;">Sin QR</div>
-                    `}
-                    
-                    <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
-                    <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">
-                        Stock: ${s.container_content || `${s.quantity} ${s.unit}`} ${item.totalCopies > 1 ? `<span style="color:#0284c7; font-weight:800;">[Envase/Copia ${item.copyIndex}/${item.totalCopies}]</span>` : ''}
-                    </div>
-                    ${getAddedDateFormatted(s) ? `<div style="font-size: 7pt; font-weight: bold; color: #047857; margin-top: 1px;">🗓️ Reg: ${getAddedDateFormatted(s)}</div>` : ''}
-                    ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
-                </div>
-            `).join('')}
+        <div style="display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px; width: 100%; box-sizing: border-box; background-color: #ffffff;">
+            ${expandedLabels.map(item => buildQRPrintCardHTML(item.substance, item, entityType)).join('')}
         </div>
     `;
 
@@ -1459,7 +1517,7 @@ window.downloadSingleSubstanceQRPDF = async function(substanceId) {
 
     if (window.html2pdf) {
         const opt = {
-            margin:       [8, 8, 8, 8],
+            margin:       [6, 6, 6, 6],
             filename:     fileName,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
@@ -1487,6 +1545,8 @@ window.downloadSelectedQRPDF = async function() {
         return;
     }
 
+    const entityType = qrBatchModalState.entityType || 'substances';
+
     // Expandir copias según la cantidad seleccionada por el usuario para cada elemento
     const expandedLabels = [];
     selectedSubstances.forEach(s => {
@@ -1497,11 +1557,11 @@ window.downloadSelectedQRPDF = async function() {
     });
 
     const fileSuffix = qrBatchModalState.filterType === 'liquid' ? 'liquidos' : (qrBatchModalState.filterType === 'solid' ? 'solidos' : 'todos');
-    const fileName = `planilla_unica_etiquetas_qr_${fileSuffix}_${new Date().toISOString().slice(0,10)}.pdf`;
+    const fileName = `planilla_etiquetas_qr_${entityType}_${fileSuffix}_${new Date().toISOString().slice(0,10)}.pdf`;
 
     // Crear contenedor HTML unificado para el documento PDF único con fondo 100% blanco
     const pdfContainer = document.createElement('div');
-    pdfContainer.style.padding = '12px';
+    pdfContainer.style.padding = '8px';
     pdfContainer.style.backgroundColor = '#ffffff';
     pdfContainer.style.background = '#ffffff';
     pdfContainer.style.color = '#0f172a';
@@ -1509,50 +1569,27 @@ window.downloadSelectedQRPDF = async function() {
     pdfContainer.style.width = '100%';
     pdfContainer.style.boxSizing = 'border-box';
 
+    const entityTitle = entityType === 'chemical_materials' ? 'MATERIALES QUÍMICOS' : (entityType === 'didactic_materials' ? 'MATERIALES DIDÁCTICOS' : 'SUSTANCIAS QUÍMICAS');
+
     const headerHtml = `
-        <div style="text-align: center; margin-bottom: 12px; border-bottom: 2px solid #0f172a; padding-bottom: 6px; background-color: #ffffff;">
-            <h2 style="font-size: 15pt; font-weight: bold; margin: 0; color: #0f172a;">LABORATORIO DE QUÍMICA - PLANILLA UNIFICADA DE ETIQUETAS QR</h2>
-            <p style="font-size: 8.5pt; margin: 3px 0 0 0; color: #475569;">Documento Único | Sustancias: ${selectedSubstances.length} | Etiquetas Totales: ${expandedLabels.length} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
+        <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #0f172a; padding-bottom: 4px; background-color: #ffffff;">
+            <h2 style="font-size: 13pt; font-weight: bold; margin: 0; color: #0f172a;">PLANILLA UNIFICADA DE ETIQUETAS QR - ${entityTitle}</h2>
+            <p style="font-size: 8pt; margin: 2px 0 0 0; color: #475569;">Elementos seleccionados: ${selectedSubstances.length} | Total etiquetas QR: ${expandedLabels.length} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
         </div>
     `;
 
     const labelGridHtml = `
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; box-sizing: border-box; background-color: #ffffff;">
-            ${expandedLabels.map(item => {
-                const s = item.substance;
-                return `
-                    <div style="border: 1.5px dashed #475569; border-radius: 8px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; box-sizing: border-box;">
-                        <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
-                        
-                        <!-- Nombre obligatorio de la sustancia -->
-                        <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>
-                        
-                        <div style="font-size: 8pt; font-weight: 700; color: #0284c7; margin-bottom: 3px;">${s.chemical_formula || ''} ${s.cas_number ? `| CAS: ${s.cas_number}` : ''}</div>
-                        
-                        ${s.qr_path ? `
-                            <img src="${s.qr_path}" style="width: 100px; height: 100px; margin: 0 auto; display: block; object-fit: contain; background-color: #ffffff;">
-                        ` : `
-                            <div style="width: 100px; height: 100px; margin: 0 auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; color: #999; background-color: #ffffff;">Sin QR</div>
-                        `}
-                        
-                        <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
-                        <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">
-                            Stock: ${s.container_content || `${s.quantity} ${s.unit}`} ${item.totalCopies > 1 ? `<span style="color:#0284c7; font-weight:800;">[Envase/Copia ${item.copyIndex}/${item.totalCopies}]</span>` : ''}
-                        </div>
-                        ${getAddedDateFormatted(s) ? `<div style="font-size: 7pt; font-weight: bold; color: #047857; margin-top: 1px;">🗓️ Reg: ${getAddedDateFormatted(s)}</div>` : ''}
-                        ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
-                    </div>
-                `;
-            }).join('')}
+        <div style="display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px; width: 100%; box-sizing: border-box; background-color: #ffffff;">
+            ${expandedLabels.map(item => buildQRPrintCardHTML(item.substance, item, entityType)).join('')}
         </div>
     `;
 
     pdfContainer.innerHTML = headerHtml + labelGridHtml;
 
-    // Generar UN SOLO documento PDF con todas las páginas necesarias
+    // Generar UN SOLO documento PDF con distribución continua sin huecos
     if (window.html2pdf) {
         const opt = {
-            margin:       [8, 8, 8, 8],
+            margin:       [6, 6, 6, 6],
             filename:     fileName,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
@@ -1584,6 +1621,8 @@ window.printSelectedQRLabels = function() {
         return;
     }
 
+    const entityType = qrBatchModalState.entityType || 'substances';
+
     // Expandir copias segun la cantidad configurada para cada sustancia
     const expandedLabels = [];
     selectedSubstances.forEach(s => {
@@ -1600,45 +1639,23 @@ window.printSelectedQRLabels = function() {
         document.body.appendChild(printArea);
     }
 
+    const entityTitle = entityType === 'chemical_materials' ? 'MATERIALES QUÍMICOS' : (entityType === 'didactic_materials' ? 'MATERIALES DIDÁCTICOS' : 'SUSTANCIAS QUÍMICAS');
+
     const printHeaderHtml = `
-        <div style="text-align: center; margin-bottom: 12px; border-bottom: 2px solid #0f172a; padding-bottom: 6px; background-color: #ffffff;" class="no-print">
-            <h2 style="font-size: 16pt; font-weight: bold; margin: 0; color: #0f172a;">LABORATORIO - PLANILLA DE ETIQUETAS QR PARA RECORTAR</h2>
-            <p style="font-size: 9pt; margin: 2px 0 0 0; color: #475569;">Total de etiquetas QR en esta planilla: ${expandedLabels.length} (Reactivos distintos: ${selectedSubstances.length}) | Impreso el ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
+        <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #0f172a; padding-bottom: 4px; background-color: #ffffff;" class="no-print">
+            <h2 style="font-size: 14pt; font-weight: bold; margin: 0; color: #0f172a;">PLANILLA DE ETIQUETAS QR PARA RECORTAR - ${entityTitle}</h2>
+            <p style="font-size: 8.5pt; margin: 2px 0 0 0; color: #475569;">Total etiquetas QR: ${expandedLabels.length} (Elementos: ${selectedSubstances.length}) | Impreso: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
         </div>
     `;
 
-    // Layout usando inline-block en lugar de grid para mejor manejo de saltos de página y espacios
     const labelGridHtml = `
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff;">
-            ${expandedLabels.map(item => {
-                const s = item.substance;
-                return `
-                    <div style="border: 1.5px dashed #475569; border-radius: 10px; padding: 8px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; position: relative; box-sizing: border-box;">
-                        <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8;">✂️</span>
-                        
-                        <div style="font-size: 9.5pt; font-weight: 800; color: #0f172a; margin-bottom: 2px; line-height: 1.1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${s.name}</div>
-                        
-                        <div style="font-size: 8pt; font-weight: 700; color: #0284c7; margin-bottom: 4px;">${s.chemical_formula || ''} ${s.cas_number ? `| CAS: ${s.cas_number}` : ''}</div>
-                        
-                        ${s.qr_path ? `
-                            <img src="${s.qr_path}" style="width: 95px; height: 95px; margin: 0 auto; display: block; object-fit: contain; background-color: #ffffff;">
-                        ` : `
-                            <div style="width: 95px; height: 95px; margin: 0 auto; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 9pt; color: #999; background-color: #ffffff;">Sin QR</div>
-                        `}
-                        
-                        <div style="font-size: 8.5pt; font-family: monospace; font-weight: bold; color: #1e293b; margin-top: 3px;">LAB-SUB-${s.id}</div>
-                        <div style="font-size: 7.5pt; font-weight: bold; color: #15803d; margin-top: 1px;">
-                            ${s.container_content || `${s.quantity} ${s.unit}`} ${item.totalCopies > 1 ? `<span style="color:#0284c7; font-weight:800;">[${item.copyIndex}/${item.totalCopies}]</span>` : ''}
-                        </div>
-                        ${s.substance_group ? `<div style="font-size: 7pt; font-weight: bold; color: #64748b; margin-top: 2px; border-top: 1px dashed #cbd5e1; padding-top: 2px;">🏷️ ${s.substance_group}</div>` : ''}
-                    </div>
-                `;
-            }).join('')}
+        <div style="display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px; width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff;">
+            ${expandedLabels.map(item => buildQRPrintCardHTML(item.substance, item, entityType)).join('')}
         </div>
     `;
 
     printArea.innerHTML = `
-        <div style="padding: 10px; background-color: #ffffff; background: #ffffff;">
+        <div style="padding: 6px; background-color: #ffffff; background: #ffffff;">
             ${printHeaderHtml}
             ${labelGridHtml}
         </div>

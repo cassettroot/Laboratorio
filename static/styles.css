@@ -1327,7 +1327,28 @@ img {
 /* Impresión */
 @media print {
     body { background: white !important; color: black !important; }
-    nav, aside, button, form, .no-print, header, .filter-bar, .ambient-canvas { display: none !important; }
+    nav, aside, button, form, .no-print, header, .filter-bar, .ambient-canvas, #space-select-modal, #item-modal, #qr-batch-modal { display: none !important; }
     main, .main-content { margin: 0 !important; padding: 0 !important; width: 100% !important; }
     .glass-card, .glass-table-container, .glass-metric { background: white !important; border: 1px solid #000 !important; box-shadow: none !important; }
+
+    body.printing-qr-sheet {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    body.printing-qr-sheet > *:not(#qr-print-area) {
+        display: none !important;
+    }
+    body.printing-qr-sheet #qr-print-area {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    body.printing-qr-sheet .qr-print-card {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
 }
