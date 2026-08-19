@@ -1387,7 +1387,7 @@ function renderQRBatchModalDOM() {
     }
 }
 
-// Helper para construir tarjetas de etiquetas QR impresas con código QR grande y marco ajustado
+// Helper para construir tarjetas de etiquetas QR impresas con código QR grande (96px) y proporciones que llenan la hoja
 function buildQRPrintCardHTML(s, item, entityType) {
     const prefix = entityType === 'chemical_materials' ? 'LAB-MAT-' : (entityType === 'didactic_materials' ? 'LAB-DID-' : 'LAB-SUB-');
     
@@ -1421,33 +1421,33 @@ function buildQRPrintCardHTML(s, item, entityType) {
     const regDate = getAddedDateFormatted(s);
 
     return `
-        <div class="qr-print-card" style="border: 1.5px dashed #475569; border-radius: 8px; padding: 5px 6px; text-align: center; background-color: #ffffff; background: #ffffff; position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 182px; box-sizing: border-box; overflow: hidden;">
-            <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8; line-height: 1;">✂️</span>
+        <div class="qr-print-card" style="border: 1.5px dashed #475569; border-radius: 8px; padding: 6px 8px; text-align: center; background-color: #ffffff; background: #ffffff; position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 212px; box-sizing: border-box; overflow: hidden;">
+            <span style="position: absolute; top: 3px; right: 5px; font-size: 7.5pt; color: #94a3b8; line-height: 1;">✂️</span>
             
             <div>
-                <div style="font-size: 8.5pt; font-weight: 800; color: #0f172a; line-height: 1.15; max-height: 2.3em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 1px; padding: 0 10px 0 2px;">
+                <div style="font-size: 9pt; font-weight: 800; color: #0f172a; line-height: 1.15; max-height: 2.3em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 2px; padding: 0 12px 0 2px;">
                     ${s.name}
                 </div>
                 ${subInfo ? `
                     <div style="font-size: 7.5pt; font-weight: 700; color: #0284c7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; margin-bottom: 2px;">
                         ${subInfo}
                     </div>
-                ` : `<div style="height: 5px;"></div>`}
+                ` : `<div style="height: 6px;"></div>`}
             </div>
             
-            <div style="display: flex; align-items: center; justify-content: center; margin: 1px 0;">
+            <div style="display: flex; align-items: center; justify-content: center; margin: 2px 0;">
                 ${s.qr_path ? `
-                    <img src="${s.qr_path}" style="width: 82px; height: 82px; display: block; object-fit: contain; background-color: #ffffff; image-rendering: -webkit-optimize-contrast;">
+                    <img src="${s.qr_path}" style="width: 96px; height: 96px; display: block; object-fit: contain; background-color: #ffffff; image-rendering: -webkit-optimize-contrast;">
                 ` : `
-                    <div style="width: 82px; height: 82px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 8pt; color: #94a3b8; background-color: #f8fafc; border-radius: 4px;">Sin QR</div>
+                    <div style="width: 96px; height: 96px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; color: #94a3b8; background-color: #f8fafc; border-radius: 4px;">Sin QR</div>
                 `}
             </div>
             
             <div>
-                <div style="font-size: 8pt; font-family: monospace; font-weight: 800; color: #1e293b; line-height: 1.1; margin-bottom: 1px;">
+                <div style="font-size: 8.5pt; font-family: monospace; font-weight: 800; color: #1e293b; line-height: 1.1; margin-bottom: 1px;">
                     ${prefix}${s.id}
                 </div>
-                <div style="font-size: 7pt; font-weight: 700; color: #15803d; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <div style="font-size: 7.5pt; font-weight: 700; color: #15803d; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     Stock: ${stockText} ${item.totalCopies > 1 ? `<span style="color:#0284c7; font-weight:800;">[${item.copyIndex}/${item.totalCopies}]</span>` : ''}
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 2px; margin-top: 2px; border-top: 1px dashed #e2e8f0; padding-top: 2px; font-size: 6.5pt; color: #64748b; font-weight: 600;">
@@ -1459,7 +1459,7 @@ function buildQRPrintCardHTML(s, item, entityType) {
     `;
 }
 
-// Generador de estructura paginada (12 etiquetas por página = 3 columnas x 4 filas con QR grande)
+// Generador de estructura paginada (12 etiquetas por página = 3 columnas x 4 filas con QR de 96px)
 function generatePaginatedQRPagesHTML(expandedLabels, entityType, mainTitle) {
     const LABELS_PER_PAGE = 12; // 3 columnas x 4 filas exactas por hoja
     const pages = [];
@@ -1482,7 +1482,7 @@ function generatePaginatedQRPagesHTML(expandedLabels, entityType, mainTitle) {
         `;
 
         return `
-            <div class="qr-page-sheet" style="width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff; ${!isLast ? 'page-break-after: always; break-after: page;' : ''} padding: 4px 0; margin-bottom: ${!isLast ? '14px' : '0'};">
+            <div class="qr-page-sheet" style="width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff; ${!isLast ? 'page-break-after: always; break-after: page;' : ''} padding: 2px 0; margin-bottom: ${!isLast ? '8px' : '0'};">
                 ${pageHeader}
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff;">
                     ${pageItems.map(item => buildQRPrintCardHTML(item.substance, item, entityType)).join('')}
