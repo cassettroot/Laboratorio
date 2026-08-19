@@ -1387,7 +1387,7 @@ function renderQRBatchModalDOM() {
     }
 }
 
-// Helper para construir tarjetas de etiquetas QR impresas uniformes y de alta densidad
+// Helper para construir tarjetas de etiquetas QR impresas ultra-compactas (20 etiquetas por página = 4 columnas x 5 filas)
 function buildQRPrintCardHTML(s, item, entityType) {
     const prefix = entityType === 'chemical_materials' ? 'LAB-MAT-' : (entityType === 'didactic_materials' ? 'LAB-DID-' : 'LAB-SUB-');
     
@@ -1411,9 +1411,9 @@ function buildQRPrintCardHTML(s, item, entityType) {
 
     let stockText = '';
     if (entityType === 'chemical_materials') {
-        stockText = s.quantity ? `${s.quantity} ${s.unit || 'pza(s)'}` : (s.stock ? `${s.stock} pza(s)` : '1 pza');
+        stockText = s.quantity ? `${s.quantity} ${s.unit || 'pza'}` : (s.stock ? `${s.stock} pza` : '1 pza');
     } else if (entityType === 'didactic_materials') {
-        stockText = `${s.quantity || s.stock || 1} ${s.unit || 'pza(s)'}`;
+        stockText = `${s.quantity || s.stock || 1} ${s.unit || 'pza'}`;
     } else {
         stockText = s.container_content || `${s.quantity || s.stock || 1} ${s.unit || 'pza'}`;
     }
@@ -1421,36 +1421,36 @@ function buildQRPrintCardHTML(s, item, entityType) {
     const regDate = getAddedDateFormatted(s);
 
     return `
-        <div class="qr-print-card" style="border: 1.5px dashed #475569; border-radius: 8px; padding: 5px 6px; text-align: center; background-color: #ffffff; background: #ffffff; position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 185px; box-sizing: border-box; overflow: hidden;">
-            <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8; line-height: 1;">✂️</span>
+        <div class="qr-print-card" style="border: 1px dashed #94a3b8; border-radius: 6px; padding: 3px 4px; text-align: center; background-color: #ffffff; background: #ffffff; position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 124px; box-sizing: border-box; overflow: hidden;">
+            <span style="position: absolute; top: 1px; right: 2px; font-size: 5.5pt; color: #94a3b8; line-height: 1;">✂️</span>
             
             <div>
-                <div style="font-size: 8.5pt; font-weight: 800; color: #0f172a; line-height: 1.15; max-height: 2.3em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 1px; padding: 0 10px 0 2px;">
+                <div style="font-size: 7pt; font-weight: 800; color: #0f172a; line-height: 1.1; max-height: 2.2em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 1px; padding: 0 6px 0 1px;">
                     ${s.name}
                 </div>
                 ${subInfo ? `
-                    <div style="font-size: 7.5pt; font-weight: 700; color: #0284c7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; margin-bottom: 2px;">
+                    <div style="font-size: 6pt; font-weight: 700; color: #0284c7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1; margin-bottom: 1px;">
                         ${subInfo}
                     </div>
-                ` : `<div style="height: 6px;"></div>`}
+                ` : `<div style="height: 3px;"></div>`}
             </div>
             
             <div style="display: flex; align-items: center; justify-content: center; margin: 1px 0;">
                 ${s.qr_path ? `
-                    <img src="${s.qr_path}" style="width: 76px; height: 76px; display: block; object-fit: contain; background-color: #ffffff; image-rendering: -webkit-optimize-contrast;">
+                    <img src="${s.qr_path}" style="width: 54px; height: 54px; display: block; object-fit: contain; background-color: #ffffff; image-rendering: -webkit-optimize-contrast;">
                 ` : `
-                    <div style="width: 76px; height: 76px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 8pt; color: #94a3b8; background-color: #f8fafc; border-radius: 4px;">Sin QR</div>
+                    <div style="width: 54px; height: 54px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 6.5pt; color: #94a3b8; background-color: #f8fafc; border-radius: 3px;">Sin QR</div>
                 `}
             </div>
             
             <div>
-                <div style="font-size: 8pt; font-family: monospace; font-weight: 800; color: #1e293b; line-height: 1.1; margin-bottom: 1px;">
+                <div style="font-size: 6.5pt; font-family: monospace; font-weight: 800; color: #1e293b; line-height: 1; margin-bottom: 1px;">
                     ${prefix}${s.id}
                 </div>
-                <div style="font-size: 7pt; font-weight: 700; color: #15803d; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <div style="font-size: 5.5pt; font-weight: 700; color: #15803d; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     Stock: ${stockText} ${item.totalCopies > 1 ? `<span style="color:#0284c7; font-weight:800;">[${item.copyIndex}/${item.totalCopies}]</span>` : ''}
                 </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 2px; margin-top: 2px; border-top: 1px dashed #e2e8f0; padding-top: 2px; font-size: 6.5pt; color: #64748b; font-weight: 600;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 2px; margin-top: 1px; border-top: 1px dashed #e2e8f0; padding-top: 1px; font-size: 5pt; color: #64748b; font-weight: 600;">
                     <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.substance_group || s.category || 'Lab ITMA II'}</span>
                     ${regDate ? `<span style="color: #047857; font-weight: 700; white-space: nowrap;">${regDate}</span>` : ''}
                 </div>
@@ -1459,9 +1459,9 @@ function buildQRPrintCardHTML(s, item, entityType) {
     `;
 }
 
-// Generador de estructura paginada (12 etiquetas por página = 3 columnas x 4 filas)
+// Generador de estructura paginada densa (20 etiquetas por página = 4 columnas x 5 filas)
 function generatePaginatedQRPagesHTML(expandedLabels, entityType, mainTitle) {
-    const LABELS_PER_PAGE = 12; // 3 columnas x 4 filas exactas por hoja
+    const LABELS_PER_PAGE = 20; // 4 columnas x 5 filas exactas por hoja
     const pages = [];
     for (let i = 0; i < expandedLabels.length; i += LABELS_PER_PAGE) {
         pages.push(expandedLabels.slice(i, i + LABELS_PER_PAGE));
@@ -1470,21 +1470,21 @@ function generatePaginatedQRPagesHTML(expandedLabels, entityType, mainTitle) {
     return pages.map((pageItems, pageIdx) => {
         const isLast = pageIdx === pages.length - 1;
         const pageHeader = pageIdx === 0 ? `
-            <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #0f172a; padding-bottom: 4px; background-color: #ffffff;">
-                <h2 style="font-size: 13pt; font-weight: bold; margin: 0; color: #0f172a;">${mainTitle}</h2>
-                <p style="font-size: 8pt; margin: 2px 0 0 0; color: #475569;">Total etiquetas QR: ${expandedLabels.length} | Página ${pageIdx + 1} de ${pages.length} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
+            <div style="text-align: center; margin-bottom: 6px; border-bottom: 2px solid #0f172a; padding-bottom: 3px; background-color: #ffffff;">
+                <h2 style="font-size: 11pt; font-weight: bold; margin: 0; color: #0f172a;">${mainTitle}</h2>
+                <p style="font-size: 7pt; margin: 1px 0 0 0; color: #475569;">Total etiquetas QR: ${expandedLabels.length} | Página ${pageIdx + 1} de ${pages.length} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
             </div>
         ` : `
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #0f172a; padding-bottom: 3px; margin-bottom: 8px; font-size: 8pt; font-weight: bold; color: #475569; background-color: #ffffff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #0f172a; padding-bottom: 2px; margin-bottom: 6px; font-size: 7pt; font-weight: bold; color: #475569; background-color: #ffffff;">
                 <span>${mainTitle}</span>
                 <span>Página ${pageIdx + 1} de ${pages.length} (${expandedLabels.length} etiquetas totales)</span>
             </div>
         `;
 
         return `
-            <div class="qr-page-sheet" style="width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff; ${!isLast ? 'page-break-after: always; break-after: page;' : ''} padding: 4px 0; margin-bottom: ${!isLast ? '16px' : '0'};">
+            <div class="qr-page-sheet" style="width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff; ${!isLast ? 'page-break-after: always; break-after: page;' : ''} padding: 2px 0; margin-bottom: ${!isLast ? '12px' : '0'};">
                 ${pageHeader}
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff;">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff;">
                     ${pageItems.map(item => buildQRPrintCardHTML(item.substance, item, entityType)).join('')}
                 </div>
             </div>
