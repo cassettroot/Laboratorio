@@ -1421,25 +1421,25 @@ function buildQRPrintCardHTML(s, item, entityType) {
     const regDate = getAddedDateFormatted(s);
 
     return `
-        <div class="qr-print-card" style="width: calc(33.333% - 6px); max-width: calc(33.333% - 6px); min-width: 0; box-sizing: border-box; border: 1.5px dashed #475569; border-radius: 8px; padding: 6px 5px; text-align: center; background-color: #ffffff; background: #ffffff; page-break-inside: avoid; break-inside: avoid; position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 215px; margin-bottom: 6px;">
+        <div class="qr-print-card" style="border: 1.5px dashed #475569; border-radius: 8px; padding: 5px 6px; text-align: center; background-color: #ffffff; background: #ffffff; position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 185px; box-sizing: border-box; overflow: hidden;">
             <span style="position: absolute; top: 2px; right: 4px; font-size: 7pt; color: #94a3b8; line-height: 1;">✂️</span>
             
             <div>
-                <div style="font-size: 8.5pt; font-weight: 800; color: #0f172a; line-height: 1.15; max-height: 2.3em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 2px; padding: 0 10px 0 2px;">
+                <div style="font-size: 8.5pt; font-weight: 800; color: #0f172a; line-height: 1.15; max-height: 2.3em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 1px; padding: 0 10px 0 2px;">
                     ${s.name}
                 </div>
                 ${subInfo ? `
                     <div style="font-size: 7.5pt; font-weight: 700; color: #0284c7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; margin-bottom: 2px;">
                         ${subInfo}
                     </div>
-                ` : `<div style="height: 10px;"></div>`}
+                ` : `<div style="height: 6px;"></div>`}
             </div>
             
-            <div style="display: flex; align-items: center; justify-content: center; margin: 2px 0;">
+            <div style="display: flex; align-items: center; justify-content: center; margin: 1px 0;">
                 ${s.qr_path ? `
-                    <img src="${s.qr_path}" style="width: 82px; height: 82px; display: block; object-fit: contain; background-color: #ffffff; image-rendering: -webkit-optimize-contrast;">
+                    <img src="${s.qr_path}" style="width: 76px; height: 76px; display: block; object-fit: contain; background-color: #ffffff; image-rendering: -webkit-optimize-contrast;">
                 ` : `
-                    <div style="width: 82px; height: 82px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 8pt; color: #94a3b8; background-color: #f8fafc; border-radius: 4px;">Sin QR</div>
+                    <div style="width: 76px; height: 76px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 8pt; color: #94a3b8; background-color: #f8fafc; border-radius: 4px;">Sin QR</div>
                 `}
             </div>
             
@@ -1457,6 +1457,39 @@ function buildQRPrintCardHTML(s, item, entityType) {
             </div>
         </div>
     `;
+}
+
+// Generador de estructura paginada (12 etiquetas por página = 3 columnas x 4 filas)
+function generatePaginatedQRPagesHTML(expandedLabels, entityType, mainTitle) {
+    const LABELS_PER_PAGE = 12; // 3 columnas x 4 filas exactas por hoja
+    const pages = [];
+    for (let i = 0; i < expandedLabels.length; i += LABELS_PER_PAGE) {
+        pages.push(expandedLabels.slice(i, i + LABELS_PER_PAGE));
+    }
+
+    return pages.map((pageItems, pageIdx) => {
+        const isLast = pageIdx === pages.length - 1;
+        const pageHeader = pageIdx === 0 ? `
+            <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #0f172a; padding-bottom: 4px; background-color: #ffffff;">
+                <h2 style="font-size: 13pt; font-weight: bold; margin: 0; color: #0f172a;">${mainTitle}</h2>
+                <p style="font-size: 8pt; margin: 2px 0 0 0; color: #475569;">Total etiquetas QR: ${expandedLabels.length} | Página ${pageIdx + 1} de ${pages.length} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
+            </div>
+        ` : `
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #0f172a; padding-bottom: 3px; margin-bottom: 8px; font-size: 8pt; font-weight: bold; color: #475569; background-color: #ffffff;">
+                <span>${mainTitle}</span>
+                <span>Página ${pageIdx + 1} de ${pages.length} (${expandedLabels.length} etiquetas totales)</span>
+            </div>
+        `;
+
+        return `
+            <div class="qr-page-sheet" style="width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff; ${!isLast ? 'page-break-after: always; break-after: page;' : ''} padding: 4px 0; margin-bottom: ${!isLast ? '16px' : '0'};">
+                ${pageHeader}
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff;">
+                    ${pageItems.map(item => buildQRPrintCardHTML(item.substance, item, entityType)).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 window.downloadSingleSubstanceQRPDF = async function(substanceId) {
@@ -1495,20 +1528,7 @@ window.downloadSingleSubstanceQRPDF = async function(substanceId) {
     pdfContainer.style.width = '100%';
     pdfContainer.style.boxSizing = 'border-box';
 
-    const headerHtml = `
-        <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #0f172a; padding-bottom: 4px; background-color: #ffffff;">
-            <h2 style="font-size: 13pt; font-weight: bold; margin: 0; color: #0f172a;">ETIQUETAS QR - ${s.name.toUpperCase()}</h2>
-            <p style="font-size: 8pt; margin: 2px 0 0 0; color: #475569;">${prefix}${s.id} | Total etiquetas: ${copies} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
-        </div>
-    `;
-
-    const labelGridHtml = `
-        <div style="display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px; width: 100%; box-sizing: border-box; background-color: #ffffff;">
-            ${expandedLabels.map(item => buildQRPrintCardHTML(item.substance, item, entityType)).join('')}
-        </div>
-    `;
-
-    pdfContainer.innerHTML = headerHtml + labelGridHtml;
+    pdfContainer.innerHTML = generatePaginatedQRPagesHTML(expandedLabels, entityType, `ETIQUETAS QR - ${s.name.toUpperCase()}`);
 
     if (window.html2pdf) {
         const opt = {
@@ -1517,7 +1537,7 @@ window.downloadSingleSubstanceQRPDF = async function(substanceId) {
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
             jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
-            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            pagebreak:    { mode: ['css', 'legacy'] }
         };
         try {
             await window.html2pdf().set(opt).from(pdfContainer).save();
@@ -1554,7 +1574,6 @@ window.downloadSelectedQRPDF = async function() {
     const fileSuffix = qrBatchModalState.filterType === 'liquid' ? 'liquidos' : (qrBatchModalState.filterType === 'solid' ? 'solidos' : 'todos');
     const fileName = `planilla_etiquetas_qr_${entityType}_${fileSuffix}_${new Date().toISOString().slice(0,10)}.pdf`;
 
-    // Crear contenedor HTML unificado para el documento PDF único con fondo 100% blanco
     const pdfContainer = document.createElement('div');
     pdfContainer.style.padding = '8px';
     pdfContainer.style.backgroundColor = '#ffffff';
@@ -1566,22 +1585,9 @@ window.downloadSelectedQRPDF = async function() {
 
     const entityTitle = entityType === 'chemical_materials' ? 'MATERIALES QUÍMICOS' : (entityType === 'didactic_materials' ? 'MATERIALES DIDÁCTICOS' : 'SUSTANCIAS QUÍMICAS');
 
-    const headerHtml = `
-        <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #0f172a; padding-bottom: 4px; background-color: #ffffff;">
-            <h2 style="font-size: 13pt; font-weight: bold; margin: 0; color: #0f172a;">PLANILLA UNIFICADA DE ETIQUETAS QR - ${entityTitle}</h2>
-            <p style="font-size: 8pt; margin: 2px 0 0 0; color: #475569;">Elementos seleccionados: ${selectedSubstances.length} | Total etiquetas QR: ${expandedLabels.length} | Fecha: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
-        </div>
-    `;
+    pdfContainer.innerHTML = generatePaginatedQRPagesHTML(expandedLabels, entityType, `PLANILLA UNIFICADA DE ETIQUETAS QR - ${entityTitle}`);
 
-    const labelGridHtml = `
-        <div style="display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px; width: 100%; box-sizing: border-box; background-color: #ffffff;">
-            ${expandedLabels.map(item => buildQRPrintCardHTML(item.substance, item, entityType)).join('')}
-        </div>
-    `;
-
-    pdfContainer.innerHTML = headerHtml + labelGridHtml;
-
-    // Generar UN SOLO documento PDF con distribución continua sin huecos
+    // Generar documento PDF con distribución paginada sin huecos
     if (window.html2pdf) {
         const opt = {
             margin:       [6, 6, 6, 6],
@@ -1589,7 +1595,7 @@ window.downloadSelectedQRPDF = async function() {
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
             jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
-            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            pagebreak:    { mode: ['css', 'legacy'] }
         };
         try {
             await window.html2pdf().set(opt).from(pdfContainer).save();
@@ -1636,23 +1642,9 @@ window.printSelectedQRLabels = function() {
 
     const entityTitle = entityType === 'chemical_materials' ? 'MATERIALES QUÍMICOS' : (entityType === 'didactic_materials' ? 'MATERIALES DIDÁCTICOS' : 'SUSTANCIAS QUÍMICAS');
 
-    const printHeaderHtml = `
-        <div style="text-align: center; margin-bottom: 8px; border-bottom: 2px solid #0f172a; padding-bottom: 4px; background-color: #ffffff;" class="no-print">
-            <h2 style="font-size: 14pt; font-weight: bold; margin: 0; color: #0f172a;">PLANILLA DE ETIQUETAS QR PARA RECORTAR - ${entityTitle}</h2>
-            <p style="font-size: 8.5pt; margin: 2px 0 0 0; color: #475569;">Total etiquetas QR: ${expandedLabels.length} (Elementos: ${selectedSubstances.length}) | Impreso: ${new Date().toLocaleDateString('es-MX')} ${new Date().toLocaleTimeString('es-MX')}</p>
-        </div>
-    `;
-
-    const labelGridHtml = `
-        <div style="display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px; width: 100%; box-sizing: border-box; background-color: #ffffff; background: #ffffff;">
-            ${expandedLabels.map(item => buildQRPrintCardHTML(item.substance, item, entityType)).join('')}
-        </div>
-    `;
-
     printArea.innerHTML = `
         <div style="padding: 6px; background-color: #ffffff; background: #ffffff;">
-            ${printHeaderHtml}
-            ${labelGridHtml}
+            ${generatePaginatedQRPagesHTML(expandedLabels, entityType, `PLANILLA DE ETIQUETAS QR PARA RECORTAR - ${entityTitle}`)}
         </div>
     `;
 
