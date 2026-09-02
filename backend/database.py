@@ -211,6 +211,42 @@ def init_db():
             verified_by_admin TEXT,
             verified_at TEXT,
             notes TEXT,
+            rejection_reason TEXT,
+            rejection_date TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    try:
+        cursor.execute("ALTER TABLE loans ADD COLUMN rejection_reason TEXT")
+    except Exception:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE loans ADD COLUMN rejection_date TEXT")
+    except Exception:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE loans ADD COLUMN control_mayor_notes TEXT")
+    except Exception:
+        pass
+
+    try:
+        cursor.execute("ALTER TABLE loans ADD COLUMN control_mayor_photo TEXT")
+    except Exception:
+        pass
+
+    # 5.1 Tabla de Registros de Control Mayor para Casos Especiales
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS control_mayor_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            loan_id INTEGER NOT NULL,
+            item_name TEXT NOT NULL,
+            borrower_name TEXT NOT NULL,
+            registered_by_admin TEXT NOT NULL,
+            notes TEXT NOT NULL,
+            photo_path TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     ''')

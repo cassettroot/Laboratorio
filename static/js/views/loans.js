@@ -4,9 +4,59 @@
 let loansListCache = [];
 let registeredUsersCache = [];
 let loanBasket = []; // Lista temporal de elementos escaneados por QR o seleccionados
-let currentLoanFilter = 'all'; // 'all' | 'Prestado' | 'Pendiente' | 'Devuelto'
+let currentLoanFilter = 'all'; // 'all' | 'Pendiente Aprobación Admin' | 'Prestado' | 'Pendiente Verificación Admin' | 'Requiere Atención' | 'Devuelto'
 let loanSearchQuery = '';
 let activeReturnLoanId = null;
+let loanLiveTimerInterval = null;
+
+function formatWebLiveTimer(loanDateStr, status, returnDateStr = null) {
+    if (status === 'Pendiente Aprobación Admin') return '⏳ En Espera de Aprobación';
+    if (status === 'Rechazado') return '✕ Rechazado por Admin';
+    if (status === 'Control Mayor' || status === 'Devuelto') {
+        const cleanStart = (loanDateStr || '').replace('T', ' ');
+        const cleanEnd = (returnDateStr || '').replace('T', ' ');
+        const start = new Date(cleanStart).getTime();
+        const end = cleanEnd ? new Date(cleanEnd).getTime() : NaN;
+        if (!isNaN(start) && !isNaN(end) && end >= start) {
+            const diffMs = end - start;
+            const totalSeconds = Math.floor(diffMs / 1000);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const pad = (n) => String(n).padStart(2, '0');
+            const durStr = days > 0 ? `${days}d ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s` : `${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+            return `${status === 'Control Mayor' ? '🏛️ Control Mayor' : '🟢 Concluido'} (${durStr})`;
+        }
+        return status === 'Control Mayor' ? '🏛️ Control Mayor (Concluido)' : '🟢 Concluido';
+    }
+    if (status === 'Requiere Atención') return '⚠️ Requiere Atención por Observación';
+    if (!loanDateStr) return '00h 00m 00s';
+
+    try {
+        const cleanDate = loanDateStr.replace('T', ' ');
+        const start = new Date(cleanDate).getTime();
+        if (isNaN(start)) return loanDateStr;
+
+        const now = Date.now();
+        const diffMs = Math.max(0, now - start);
+
+        const totalSeconds = Math.floor(diffMs / 1000);
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        const pad = (n) => String(n).padStart(2, '0');
+
+        if (days > 0) {
+            return `${days}d ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+        }
+        return `${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+    } catch (e) {
+        return loanDateStr;
+    }
+}
 
 async function renderLoansView(container) {
     const isAdmin = state.userRole === 'admin';
@@ -30,7 +80,7 @@ async function renderLoansView(container) {
                         Control de Préstamos y Devoluciones
                     </h2>
                     <p class="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl font-medium">
-                        Escaneo de QR en lista, autenticación con usuarios registrados, evidencia fotográfica de guardado y aprobación por Administrador.
+                        Escaneo de QR en lista, autenticación con usuarios registrados, evidencia fotográfica de guardado, reloj en vivo y aprobación por Administrador.
                     </p>
                 </div>
 
@@ -75,17 +125,17 @@ async function renderLoansView(container) {
                 </div>
 
                 <div class="glass-card p-5 flex items-center gap-4">
-                    <div class="w-13 h-13 rounded-2xl bg-sky-500/15 text-sky-400 border border-sky-500/30 flex items-center justify-center shrink-0 shadow-md">
-                        <i data-lucide="list-ordered" class="w-6 h-6"></i>
+                    <div class="w-13 h-13 rounded-2xl bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0 shadow-md">
+                        <i data-lucide="alert-triangle" class="w-6 h-6"></i>
                     </div>
                     <div>
-                        <span class="text-3xs font-black text-slate-400 uppercase tracking-wider block">Total Registros</span>
-                        <h4 class="text-2xl font-black text-white tracking-tight" id="count-total-loans">0</h4>
+                        <span class="text-3xs font-black text-slate-400 uppercase tracking-wider block">Requiere Atención</span>
+                        <h4 class="text-2xl font-black text-rose-400 tracking-tight" id="count-attention-loans">0</h4>
                     </div>
                 </div>
             </div>
 
-            <!-- ALERTA ADMINISTRADOR PARA VERIFICAR DEVOLUCIONES PENDIENTES -->
+            <!-- ALERTA ADMINISTRADOR PARA VERIFICAR DEVOLUCIONES PENDIENTES O CON OBSERVACIÓN -->
             <div id="admin-pending-alert-container"></div>
 
             <!-- FILTROS Y BÚSQUEDA -->
@@ -101,7 +151,10 @@ async function renderLoansView(container) {
                         🟡 En Préstamo
                     </button>
                     <button onclick="setLoansFilter('Pendiente Verificación Admin')" id="btn-filter-pending" class="px-3.5 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white">
-                        📷 Pendientes Verificación
+                        📷 Por Verificar
+                    </button>
+                    <button onclick="setLoansFilter('Requiere Atención')" id="btn-filter-attention" class="px-3.5 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white">
+                        ⚠️ Requiere Atención
                     </button>
                     <button onclick="setLoansFilter('Devuelto')" id="btn-filter-returned" class="px-3.5 py-2 rounded-xl font-bold text-xs transition text-slate-400 hover:text-white">
                         🟢 Devueltos
@@ -185,7 +238,6 @@ async function renderLoansView(container) {
                             </button>
                         </div>
 
-                        <!-- LECTOR DE CÁMARA QR DENTRO DEL MODAL (SI SE ACTIVA) -->
                         <div id="loan-qr-scanner-box" class="hidden bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center space-y-3">
                             <div class="flex justify-between items-center text-xs text-amber-400 font-bold">
                                 <span>Apunta al Código QR de la Sustancia / Material</span>
@@ -195,7 +247,6 @@ async function renderLoansView(container) {
                             <p class="text-3xs text-slate-400" id="loan-qr-status-msg">Buscando código QR...</p>
                         </div>
 
-                        <!-- SELECTOR MANUAL SECUNDARIO DE INVENTARIO -->
                         <div class="flex gap-2">
                             <input type="text" id="loan-manual-search" oninput="filterManualInventory(this.value)" placeholder="Buscar elemento por nombre..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs" />
                             <select id="loan-manual-select" class="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold">
@@ -206,7 +257,6 @@ async function renderLoansView(container) {
                             </button>
                         </div>
 
-                        <!-- TABLA / CARRO DE ELEMENTOS A PRESTAR -->
                         <div class="border border-slate-200 rounded-2xl overflow-hidden">
                             <table class="w-full text-left bg-white text-xs">
                                 <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-3xs">
@@ -241,7 +291,7 @@ async function renderLoansView(container) {
             </div>
         </div>
 
-        <!-- MODAL DE DEVOLUCIÓN Y EVIDENCIA FOTOGRÁFICA DE GUARDADO EN ESTANTE -->
+        <!-- MODAL DE DEVOLUCIÓN Y EVIDENCIA FOTOGRÁFICA -->
         <div id="modal-return-loan" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
             <div class="bg-white rounded-3xl max-w-md w-full p-6 text-slate-900 space-y-5 shadow-2xl animate-fade-in border border-slate-100">
                 <div class="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -280,6 +330,20 @@ async function renderLoansView(container) {
     await loadLoansData();
     await loadRegisteredUsers();
     await loadManualInventoryForLoans();
+
+    if (loanLiveTimerInterval) clearInterval(loanLiveTimerInterval);
+    loanLiveTimerInterval = setInterval(() => {
+        updateWebLiveTimers();
+    }, 1000);
+}
+
+function updateWebLiveTimers() {
+    loansListCache.forEach(loan => {
+        const el = document.getElementById(`live-timer-${loan.id}`);
+        if (el) {
+            el.textContent = formatWebLiveTimer(loan.loan_date, loan.status, loan.return_date || loan.verified_at);
+        }
+    });
 }
 
 async function loadRegisteredUsers() {
@@ -316,6 +380,7 @@ async function loadLoansData() {
         console.warn("Error cargando préstamos:", e);
     }
 }
+window.loadLoansData = loadLoansData;
 
 async function loadManualInventoryForLoans() {
     try {
@@ -494,17 +559,20 @@ function onLoanQrCodeScanned(qrText) {
 
 function updateLoansStats() {
     const active = loansListCache.filter(l => l.status === 'Prestado').length;
-    const pending = loansListCache.filter(l => l.status === 'Pendiente Verificación Admin').length;
+    const pending = loansListCache.filter(l => l.status === 'Pendiente Verificación Admin' || l.status === 'Pendiente Aprobación Admin').length;
     const returned = loansListCache.filter(l => l.status === 'Devuelto').length;
+    const attention = loansListCache.filter(l => l.status === 'Requiere Atención').length;
 
     const elActive = document.getElementById('count-active-loans');
     const elPending = document.getElementById('count-pending-loans');
     const elReturned = document.getElementById('count-returned-loans');
+    const elAttention = document.getElementById('count-attention-loans');
     const elTotal = document.getElementById('count-total-loans');
 
     if (elActive) elActive.textContent = active;
     if (elPending) elPending.textContent = pending;
     if (elReturned) elReturned.textContent = returned;
+    if (elAttention) elAttention.textContent = attention;
     if (elTotal) elTotal.textContent = loansListCache.length;
 }
 
@@ -515,8 +583,9 @@ function renderAdminPendingAlert() {
     const isAdmin = state.userRole === 'admin';
     const pendingApproval = loansListCache.filter(l => l.status === 'Pendiente Aprobación Admin');
     const pendingReturn = loansListCache.filter(l => l.status === 'Pendiente Verificación Admin');
+    const attentionLoans = loansListCache.filter(l => l.status === 'Requiere Atención');
 
-    if (isAdmin && (pendingApproval.length > 0 || pendingReturn.length > 0)) {
+    if (isAdmin && (pendingApproval.length > 0 || pendingReturn.length > 0 || attentionLoans.length > 0)) {
         let alertHtml = '';
         if (pendingApproval.length > 0) {
             alertHtml += `
@@ -524,8 +593,8 @@ function renderAdminPendingAlert() {
                     <div class="flex items-center gap-3">
                         <span class="text-2xl">⏳</span>
                         <div>
-                            <h4 class="font-extrabold text-sm text-amber-900">Tienes ${pendingApproval.length} solicitud(es) de préstamo pendiente(s) de aprobación</h4>
-                            <p class="text-xs text-amber-800">El responsable solicitó el préstamo. Al aprobarlo, iniciará a contar el tiempo.</p>
+                            <h4 class="font-extrabold text-sm text-amber-300">Tienes ${pendingApproval.length} solicitud(es) de préstamo pendiente(s) de aprobación</h4>
+                            <p class="text-xs text-amber-200/80">El responsable solicitó el préstamo. Al aprobarlo, iniciará a contar el tiempo.</p>
                         </div>
                     </div>
                     <button onclick="setLoansFilter('Pendiente Aprobación Admin')" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-4 py-2 rounded-xl shrink-0 shadow-sm">
@@ -540,12 +609,28 @@ function renderAdminPendingAlert() {
                     <div class="flex items-center gap-3">
                         <span class="text-2xl">📷</span>
                         <div>
-                            <h4 class="font-extrabold text-sm text-orange-900">Tienes ${pendingReturn.length} devolución(es) pendiente(s) de verificación en estante</h4>
-                            <p class="text-xs text-orange-800">El responsable subió la foto y descripción de entrega. Verifica y aprueba la conclusión.</p>
+                            <h4 class="font-extrabold text-sm text-orange-300">Tienes ${pendingReturn.length} devolución(es) pendiente(s) de verificación en estante</h4>
+                            <p class="text-xs text-orange-200/80">El responsable subió la foto y descripción de entrega. Verifica y aprueba la conclusión.</p>
                         </div>
                     </div>
                     <button onclick="setLoansFilter('Pendiente Verificación Admin')" class="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-4 py-2 rounded-xl shrink-0 shadow-sm">
                         Ver Devoluciones
+                    </button>
+                </div>
+            `;
+        }
+        if (attentionLoans.length > 0) {
+            alertHtml += `
+                <div class="bg-rose-500/10 border-2 border-rose-500/40 p-4 rounded-3xl text-rose-950 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-md">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">⚠️</span>
+                        <div>
+                            <h4 class="font-extrabold text-sm text-rose-300">Hay ${attentionLoans.length} préstamo(s) marcados como REQUIERE ATENCIÓN</h4>
+                            <p class="text-xs text-rose-200/80">Tienen observaciones pendientes que deben corregirse.</p>
+                        </div>
+                    </div>
+                    <button onclick="setLoansFilter('Requiere Atención')" class="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2 rounded-xl shrink-0 shadow-sm">
+                        Revisar Observaciones
                     </button>
                 </div>
             `;
@@ -558,15 +643,16 @@ function renderAdminPendingAlert() {
 
 function setLoansFilter(filter) {
     currentLoanFilter = filter;
-    ['btn-filter-all', 'btn-filter-req-pending', 'btn-filter-active', 'btn-filter-pending', 'btn-filter-returned'].forEach(id => {
+    ['btn-filter-all', 'btn-filter-req-pending', 'btn-filter-active', 'btn-filter-pending', 'btn-filter-attention', 'btn-filter-returned'].forEach(id => {
         const btn = document.getElementById(id);
-        if (btn) btn.className = "px-3.5 py-2 rounded-lg font-bold text-xs transition text-slate-500 hover:text-slate-900";
+        if (btn) btn.className = "px-3.5 py-2 rounded-lg font-bold text-xs transition text-slate-400 hover:text-white";
     });
 
-    if (filter === 'all') document.getElementById('btn-filter-all').className = "px-3.5 py-2 rounded-lg font-bold text-xs transition bg-white text-slate-900 shadow-xs";
+    if (filter === 'all') document.getElementById('btn-filter-all').className = "px-3.5 py-2 rounded-lg font-bold text-xs transition bg-teal-500/20 text-teal-300 border border-teal-500/40 shadow-xs";
     else if (filter === 'Pendiente Aprobación Admin') document.getElementById('btn-filter-req-pending').className = "px-3.5 py-2 rounded-lg font-bold text-xs transition bg-amber-500 text-slate-950 font-extrabold shadow-xs";
     else if (filter === 'Prestado') document.getElementById('btn-filter-active').className = "px-3.5 py-2 rounded-lg font-bold text-xs transition bg-amber-600 text-white font-extrabold shadow-xs";
     else if (filter === 'Pendiente Verificación Admin') document.getElementById('btn-filter-pending').className = "px-3.5 py-2 rounded-lg font-bold text-xs transition bg-orange-500 text-white font-extrabold shadow-xs";
+    else if (filter === 'Requiere Atención') document.getElementById('btn-filter-attention').className = "px-3.5 py-2 rounded-lg font-bold text-xs transition bg-rose-600 text-white font-extrabold shadow-xs";
     else if (filter === 'Devuelto') document.getElementById('btn-filter-returned').className = "px-3.5 py-2 rounded-lg font-bold text-xs transition bg-emerald-500 text-slate-950 font-extrabold shadow-xs";
 
     renderLoansTable();
@@ -591,7 +677,8 @@ function renderLoansTable() {
         items = items.filter(l => 
             l.item_name.toLowerCase().includes(loanSearchQuery) ||
             l.borrower_name.toLowerCase().includes(loanSearchQuery) ||
-            l.loan_date.includes(loanSearchQuery)
+            l.loan_date.includes(loanSearchQuery) ||
+            (l.rejection_reason && l.rejection_reason.toLowerCase().includes(loanSearchQuery))
         );
     }
 
@@ -617,6 +704,12 @@ function renderLoansTable() {
             badgeStatus = '<span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs whitespace-nowrap leading-normal"><span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> 🟡 En Préstamo</span>';
         } else if (loan.status === 'Pendiente Verificación Admin') {
             badgeStatus = '<span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-orange-500/20 text-orange-300 border border-orange-500/40 shadow-xs whitespace-nowrap leading-normal">📷 Pendiente Verificación</span>';
+        } else if (loan.status === 'Requiere Atención') {
+            badgeStatus = '<span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs whitespace-nowrap leading-normal">⚠️ REQUIERE ATENCIÓN</span>';
+        } else if (loan.status === 'Control Mayor') {
+            badgeStatus = '<span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-xs whitespace-nowrap leading-normal">🏛️ CONTROL MAYOR</span>';
+        } else if (loan.status === 'Rechazado') {
+            badgeStatus = '<span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-red-950/40 text-red-400 border border-red-800 shadow-xs whitespace-nowrap leading-normal">✕ Rechazado</span>';
         } else {
             badgeStatus = '<span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs whitespace-nowrap leading-normal">🟢 DEVUELTO & APROBADO</span>';
         }
@@ -631,12 +724,34 @@ function renderLoansTable() {
             </div>
         ` : (loan.return_notes ? `<div class="text-3xs text-slate-400 italic">"${loan.return_notes}"</div>` : '<span class="text-3xs text-slate-500 italic">Sin foto</span>');
 
+        const rejectionHtml = loan.rejection_reason ? `
+            <div class="mt-1 bg-rose-500/10 border border-rose-500/30 p-2 rounded-xl text-3xs text-rose-300 italic">
+                <span class="font-bold text-rose-400 not-italic block">⚠️ Observación Admin:</span>
+                "${loan.rejection_reason}"
+            </div>
+        ` : '';
+
+        const controlMayorHtml = loan.control_mayor_notes ? `
+            <div class="mt-1 bg-purple-500/10 border border-purple-500/30 p-2 rounded-xl text-3xs text-purple-300 italic">
+                <span class="font-bold text-purple-400 not-italic block">🏛️ Resguardo Especial (Control Mayor):</span>
+                "${loan.control_mayor_notes}"
+            </div>
+        ` : '';
+
+        const timerLive = formatWebLiveTimer(loan.loan_date, loan.status, loan.return_date || loan.verified_at);
+
+        const currUser = (state.username || '').trim().toLowerCase();
+        const bUser = (loan.borrower_name || '').trim().toLowerCase();
+        const isBorrower = Boolean(currUser && currUser === bUser);
+
         html += `
             <tr class="hover:bg-slate-800/60 transition border-b border-slate-800/60">
                 <td class="py-4 px-6 font-mono font-extrabold text-amber-400 text-xs">#PR-${loan.id}</td>
                 <td class="py-4 px-6">
                     <div class="font-extrabold text-white text-sm leading-snug">${loan.item_name}</div>
                     ${loan.notes ? `<div class="text-3xs text-slate-400 mt-0.5">Motivo: ${loan.notes}</div>` : ''}
+                    ${rejectionHtml}
+                    ${controlMayorHtml}
                 </td>
                 <td class="py-4 px-6">
                     <div class="font-extrabold text-slate-200 text-xs">${loan.borrower_name}</div>
@@ -644,25 +759,43 @@ function renderLoansTable() {
                 </td>
                 <td class="py-4 px-6">
                     <div class="font-mono text-xs font-medium text-slate-300">${loan.loan_date}</div>
-                    <div class="font-extrabold text-amber-400 text-3xs mt-0.5">${loan.elapsed_time}</div>
+                    <div class="font-extrabold text-teal-300 font-mono text-xs mt-0.5 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-lg inline-block" id="live-timer-${loan.id}">${timerLive}</div>
                 </td>
                 <td class="py-4 px-6">${photoHtml}</td>
                 <td class="py-4 px-6">${badgeStatus}</td>
                 <td class="py-4 px-6 text-right">
-                    <div class="flex items-center justify-end gap-2">
+                    <div class="flex items-center justify-end gap-2 flex-wrap">
                         ${isAdmin && loan.status === 'Pendiente Aprobación Admin' ? `
+                            <button onclick="rejectLoanRequest(${loan.id})" class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold px-2.5 py-1 rounded-xl text-2xs transition">
+                                ✕ Rechazar
+                            </button>
                             <button onclick="approveLoanRequest(${loan.id})" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3 py-1.5 rounded-xl text-2xs transition shadow-xs">
                                 👑 Aprobar Préstamo
                             </button>
                         ` : ''}
 
-                        ${loan.status === 'Prestado' ? `
+                        ${loan.status === 'Prestado' && isBorrower ? `
                             <button onclick="openReturnLoanModal(${loan.id})" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-xl text-2xs transition shadow-xs">
                                 📸 Devolver con Foto
                             </button>
                         ` : ''}
 
+                        ${loan.status === 'Requiere Atención' && isBorrower ? `
+                            <button onclick="openReturnLoanModal(${loan.id})" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-3 py-1.5 rounded-xl text-2xs transition shadow-xs">
+                                🛠️ Corregir Evidencia
+                            </button>
+                        ` : ''}
+
+                        ${isAdmin && (loan.status === 'Prestado' || loan.status === 'Pendiente Verificación Admin' || loan.status === 'Requiere Atención' || loan.status === 'Pendiente Aprobación Admin') ? `
+                            <button onclick="processControlMayorWeb(${loan.id})" class="bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 font-bold px-2.5 py-1 rounded-xl text-2xs transition">
+                                🏛️ Control Mayor
+                            </button>
+                        ` : ''}
+
                         ${isAdmin && loan.status === 'Pendiente Verificación Admin' ? `
+                            <button onclick="rejectReturnLoan(${loan.id})" class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold px-2.5 py-1 rounded-xl text-2xs transition">
+                                ⚠️ Observar
+                            </button>
                             <button onclick="approveReturnLoan(${loan.id})" class="bg-orange-600 hover:bg-orange-500 text-white font-extrabold px-3 py-1.5 rounded-xl text-2xs transition shadow-xs">
                                 🟢 Aprobar Devolución
                             </button>
@@ -764,6 +897,10 @@ async function submitReturnWithPhoto() {
     }
 
     const returnNotes = (notesInput ? notesInput.value : '').trim();
+    if (!returnNotes) {
+        alert("Por favor describe el estado o lo realizado con la sustancia.");
+        return;
+    }
 
     const formData = new FormData();
     formData.append('photo', fileInput.files[0]);
@@ -792,7 +929,7 @@ async function approveLoanRequest(loanId) {
     if (!confirm(`👑 ¿Confirmas aprobar la solicitud de préstamo #PR-${loanId}? A partir de este momento comenzará a contar el tiempo.`)) return;
 
     try {
-        const res = await fetch(`/api/loans/${loanId}/approve-loan`, { method: 'PUT' });
+        const res = await fetch(`/api/loans/${loanId}/approve-loan`, { method: 'POST' });
         const data = await res.json();
         if (data.status === 'success') {
             await loadLoansData();
@@ -805,11 +942,55 @@ async function approveLoanRequest(loanId) {
     }
 }
 
+async function rejectLoanRequest(loanId) {
+    const reason = prompt(`✕ Ingresa el motivo o justificación para rechazar la solicitud #PR-${loanId}:`);
+    if (!reason || !reason.trim()) return;
+
+    try {
+        const res = await fetch(`/api/loans/${loanId}/reject-loan`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: reason.trim() })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            await loadLoansData();
+            alert("✕ Solicitud de préstamo rechazada.");
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch (e) {
+        alert("Error al rechazar solicitud.");
+    }
+}
+
+async function rejectReturnLoan(loanId) {
+    const reason = prompt(`⚠️ Ingresa la observación o razón por la que la devolución del préstamo #PR-${loanId} requiere atención:`);
+    if (!reason || !reason.trim()) return;
+
+    try {
+        const res = await fetch(`/api/loans/${loanId}/reject-return`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: reason.trim() })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            await loadLoansData();
+            alert("⚠️ Devolución marcada con la etiqueta 'Requiere Atención' y la observación registrada.");
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch (e) {
+        alert("Error al marcar observación de devolución.");
+    }
+}
+
 async function approveReturnLoan(loanId) {
     if (!confirm(`👑 ¿Confirmas que verificaste físicamente en el estante la sustancia del préstamo #PR-${loanId}?`)) return;
 
     try {
-        const res = await fetch(`/api/loans/${loanId}/approve-return`, { method: 'PUT' });
+        const res = await fetch(`/api/loans/${loanId}/approve-return`, { method: 'POST' });
         const data = await res.json();
         if (data.status === 'success') {
             await loadLoansData();
@@ -821,53 +1002,6 @@ async function approveReturnLoan(loanId) {
         alert("Error al aprobar la devolución.");
     }
 }
-
-window.deleteLoan = async function(loanId) {
-    if (!confirm('¿Estás seguro de eliminar este registro de préstamo?')) return;
-    try {
-        const res = await fetch(`/api/loans/${loanId}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (data.status === 'success') {
-            await loadLoansData();
-            alert('Registro de préstamo eliminado.');
-        } else {
-            alert('Error: ' + data.message);
-        }
-    } catch (e) {
-        alert('Error al eliminar préstamo: ' + e.message);
-    }
-};
-
-window.openImageLightbox = function(src, title = 'Visualización de Evidencia') {
-    let modal = document.getElementById('lightbox-modal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'lightbox-modal';
-        modal.className = 'fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in no-print';
-        document.body.appendChild(modal);
-    }
-    modal.innerHTML = `
-        <div class="relative bg-[#0d1527] border border-slate-800 rounded-3xl p-5 max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
-                <h4 class="font-extrabold text-sm text-white flex items-center gap-2">
-                    <i data-lucide="camera" class="w-4 h-4 text-teal-400"></i>
-                    <span>${title}</span>
-                </h4>
-                <button onclick="closeImageLightbox()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-sm">✕</button>
-            </div>
-            <div class="flex-1 overflow-hidden flex items-center justify-center rounded-2xl bg-black/60 p-2">
-                <img src="${src}" class="max-w-full max-h-[75vh] object-contain rounded-xl shadow-lg" />
-            </div>
-        </div>
-    `;
-    if (window.lucide) window.lucide.createIcons();
-    modal.classList.remove('hidden');
-};
-
-window.closeImageLightbox = function() {
-    const modal = document.getElementById('lightbox-modal');
-    if (modal) modal.remove();
-};
 
 async function deleteLoanRecord(loanId) {
     if (!confirm(`⚠️ ¿Estás seguro de eliminar el registro de préstamo #PR-${loanId}? Esta acción no se puede deshacer.`)) return;
@@ -883,5 +1017,44 @@ async function deleteLoanRecord(loanId) {
         }
     } catch (e) {
         alert("Error al eliminar préstamo.");
+    }
+}
+
+async function processControlMayorWeb(loanId) {
+    const notes = prompt(`🏛️ Protocolo Control Mayor - Préstamo #PR-${loanId}:\nIngresa la nota explicativa o justificación por la que el material no está en el laboratorio (ej: Enviado a calibración o resguardado en otra área):`);
+    if (!notes || !notes.trim()) return;
+
+    try {
+        const res = await fetch(`/api/loans/${loanId}/control-mayor`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes: notes.trim() })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            await loadLoansData();
+            alert("🏛️ Registro concluido bajo la etiqueta 'Control Mayor'.");
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch (e) {
+        alert("Error procesando Control Mayor.");
+    }
+}
+
+async function clearLoansHistoryWeb() {
+    if (!confirm("🧹 ¿Estás seguro de limpiar de la lista activa los registros devueltos y rechazados?")) return;
+
+    try {
+        const res = await fetch('/api/loans/clear-history', { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'success') {
+            await loadLoansData();
+            alert("🧹 Registros del historial concluidos limpiados con éxito.");
+        } else {
+            alert("Error: " + data.message);
+        }
+    } catch (e) {
+        alert("Error al limpiar historial.");
     }
 }

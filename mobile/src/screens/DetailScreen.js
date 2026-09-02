@@ -24,6 +24,7 @@ import { ThemeContext } from '../context/ThemeContext';
 import { apiService } from '../api/services';
 import apiClient, { DEFAULT_API_BASE, getImageUrl } from '../api/client';
 import ChemicalMaterialRegisterModal from '../components/modals/ChemicalMaterialRegisterModal';
+import DidacticMaterialRegisterModal from '../components/modals/DidacticMaterialRegisterModal';
 import GlassBackground from '../components/GlassBackground';
 import GlassCard from '../components/GlassCard';
 
@@ -51,6 +52,7 @@ export default function DetailScreen({ route, navigation }) {
   const [item, setItem] = useState(initialItem || null);
   const [showAddUnitModal, setShowAddUnitModal] = useState(false);
   const [showEditChemModal, setShowEditChemModal] = useState(false);
+  const [showEditDidModal, setShowEditDidModal] = useState(false);
 
   const getImageUri = (imagePath) => {
     return getImageUrl(imagePath, serverUrl);
@@ -258,6 +260,10 @@ export default function DetailScreen({ route, navigation }) {
   const openEditModal = () => {
     if (type === 'chemical-materials' || type === 'chemical_materials' || type === 'chem_material') {
       setShowEditChemModal(true);
+      return;
+    }
+    if (type === 'didactic-materials' || type === 'didactic_materials' || type === 'did_material') {
+      setShowEditDidModal(true);
       return;
     }
     setEditName(item.name || '');
@@ -1016,6 +1022,15 @@ export default function DetailScreen({ route, navigation }) {
           </View>
         ) : null}
 
+        {item.created_at ? (
+          <View style={[styles.row, { borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
+            <Text style={[styles.label, { color: subtextColor }]}>Fecha de Registro:</Text>
+            <Text style={[styles.value, { color: isDark ? '#38bdf8' : '#0284c7' }]}>
+              {item.created_at.replace('T', ' ').split('.')[0]}
+            </Text>
+          </View>
+        ) : null}
+
         {item.expiration_date ? (
           <View style={[styles.row, { borderBottomWidth: 0 }]}>
             <Text style={[styles.label, { color: subtextColor }]}>Fecha de Caducidad:</Text>
@@ -1304,6 +1319,18 @@ export default function DetailScreen({ route, navigation }) {
         onClose={() => setShowEditChemModal(false)}
         onSuccess={() => {
           setShowEditChemModal(false);
+          fetchDetail();
+          if (item?.id) fetchSiblings(item.id);
+        }}
+        prefillItem={item}
+      />
+
+      {/* MODAL PARA EDITAR EL MATERIAL DIDÁCTICO ACTUAL CON EL MISMO ASISTENTE */}
+      <DidacticMaterialRegisterModal
+        visible={showEditDidModal}
+        onClose={() => setShowEditDidModal(false)}
+        onSuccess={() => {
+          setShowEditDidModal(false);
           fetchDetail();
           if (item?.id) fetchSiblings(item.id);
         }}

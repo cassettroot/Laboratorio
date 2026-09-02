@@ -11,7 +11,11 @@
     },
     "android": {
       "package": "com.tecnm.labkeep",
-      "permissions": ["CAMERA"]
+      "permissions": [
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       [
@@ -20,6 +24,11 @@
           "cameraPermission": "Permite acceder a la cámara para escanear códigos QR de los reactivos y materiales."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "920cdbd7-6def-4b8f-bd62-ff9a3cc7b1cf"
+      }
+    }
   }
 }

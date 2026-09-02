@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Modal,
   View,
@@ -9,96 +9,291 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Image,
   Platform,
-  Image
+  Switch,
+  Dimensions
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 import { apiService } from '../../api/services';
+import apiClient, { getImageUrl } from '../../api/client';
+import { AuthContext } from '../../context/AuthContext';
+import { ThemeContext } from '../../context/ThemeContext';
+import QRBatchPrintModal from './QRBatchPrintModal';
 
-export default function DidacticMaterialRegisterModal({ visible, onClose, onSuccess }) {
+const { width } = Dimensions.get('window');
+
+const DIDACTIC_TEMPLATES = [
+  {
+    name: 'Kit de Geometría Molecular (100 piezas)',
+    subject: 'Química Orgánica',
+    materialType: 'Kit Didáctico',
+    contents: '50 esferas atómicas (Carbono, Hidrógeno, Oxígeno, Nitrógeno), 50 enlaces flexibles',
+    capacityVal: '100',
+    capacityUnit: 'piezas',
+    condition: 'Excelente'
+  },
+  {
+    name: 'Modelo Tridimensional de ADN',
+    subject: 'Biología / Bioquímica',
+    materialType: 'Modelo Tridimensional',
+    contents: 'Bases nitrogenadas A-T-C-G, esqueleto desoxirribosa-fosfato, soporte cromado',
+    capacityVal: '1',
+    capacityUnit: 'modelo',
+    condition: 'Excelente'
+  },
+  {
+    name: 'Sensor de pH Digital Vernier / Pasco',
+    subject: 'Física y Química',
+    materialType: 'Sensor / Transductor',
+    contents: 'Electrodo de vidrio, cable USB-C de conexión, frasco amortiguador pH 7.0',
+    capacityVal: '0-14',
+    capacityUnit: 'pH',
+    condition: 'Excelente'
+  },
+  {
+    name: 'Kit de Circuitos Eléctricos y Magnetismo',
+    subject: 'Física II',
+    materialType: 'Kit Didáctico',
+    contents: 'Placa de pruebas, cables puente, multímetro digital, bobinas de cobre, imanes de neodimio',
+    capacityVal: '25',
+    capacityUnit: 'componentes',
+    condition: 'Excelente'
+  },
+  {
+    name: 'Sensor de Temperatura de Inmersión',
+    subject: 'Termodinámica',
+    materialType: 'Sensor / Transductor',
+    contents: 'Sonda de acero inoxidable, cable blindado, módulo de interfaz',
+    capacityVal: '-40 a 125',
+    capacityUnit: '°C',
+    condition: 'Excelente'
+  },
+  {
+    name: 'Balanza Analítica Didáctica de Precisión',
+    subject: 'Química Analítica',
+    materialType: 'Equipo Didáctico',
+    contents: 'Balanza digital, plato de acero inox, pesas de calibración 100g, cubierta protectora',
+    capacityVal: '0-220',
+    capacityUnit: 'g (0.001g)',
+    condition: 'Excelente'
+  }
+];
+
+export default function DidacticMaterialRegisterModal({ visible, onClose, onSuccess, prefillItem }) {
+  const { serverUrl } = useContext(AuthContext) || {};
+  const { theme } = useContext(ThemeContext);
+  const isDark = theme?.isDark !== false;
+
+  const [activeStep, setActiveStep] = useState(1); // 1: Básicos, 2: Técnico, 3: Kit/Piezas, 4: Ubicación, 5: Foto
+  const [loading, setLoading] = useState(false);
+
+  // Sección 1: Datos Básicos
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('Química');
   const [materialType, setMaterialType] = useState('Kit Didáctico');
+
+  // Sección 2: Detalles Técnicos
+  const [brand, setBrand] = useState('');
+  const [model, setModel] = useState('');
+  const [capacityVal, setCapacityVal] = useState('');
+  const [capacityUnit, setCapacityUnit] = useState('piezas');
+  const [techSpec, setTechSpec] = useState('');
+
+  // Sección 3: Contenido del Kit / Componentes
   const [contents, setContents] = useState('');
+  const [kitItems, setKitItems] = useState([
+    { id: '1', name: 'Pieza Principal', quantity: 1 }
+  ]);
+
+  // Sección 4: Ubicación e Inventario
   const [location, setLocation] = useState('');
   const [stock, setStock] = useState('1');
+  const [inventoryNumber, setInventoryNumber] = useState('');
+  const [serialNumber, setSerialNumber] = useState('');
   const [condition, setCondition] = useState('Excelente');
   const [responsible, setResponsible] = useState('');
   const [notes, setNotes] = useState('');
-  const [photoUri, setPhotoUri] = useState(null);
 
-  const [loading, setLoading] = useState(false);
+  // Sección 5: Foto
+  const [imageUri, setImageUri] = useState(null);
+
+  // QR Print Modal State
+  const [createdItem, setCreatedItem] = useState(null);
+  const [showQRBatchPrint, setShowQRBatchPrint] = useState(false);
+
+  // Inicializar o limpiar el formulario cuando cambia la visibilidad o prefillItem
+  useEffect(() => {
+    if (visible) {
+      setActiveStep(1);
+      if (prefillItem) {
+        setName(prefillItem.name || '');
+        setSubject(prefillItem.subject || prefillItem.category || 'Química');
+        setMaterialType(prefillItem.type || prefillItem.materialType || 'Kit Didáctico');
+        setBrand(prefillItem.brand || '');
+        setModel(prefillItem.model || '');
+        setTechSpec(prefillItem.technical_specifications || prefillItem.techSpec || '');
+        
+        if (prefillItem.capacity) {
+          const capMatch = String(prefillItem.capacity).match(/^([\d.-]+)\s*(.*)$/);
+          if (capMatch) {
+            setCapacityVal(capMatch[1]);
+            setCapacityUnit(capMatch[2] || 'piezas');
+          } else {
+            setCapacityVal(String(prefillItem.capacity));
+          }
+        } else {
+          setCapacityVal('');
+        }
+
+        setContents(prefillItem.contents || prefillItem.container_content || '');
+        setLocation(prefillItem.location || '');
+        setStock(String(prefillItem.stock || prefillItem.quantity || 1));
+        setInventoryNumber(prefillItem.inventory_number || '');
+        setSerialNumber(prefillItem.serial_number || '');
+        setCondition(prefillItem.condition || prefillItem.status || 'Excelente');
+        setResponsible(prefillItem.responsible || '');
+        setNotes(prefillItem.observations || prefillItem.notes || '');
+        setImageUri(prefillItem.image_path ? getImageUrl(prefillItem.image_path, serverUrl) : null);
+
+        // Cargar Sub-piezas del kit si existen
+        const rawContents = prefillItem.contents || prefillItem.container_content || '';
+        if (rawContents) {
+          if (typeof rawContents === 'string' && (rawContents.trim().startsWith('[') || rawContents.trim().startsWith('{'))) {
+            try {
+              const parsed = JSON.parse(rawContents);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setKitItems(parsed.map((sub, i) => ({
+                  id: String(i + 1),
+                  name: sub.name || '',
+                  quantity: sub.quantity || 1,
+                  imageUri: sub.imageUri || sub.image_path || null,
+                })));
+              }
+            } catch (e) {
+              setKitItems([{ id: '1', name: String(rawContents).trim(), quantity: 1 }]);
+            }
+          } else if (Array.isArray(rawContents) && rawContents.length > 0) {
+            setKitItems(rawContents.map((sub, i) => ({
+              id: String(i + 1),
+              name: sub.name || '',
+              quantity: sub.quantity || 1,
+              imageUri: sub.imageUri || sub.image_path || null,
+            })));
+          }
+        }
+      } else {
+        resetForm();
+      }
+    } else {
+      setCreatedItem(null);
+    }
+  }, [visible, prefillItem]);
 
   const resetForm = () => {
     setName('');
     setSubject('Química');
     setMaterialType('Kit Didáctico');
+    setBrand('');
+    setModel('');
+    setCapacityVal('');
+    setCapacityUnit('piezas');
+    setTechSpec('');
     setContents('');
+    setKitItems([
+      { id: '1', name: 'Pieza Principal', quantity: 1 }
+    ]);
     setLocation('');
     setStock('1');
+    setInventoryNumber('');
+    setSerialNumber('');
     setCondition('Excelente');
     setResponsible('');
     setNotes('');
-    setPhotoUri(null);
+    setImageUri(null);
+    setCreatedItem(null);
   };
 
-  const pickPhotoFromCamera = async () => {
-    try {
-      const permRes = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permRes.granted) {
-        Alert.alert('Permiso Requerido', 'Se requiere permiso para acceder a la cámara.');
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.6,
-      });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setPhotoUri(result.assets[0].uri);
-      }
-    } catch (e) {
-      Alert.alert('Error', 'No se pudo tomar la foto: ' + e.message);
-    }
+  const applyTemplate = (tpl) => {
+    setName(tpl.name);
+    setSubject(tpl.subject);
+    setMaterialType(tpl.materialType);
+    setContents(tpl.contents);
+    if (tpl.capacityVal) setCapacityVal(tpl.capacityVal);
+    if (tpl.capacityUnit) setCapacityUnit(tpl.capacityUnit);
+    if (tpl.condition) setCondition(tpl.condition);
   };
 
-  const pickPhotoFromGallery = async () => {
+  const handlePickImage = async () => {
     try {
-      const permRes = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permRes.granted) {
-        Alert.alert('Permiso Requerido', 'Se requiere permiso para acceder a la galería.');
-        return;
-      }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [1, 1],
         quality: 0.6,
       });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        setPhotoUri(result.assets[0].uri);
+      if (!result.canceled && result.assets[0]) {
+        setImageUri(result.assets[0].uri);
       }
     } catch (e) {
-      Alert.alert('Error', 'No se pudo seleccionar la foto: ' + e.message);
+      Alert.alert('Error', 'No se pudo abrir la galería.');
     }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permiso Requerido', 'Se requiere acceso a la cámara para tomar fotografías.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.6,
+      });
+      if (!result.canceled && result.assets[0]) {
+        setImageUri(result.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo abrir la cámara.');
+    }
+  };
+
+  const handleAddKitItem = () => {
+    setKitItems(prev => [
+      ...prev,
+      { id: Date.now().toString(), name: '', quantity: 1 }
+    ]);
+  };
+
+  const handleRemoveKitItem = (id) => {
+    if (kitItems.length <= 1) {
+      Alert.alert('Aviso', 'El kit debe contener al menos un elemento.');
+      return;
+    }
+    setKitItems(prev => prev.filter(i => i.id !== id));
+  };
+
+  const handleUpdateKitItem = (id, field, value) => {
+    setKitItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Campo Obligatorio', 'Por favor ingresa el nombre del material didáctico.');
+      Alert.alert('Campo Requerido', 'Ingresa el nombre del material didáctico.');
+      setActiveStep(1);
       return;
     }
 
     setLoading(true);
     try {
-      let serverImagePath = '';
+      let serverImagePath = prefillItem?.image_path || '';
 
-      if (photoUri) {
-        const filename = photoUri.split('/').pop() || 'didactic_photo.jpg';
+      if (imageUri && (imageUri.startsWith('file://') || imageUri.startsWith('content://'))) {
+        const filename = imageUri.split('/').pop() || 'didactic_photo.jpg';
         const formData = new FormData();
         formData.append('photo', {
-          uri: photoUri,
+          uri: imageUri,
           name: filename,
           type: 'image/jpeg',
         });
@@ -108,15 +303,28 @@ export default function DidacticMaterialRegisterModal({ visible, onClose, onSucc
         }
       }
 
+      // Preparar sub-elementos limpiamente
+      const cleanKitItems = kitItems
+        .filter(i => i.name && i.name.trim().length > 0)
+        .map(i => ({ name: i.name.trim(), quantity: parseInt(i.quantity, 10) || 1 }));
+
       const payload = {
         name: name.trim(),
         subject: subject.trim(),
         type: materialType.trim(),
         category: `${materialType.trim()} - ${subject.trim()}`.trim(),
+        brand: brand.trim(),
+        model: model.trim(),
+        capacity: capacityVal ? `${capacityVal} ${capacityUnit}` : '',
+        technical_specifications: techSpec.trim(),
         contents: contents.trim(),
+        kit_items: cleanKitItems,
+        container_content: cleanKitItems.length > 0 ? JSON.stringify(cleanKitItems) : contents.trim(),
         location: location.trim(),
         stock: parseInt(stock, 10) || 1,
         quantity: parseInt(stock, 10) || 1,
+        inventory_number: inventoryNumber.trim(),
+        serial_number: serialNumber.trim(),
         condition: condition.trim(),
         status: condition.trim(),
         responsible: responsible.trim(),
@@ -125,14 +333,41 @@ export default function DidacticMaterialRegisterModal({ visible, onClose, onSucc
         image_path: serverImagePath
       };
 
-      const res = await apiService.createDidacticMaterial(payload);
-      if (res.status === 'success') {
-        Alert.alert('Éxito', '🎓 Material didáctico registrado correctamente con su fotografía.');
-        resetForm();
-        onSuccess && onSuccess();
-        onClose();
+      let res;
+      if (prefillItem?.id) {
+        const apiRes = await apiClient.put(`/api/didactic-materials/${prefillItem.id}`, payload);
+        res = apiRes.data;
       } else {
-        Alert.alert('Error', res.message || 'No se pudo registrar el material didáctico.');
+        res = await apiService.createDidacticMaterial(payload);
+      }
+
+      if (res && res.status === 'success') {
+        const savedData = res.data || { ...payload, id: prefillItem?.id || Date.now() };
+        setCreatedItem(savedData);
+        
+        Alert.alert(
+          '✅ Registro Exitoso',
+          prefillItem?.id 
+            ? 'El material didáctico fue actualizado correctamente.' 
+            : 'El material didáctico fue guardado en el inventario.',
+          [
+            {
+              text: '🖨️ Imprimir Etiqueta QR',
+              onPress: () => {
+                setShowQRBatchPrint(true);
+              }
+            },
+            {
+              text: 'Aceptar',
+              onPress: () => {
+                onSuccess && onSuccess();
+                onClose();
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', res?.message || 'No se pudo guardar el material didáctico.');
       }
     } catch (err) {
       Alert.alert('Error de conexión', err.message);
@@ -141,190 +376,469 @@ export default function DidacticMaterialRegisterModal({ visible, onClose, onSucc
     }
   };
 
+  // Dynamic Theme Colors
+  const modalBg = isDark ? '#0b1329' : '#ffffff';
+  const textColor = isDark ? '#ffffff' : '#0f172a';
+  const subtextColor = isDark ? '#94a3b8' : '#64748b';
+  const cardBg = isDark ? 'rgba(15, 23, 42, 0.75)' : 'rgba(248, 250, 252, 0.95)';
+  const cardBorder = isDark ? 'rgba(34, 211, 238, 0.25)' : 'rgba(6, 182, 212, 0.3)';
+  const inputBg = isDark ? 'rgba(3, 7, 18, 0.85)' : 'rgba(255, 255, 255, 0.95)';
+  const inputBorder = isDark ? 'rgba(34, 211, 238, 0.3)' : 'rgba(203, 213, 225, 0.8)';
+  const brandColor = isDark ? '#22d3ee' : '#0891b2';
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
+        <View style={[styles.container, { backgroundColor: modalBg, borderColor: cardBorder }]}>
+          
+          {/* Header con gradiente glass y paso actual */}
+          <View style={[styles.header, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(241, 245, 249, 0.95)', borderBottomColor: cardBorder }]}>
             <View style={styles.titleRow}>
-              <Text style={styles.headerIcon}>🎓</Text>
-              <View>
-                <Text style={styles.title}>Registrar Material Didáctico</Text>
-                <Text style={styles.subtitle}>Modelos, Maquetas, Kits y Sensores</Text>
+              <View style={[styles.headerIconBadge, { backgroundColor: isDark ? 'rgba(6, 182, 212, 0.2)' : 'rgba(6, 182, 212, 0.12)', borderColor: brandColor }]}>
+                <Text style={{ fontSize: 20 }}>🎓</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.title, { color: textColor }]}>
+                  {prefillItem?.id ? 'Editar Material Didáctico' : 'Registrar Material Didáctico'}
+                </Text>
+                <Text style={[styles.subtitle, { color: subtextColor }]}>
+                  Paso {activeStep} de 5 • {
+                    activeStep === 1 ? 'Datos Básicos' :
+                    activeStep === 2 ? 'Especificaciones' :
+                    activeStep === 3 ? 'Kit y Piezas' :
+                    activeStep === 4 ? 'Ubicación y Estado' : 'Fotografía'
+                  }
+                </Text>
               </View>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
+
+            <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(15, 23, 42, 0.08)' }]}>
+              <Ionicons name="close" size={20} color={textColor} />
             </TouchableOpacity>
           </View>
 
-          {/* Form ScrollView */}
+          {/* Barra de progreso por pestañas */}
+          <View style={styles.stepTabsRow}>
+            {[
+              { step: 1, label: '1. Básicos', icon: 'book-outline' },
+              { step: 2, label: '2. Técnico', icon: 'construct-outline' },
+              { step: 3, label: '3. Piezas', icon: 'grid-outline' },
+              { step: 4, label: '4. Ubicación', icon: 'location-outline' },
+              { step: 5, label: '5. Foto', icon: 'camera-outline' },
+            ].map(item => (
+              <TouchableOpacity
+                key={item.step}
+                style={[
+                  styles.stepTabPill,
+                  activeStep === item.step && { backgroundColor: brandColor, borderColor: brandColor }
+                ]}
+                onPress={() => setActiveStep(item.step)}
+              >
+                <Text style={[
+                  styles.stepTabPillText,
+                  activeStep === item.step ? { color: '#ffffff', fontWeight: '800' } : { color: subtextColor }
+                ]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Form Body ScrollView */}
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-            <Text style={styles.sectionTitle}>Datos del Material Didáctico</Text>
+            
+            {/* PASO 1: DATOS BÁSICOS */}
+            {activeStep === 1 && (
+              <View>
+                <Text style={[styles.sectionTitle, { color: brandColor }]}>🎓 Identificación del Elemento</Text>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Nombre del Kit / Modelo *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej. Kit de Geometría Molecular"
-                placeholderTextColor="#94a3b8"
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
+                {/* Plantillas Rápidas */}
+                {!prefillItem && (
+                  <View style={{ marginBottom: 14 }}>
+                    <Text style={[styles.label, { color: subtextColor, marginBottom: 6 }]}>⚡ Plantillas Rápidas (Toca para autocompletar):</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                      {DIDACTIC_TEMPLATES.map((tpl, i) => (
+                        <TouchableOpacity
+                          key={i}
+                          style={[styles.templateChip, { backgroundColor: cardBg, borderColor: cardBorder }]}
+                          onPress={() => applyTemplate(tpl)}
+                        >
+                          <Text style={[styles.templateChipText, { color: textColor }]}>
+                            {tpl.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
 
-            <View style={styles.row}>
-              <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
-                <Text style={styles.label}>Asignatura / Área</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ej. Química Orgánica"
-                  placeholderTextColor="#94a3b8"
-                  value={subject}
-                  onChangeText={setSubject}
-                />
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.label, { color: textColor }]}>Nombre del Kit / Modelo Didáctico *</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                    placeholder="Ej. Kit de Geometría Molecular (100 piezas)"
+                    placeholderTextColor={subtextColor}
+                    value={name}
+                    onChangeText={setName}
+                  />
+                </View>
+
+                <View style={styles.row}>
+                  <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
+                    <Text style={[styles.label, { color: textColor }]}>Asignatura / Área</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                      placeholder="Ej. Química Orgánica"
+                      placeholderTextColor={subtextColor}
+                      value={subject}
+                      onChangeText={setSubject}
+                    />
+                  </View>
+                  <View style={[styles.fieldGroup, { flex: 1 }]}>
+                    <Text style={[styles.label, { color: textColor }]}>Tipo de Elemento</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                      placeholder="Ej. Kit / Modelo / Sensor"
+                      placeholderTextColor={subtextColor}
+                      value={materialType}
+                      onChangeText={setMaterialType}
+                    />
+                  </View>
+                </View>
               </View>
-              <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Tipo de Elemento</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ej. Modelo / Kit / Sensor"
-                  placeholderTextColor="#94a3b8"
-                  value={materialType}
-                  onChangeText={setMaterialType}
-                />
+            )}
+
+            {/* PASO 2: ESPECIFICACIONES TÉCNICAS */}
+            {activeStep === 2 && (
+              <View>
+                <Text style={[styles.sectionTitle, { color: brandColor }]}>📐 Especificaciones y Marca</Text>
+
+                <View style={styles.row}>
+                  <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
+                    <Text style={[styles.label, { color: textColor }]}>Marca / Fabricante</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                      placeholder="Ej. Vernier / Pasco / 3B Scientific"
+                      placeholderTextColor={subtextColor}
+                      value={brand}
+                      onChangeText={setBrand}
+                    />
+                  </View>
+                  <View style={[styles.fieldGroup, { flex: 1 }]}>
+                    <Text style={[styles.label, { color: textColor }]}>Modelo / Catálogo</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                      placeholder="Ej. MOL-2000"
+                      placeholderTextColor={subtextColor}
+                      value={model}
+                      onChangeText={setModel}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.row}>
+                  <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
+                    <Text style={[styles.label, { color: textColor }]}>Capacidad / Rango</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                      placeholder="Ej. 100 o 0-14"
+                      placeholderTextColor={subtextColor}
+                      value={capacityVal}
+                      onChangeText={setCapacityVal}
+                    />
+                  </View>
+                  <View style={[styles.fieldGroup, { flex: 1 }]}>
+                    <Text style={[styles.label, { color: textColor }]}>Unidad de Medida</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                      placeholder="Ej. piezas, pH, °C, modelo"
+                      placeholderTextColor={subtextColor}
+                      value={capacityUnit}
+                      onChangeText={setCapacityUnit}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.label, { color: textColor }]}>Especificaciones Técnicas / Descripción</Text>
+                  <TextInput
+                    style={[styles.input, { height: 80, textAlignVertical: 'top', backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                    multiline
+                    placeholder="Detalles sobre resolución, rango de medición, compatibilidad o materiales de fabricación..."
+                    placeholderTextColor={subtextColor}
+                    value={techSpec}
+                    onChangeText={setTechSpec}
+                  />
+                </View>
               </View>
-            </View>
+            )}
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Contenido del Kit / Componentes</Text>
-              <TextInput
-                style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
-                multiline
-                placeholder="Ej. 50 esferas de carbono, 30 enlaces flexibles..."
-                placeholderTextColor="#94a3b8"
-                value={contents}
-                onChangeText={setContents}
-              />
-            </View>
+            {/* PASO 3: COMPONENTES Y SUB-PIEZAS DEL KIT */}
+            {activeStep === 3 && (
+              <View>
+                <Text style={[styles.sectionTitle, { color: brandColor }]}>🧰 Componentes del Kit / Piezas Incluidas</Text>
 
-            <Text style={styles.sectionTitle}>Ubicación y Estado</Text>
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.label, { color: textColor }]}>Resumen del Contenido</Text>
+                  <TextInput
+                    style={[styles.input, { height: 60, textAlignVertical: 'top', backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                    multiline
+                    placeholder="Ej. 50 esferas de carbono, 30 conectores de hidrógeno, 1 pinza de extracción..."
+                    placeholderTextColor={subtextColor}
+                    value={contents}
+                    onChangeText={setContents}
+                  />
+                </View>
 
-            <View style={styles.row}>
-              <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
-                <Text style={styles.label}>Stock / Cantidad</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="1"
-                  keyboardType="numeric"
-                  placeholderTextColor="#94a3b8"
-                  value={stock}
-                  onChangeText={setStock}
-                />
-              </View>
-              <View style={[styles.fieldGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Ubicación</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Ej. Estante B-4"
-                  placeholderTextColor="#94a3b8"
-                  value={location}
-                  onChangeText={setLocation}
-                />
-              </View>
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Condición del Material</Text>
-              <View style={styles.chipsRow}>
-                {['Excelente', 'Bueno', 'Regular', 'Incompleto'].map((cond) => (
-                  <TouchableOpacity
-                    key={cond}
-                    style={[styles.chip, condition === cond && styles.chipActive]}
-                    onPress={() => setCondition(cond)}
-                  >
-                    <Text style={[styles.chipText, condition === cond && styles.chipTextActive]}>{cond}</Text>
-                  </TouchableOpacity>
+                <Text style={[styles.label, { color: textColor, marginTop: 10, marginBottom: 8 }]}>Sub-Piezas Detalladas del Kit:</Text>
+                
+                {kitItems.map((item, index) => (
+                  <View key={item.id} style={[styles.kitItemRow, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+                    <Text style={[styles.kitItemIndex, { color: brandColor }]}>#{index + 1}</Text>
+                    <TextInput
+                      style={[styles.kitItemNameInput, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                      placeholder="Nombre de la pieza..."
+                      placeholderTextColor={subtextColor}
+                      value={item.name}
+                      onChangeText={(val) => handleUpdateKitItem(item.id, 'name', val)}
+                    />
+                    <TextInput
+                      style={[styles.kitItemQtyInput, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                      placeholder="Cant."
+                      keyboardType="numeric"
+                      placeholderTextColor={subtextColor}
+                      value={String(item.quantity)}
+                      onChangeText={(val) => handleUpdateKitItem(item.id, 'quantity', val)}
+                    />
+                    <TouchableOpacity
+                      style={styles.removeKitItemBtn}
+                      onPress={() => handleRemoveKitItem(item.id)}
+                    >
+                      <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
                 ))}
+
+                <TouchableOpacity
+                  style={[styles.addKitItemBtn, { borderColor: brandColor }]}
+                  onPress={handleAddKitItem}
+                >
+                  <Ionicons name="add-circle-outline" size={20} color={brandColor} style={{ marginRight: 6 }} />
+                  <Text style={[styles.addKitItemBtnText, { color: brandColor }]}>Agregar Otra Pieza al Kit</Text>
+                </TouchableOpacity>
               </View>
-            </View>
+            )}
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Responsable de Custodia</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Ej. Ing. Carlos Martínez"
-                placeholderTextColor="#94a3b8"
-                value={responsible}
-                onChangeText={setResponsible}
-              />
-            </View>
+            {/* PASO 4: UBICACIÓN Y ESTADO */}
+            {activeStep === 4 && (
+              <View>
+                <Text style={[styles.sectionTitle, { color: brandColor }]}>📍 Ubicación, Custodia e Inventario</Text>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Observaciones</Text>
-              <TextInput
-                style={[styles.input, { height: 65, textAlignVertical: 'top' }]}
-                multiline
-                placeholder="Instrucciones o piezas faltantes..."
-                placeholderTextColor="#94a3b8"
-                value={notes}
-                onChangeText={setNotes}
-              />
-            </View>
-
-            <Text style={styles.sectionTitle}>Fotografía del Material</Text>
-            <View style={styles.fieldGroup}>
-              {photoUri ? (
-                <View style={styles.photoPreviewBox}>
-                  <Image source={{ uri: photoUri }} style={styles.photoPreviewImage} />
-                  <View style={styles.photoActionsRow}>
-                    <TouchableOpacity style={styles.changePhotoBtn} onPress={pickPhotoFromCamera}>
-                      <Text style={styles.changePhotoBtnText}>📷 Tomar Otra</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.changePhotoBtn} onPress={pickPhotoFromGallery}>
-                      <Text style={styles.changePhotoBtnText}>🖼️ Galería</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.removePhotoBtn} onPress={() => setPhotoUri(null)}>
-                      <Text style={styles.removePhotoBtnText}>✕ Quitar</Text>
-                    </TouchableOpacity>
+                <View style={styles.row}>
+                  <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
+                    <Text style={[styles.label, { color: textColor }]}>Ubicación (Estante / Gabinete)</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                      placeholder="Ej. Estante B-3"
+                      placeholderTextColor={subtextColor}
+                      value={location}
+                      onChangeText={setLocation}
+                    />
+                  </View>
+                  <View style={[styles.fieldGroup, { flex: 1 }]}>
+                    <Text style={[styles.label, { color: textColor }]}>Cantidad / Stock</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                      placeholder="1"
+                      keyboardType="numeric"
+                      placeholderTextColor={subtextColor}
+                      value={stock}
+                      onChangeText={setStock}
+                    />
                   </View>
                 </View>
-              ) : (
-                <View style={styles.photoPickerBox}>
-                  <Text style={styles.photoPickerHint}>
-                    Captura una fotografía con la cámara de tu dispositivo o selecciona una de la galería.
-                  </Text>
-                  <View style={styles.photoButtonsRow}>
-                    <TouchableOpacity style={styles.photoBtn} onPress={pickPhotoFromCamera}>
-                      <Text style={styles.photoBtnIcon}>📷</Text>
-                      <Text style={styles.photoBtnText}>Tomar Foto</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.photoBtn, styles.galleryBtn]} onPress={pickPhotoFromGallery}>
-                      <Text style={styles.photoBtnIcon}>🖼️</Text>
-                      <Text style={styles.photoBtnText}>Galería</Text>
-                    </TouchableOpacity>
+
+                <View style={styles.row}>
+                  <View style={[styles.fieldGroup, { flex: 1, marginRight: 8 }]}>
+                    <Text style={[styles.label, { color: textColor }]}>N° de Inventario</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                      placeholder="Ej. LAB-DID-102"
+                      placeholderTextColor={subtextColor}
+                      value={inventoryNumber}
+                      onChangeText={setInventoryNumber}
+                    />
+                  </View>
+                  <View style={[styles.fieldGroup, { flex: 1 }]}>
+                    <Text style={[styles.label, { color: textColor }]}>N° de Serie</Text>
+                    <TextInput
+                      style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                      placeholder="Ej. SN-998822"
+                      placeholderTextColor={subtextColor}
+                      value={serialNumber}
+                      onChangeText={setSerialNumber}
+                    />
                   </View>
                 </View>
-              )}
-            </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.label, { color: textColor }]}>Estado / Condición del Material</Text>
+                  <View style={styles.chipsRow}>
+                    {['Excelente', 'Buenas Condiciones', 'Regular', 'Incompleto', 'En Reparación'].map((cond) => (
+                      <TouchableOpacity
+                        key={cond}
+                        style={[
+                          styles.chip,
+                          { backgroundColor: cardBg, borderColor: cardBorder },
+                          condition === cond && { backgroundColor: brandColor, borderColor: brandColor }
+                        ]}
+                        onPress={() => setCondition(cond)}
+                      >
+                        <Text style={[
+                          styles.chipText,
+                          { color: subtextColor },
+                          condition === cond && { color: '#ffffff', fontWeight: '800' }
+                        ]}>
+                          {cond}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.label, { color: textColor }]}>Responsable de Custodia</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                    placeholder="Ej. Ing. Carlos Martínez"
+                    placeholderTextColor={subtextColor}
+                    value={responsible}
+                    onChangeText={setResponsible}
+                  />
+                </View>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={[styles.label, { color: textColor }]}>Observaciones y Notas</Text>
+                  <TextInput
+                    style={[styles.input, { height: 60, textAlignVertical: 'top', backgroundColor: inputBg, color: textColor, borderColor: inputBorder }]}
+                    multiline
+                    placeholder="Piezas faltantes, instrucciones de cuidado..."
+                    placeholderTextColor={subtextColor}
+                    value={notes}
+                    onChangeText={setNotes}
+                  />
+                </View>
+              </View>
+            )}
+
+            {/* PASO 5: FOTOGRAFÍA Y CONFIRMACIÓN */}
+            {activeStep === 5 && (
+              <View>
+                <Text style={[styles.sectionTitle, { color: brandColor }]}>📷 Fotografía del Material</Text>
+                
+                <View style={styles.fieldGroup}>
+                  {imageUri ? (
+                    <View style={[styles.photoPreviewBox, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+                      <Image source={{ uri: imageUri }} style={styles.photoPreviewImage} resizeMode="cover" />
+                      <View style={styles.photoActionsRow}>
+                        <TouchableOpacity style={[styles.photoActionBtn, { backgroundColor: '#475569' }]} onPress={handleTakePhoto}>
+                          <Ionicons name="camera" size={16} color="#fff" />
+                          <Text style={styles.photoActionBtnText}>Tomar Otra</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.photoActionBtn, { backgroundColor: '#0284c7' }]} onPress={handlePickImage}>
+                          <Ionicons name="images" size={16} color="#fff" />
+                          <Text style={styles.photoActionBtnText}>Galería</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.photoActionBtn, { backgroundColor: '#ef4444' }]} onPress={() => setImageUri(null)}>
+                          <Ionicons name="trash" size={16} color="#fff" />
+                          <Text style={styles.photoActionBtnText}>Quitar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={[styles.photoPickerBox, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+                      <Ionicons name="camera-outline" size={42} color={brandColor} style={{ marginBottom: 8 }} />
+                      <Text style={[styles.photoPickerHint, { color: subtextColor }]}>
+                        Captura una imagen del material didáctico con la cámara o selecciona una desde tu galería.
+                      </Text>
+                      <View style={styles.photoButtonsRow}>
+                        <TouchableOpacity style={[styles.photoBtn, { backgroundColor: brandColor }]} onPress={handleTakePhoto}>
+                          <Ionicons name="camera" size={18} color="#fff" />
+                          <Text style={styles.photoBtnText}>Cámara</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.photoBtn, { backgroundColor: '#0284c7' }]} onPress={handlePickImage}>
+                          <Ionicons name="images" size={18} color="#fff" />
+                          <Text style={styles.photoBtnText}>Galería</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </View>
+
+                {/* Resumen Final */}
+                <View style={[styles.summaryCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+                  <Text style={[styles.summaryTitle, { color: textColor }]}>📋 Resumen del Registro</Text>
+                  <Text style={[styles.summaryItem, { color: subtextColor }]}>• Nombre: <Text style={{ color: textColor, fontWeight: '700' }}>{name || '(Sin nombre)'}</Text></Text>
+                  <Text style={[styles.summaryItem, { color: subtextColor }]}>• Área/Asignatura: <Text style={{ color: textColor, fontWeight: '700' }}>{subject}</Text></Text>
+                  <Text style={[styles.summaryItem, { color: subtextColor }]}>• Ubicación: <Text style={{ color: textColor, fontWeight: '700' }}>{location || 'No asignada'}</Text></Text>
+                  <Text style={[styles.summaryItem, { color: subtextColor }]}>• Piezas en Kit: <Text style={{ color: textColor, fontWeight: '700' }}>{kitItems.length} sub-piezas</Text></Text>
+                </View>
+              </View>
+            )}
+
           </ScrollView>
 
           {/* Footer Actions */}
-          <View style={styles.footer}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-              <Text style={styles.cancelBtnText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSave} disabled={loading}>
-              {loading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <Text style={styles.submitBtnText}>Guardar Material Didáctico</Text>
-              )}
-            </TouchableOpacity>
+          <View style={[styles.footer, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(241, 245, 249, 0.95)', borderTopColor: cardBorder }]}>
+            {activeStep > 1 ? (
+              <TouchableOpacity style={[styles.prevBtn, { borderColor: cardBorder }]} onPress={() => setActiveStep(prev => prev - 1)}>
+                <Ionicons name="chevron-back" size={18} color={textColor} />
+                <Text style={[styles.prevBtnText, { color: textColor }]}>Anterior</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[styles.prevBtn, { borderColor: cardBorder }]} onPress={onClose}>
+                <Text style={[styles.prevBtnText, { color: subtextColor }]}>Cancelar</Text>
+              </TouchableOpacity>
+            )}
+
+            {activeStep < 5 ? (
+              <TouchableOpacity style={[styles.nextBtn, { backgroundColor: brandColor }]} onPress={() => setActiveStep(prev => prev + 1)}>
+                <Text style={styles.nextBtnText}>Siguiente</Text>
+                <Ionicons name="chevron-forward" size={18} color="#fff" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[styles.submitBtn, { backgroundColor: brandColor }]} onPress={handleSave} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.submitBtnText}>
+                    {prefillItem?.id ? 'Guardar Cambios' : 'Registrar Didáctico'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
+
+      {/* Modal de Impresión de Código QR */}
+      {showQRBatchPrint && createdItem && (
+        <QRBatchPrintModal
+          visible={showQRBatchPrint}
+          onClose={() => {
+            setShowQRBatchPrint(false);
+            onSuccess && onSuccess();
+            onClose();
+          }}
+          items={[{
+            id: createdItem.id,
+            type: 'didactic_material',
+            name: createdItem.name || name,
+            code: createdItem.inventory_number || `LAB-DID-${createdItem.id}`,
+            qr_content: createdItem.qr_content || `LAB-DID-${createdItem.id}`
+          }]}
+        />
+      )}
     </Modal>
   );
 }
@@ -332,25 +846,24 @@ export default function DidacticMaterialRegisterModal({ visible, onClose, onSucc
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'flex-end',
   },
   container: {
-    backgroundColor: '#ffffff',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    maxHeight: '90%',
-    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
+    maxHeight: '92%',
+    height: '92%',
+    borderWidth: 1.2,
+    borderBottomWidth: 0,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'between',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-    backgroundColor: '#6366f1',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
   },
@@ -358,150 +871,170 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: 12,
   },
-  headerIcon: {
-    fontSize: 26,
-    marginRight: 12,
+  headerIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
   },
   title: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#ffffff',
   },
   subtitle: {
-    fontSize: 11,
-    color: '#e0e7ff',
-    marginTop: 1,
+    fontSize: 12,
+    marginTop: 2,
   },
   closeBtn: {
     padding: 8,
-    backgroundColor: '#4f46e5',
-    borderRadius: 12,
+    borderRadius: 20,
   },
-  closeBtnText: {
-    color: '#e0e7ff',
-    fontSize: 14,
-    fontWeight: 'bold',
+  stepTabsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  stepTabPill: {
+    flex: 1,
+    paddingVertical: 7,
+    paddingHorizontal: 4,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+    backgroundColor: 'rgba(100, 116, 139, 0.1)',
+  },
+  stepTabPillText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   body: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
   },
   sectionTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
-    color: '#4f46e5',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginTop: 12,
-    marginBottom: 8,
+    letterSpacing: 0.6,
+    marginBottom: 14,
   },
   fieldGroup: {
-    marginBottom: 12,
+    marginBottom: 14,
   },
   row: {
     flexDirection: 'row',
   },
   label: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#475569',
-    marginBottom: 4,
+    marginBottom: 5,
   },
   input: {
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderRadius: 12,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    borderWidth: 1.2,
+  },
+  templateChip: {
     paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingVertical: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  templateChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  kitItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 8,
+    gap: 8,
+  },
+  kitItemIndex: {
+    fontSize: 12,
+    fontWeight: '800',
+    width: 24,
+    textAlign: 'center',
+  },
+  kitItemNameInput: {
+    flex: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     fontSize: 13,
-    color: '#0f172a',
-    fontWeight: '600',
+    borderWidth: 1,
+  },
+  kitItemQtyInput: {
+    width: 55,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 13,
+    textAlign: 'center',
+    borderWidth: 1,
+  },
+  removeKitItemBtn: {
+    padding: 6,
+  },
+  addKitItemBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1.2,
+    borderStyle: 'dashed',
+    marginTop: 6,
+    marginBottom: 14,
+  },
+  addKitItemBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   chipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 2,
+    gap: 8,
+    marginTop: 4,
   },
   chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  chipActive: {
-    backgroundColor: '#4f46e5',
-    borderColor: '#4f46e5',
   },
   chipText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#64748b',
-  },
-  chipTextActive: {
-    color: '#ffffff',
-    fontWeight: '800',
-  },
-  footer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    gap: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    alignItems: 'center',
-  },
-  cancelBtnText: {
-    color: '#64748b',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  submitBtn: {
-    flex: 2,
-    backgroundColor: '#4f46e5',
-    paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: 'center',
-    shadowColor: '#4f46e5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  submitBtnText: {
-    color: '#ffffff',
-    fontWeight: '800',
-    fontSize: 13,
   },
   photoPickerBox: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 20,
+    padding: 20,
     borderWidth: 1.5,
-    borderColor: '#cbd5e1',
     borderStyle: 'dashed',
     alignItems: 'center',
   },
   photoPickerHint: {
-    fontSize: 11,
-    color: '#64748b',
+    fontSize: 12,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
+    lineHeight: 18,
   },
   photoButtonsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
     width: '100%',
   },
   photoBtn: {
@@ -509,64 +1042,103 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366f1',
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 6,
-  },
-  galleryBtn: {
-    backgroundColor: '#0284c7',
-  },
-  photoBtnIcon: {
-    fontSize: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    gap: 8,
   },
   photoBtnText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
   },
   photoPreviewBox: {
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: 20,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
   photoPreviewImage: {
-    width: 140,
-    height: 140,
-    borderRadius: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
+    width: '100%',
+    height: 180,
+    borderRadius: 16,
+    marginBottom: 12,
   },
   photoActionsRow: {
     flexDirection: 'row',
+    gap: 8,
+  },
+  photoActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
-    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  photoActionBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  summaryCard: {
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    marginTop: 10,
+    gap: 4,
+  },
+  summaryTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  summaryItem: {
+    fontSize: 12,
+  },
+  footer: {
+    flexDirection: 'row',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    gap: 12,
+    borderTopWidth: 1,
+  },
+  prevBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
   },
-  changePhotoBtn: {
-    backgroundColor: '#475569',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+  prevBtnText: {
+    fontWeight: '700',
+    fontSize: 14,
   },
-  changePhotoBtnText: {
+  nextBtn: {
+    flex: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 16,
+    gap: 4,
+  },
+  nextBtnText: {
     color: '#ffffff',
-    fontSize: 11,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    fontSize: 14,
   },
-  removePhotoBtn: {
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+  submitBtn: {
+    flex: 1.8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 16,
   },
-  removePhotoBtnText: {
+  submitBtnText: {
     color: '#ffffff',
-    fontSize: 11,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    fontSize: 14,
   },
 });

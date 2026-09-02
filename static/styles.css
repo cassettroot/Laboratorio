@@ -1318,10 +1318,106 @@ body.theme-light #qr-batch-modal .qr-empty-msg {
 /* Optimización de Renderizado */
 img {
     content-visibility: auto;
+    loading: lazy;
+    decoding: async;
 }
 
 .glass-card {
     contain: content;
+}
+
+/* ==========================================================================
+   MODO RENDIMIENTO EXTREMO / PROCESADORES ANTIGUOS (DEBIAN / LINUX LEGACY)
+   ========================================================================== */
+
+body.low-spec-mode,
+.low-spec-mode body {
+    --glass-bg: #0f172a;
+    --glass-card: #1e293b;
+    --glass-border: #334155;
+    --glass-shadow: none;
+    --glass-shadow-sm: none;
+    --glass-highlight: none;
+    --glass-border-glow: #0284c7;
+}
+
+body.low-spec-mode.theme-light,
+.low-spec-mode body.theme-light {
+    --glass-bg: #f8fafc;
+    --glass-card: #ffffff;
+    --glass-border: #cbd5e1;
+    --glass-shadow: none;
+    --glass-shadow-sm: none;
+    --glass-highlight: none;
+    --glass-border-glow: #0284c7;
+}
+
+/* Desactivar cualquier filtro costoso (backdrop-filter de CPU) */
+body.low-spec-mode .glass-shell,
+body.low-spec-mode .glass-card,
+body.low-spec-mode .glass-metric,
+body.low-spec-mode .glass-toolbar,
+body.low-spec-mode .glass-table-container,
+body.low-spec-mode .glass-input,
+body.low-spec-mode .glass-btn,
+body.low-spec-mode .glass-pill,
+body.low-spec-mode .glass-nav-pill,
+body.low-spec-mode .glass-nav-tab,
+body.low-spec-mode .glass-badge,
+body.low-spec-mode .glass-modal,
+body.low-spec-mode [class*="backdrop-blur"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+}
+
+/* Fondos sólidos rápidos que no requieren alpha blending continuo */
+body.low-spec-mode .glass-card {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    border-radius: 1rem !important;
+}
+
+body.low-spec-mode.theme-light .glass-card {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+body.low-spec-mode .glass-table-container {
+    background: #0f172a !important;
+    border: 1px solid #334155 !important;
+}
+
+body.low-spec-mode.theme-light .glass-table-container {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+body.low-spec-mode #ambient-bg-canvas {
+    display: none !important;
+}
+
+/* Desactivar animaciones continuas en segundo plano que saturan la CPU */
+body.low-spec-mode .animate-pulse,
+body.low-spec-mode .animate-bounce,
+body.low-spec-mode .animate-ping,
+body.low-spec-mode .animate-spin:not(.is-loading) {
+    animation: none !important;
+}
+
+/* Transiciones instantáneas para evitar frames caídos */
+body.low-spec-mode * {
+    transition-duration: 0.05s !important;
+    animation-duration: 0.1s !important;
+}
+
+/* Renderizado virtualizado por hardware: el navegador ignora filas/tarjetas fuera de pantalla */
+body.low-spec-mode table tbody tr,
+body.low-spec-mode .grid > div,
+body.low-spec-mode .inventory-card-item {
+    content-visibility: auto;
+    contain-intrinsic-size: 70px;
 }
 
 /* Impresión */

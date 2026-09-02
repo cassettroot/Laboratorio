@@ -121,9 +121,11 @@
                         <i data-lucide="qr-code" class="w-3.5 h-3.5 text-emerald-400"></i>
                         <span class="sidebar-text">Escanear QR</span>
                     </a>
-                    <a href="#/loans" id="nav-loans" class="nav-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold" data-tooltip="Préstamos & Devoluciones">
+                    <a href="#/loans" id="nav-loans" class="nav-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold relative" data-tooltip="Préstamos & Devoluciones">
                         <i data-lucide="handshake" class="w-3.5 h-3.5 text-amber-400"></i>
                         <span class="sidebar-text">Préstamos & Devoluciones</span>
+                        <span id="loans-badge-dot" class="hidden absolute right-2 top-2.5 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>
+                        <span id="loans-badge-count" class="hidden ml-auto bg-rose-500 text-white text-3xs font-extrabold px-1.5 py-0.5 rounded-full">0</span>
                     </a>
                     <a href="#/history" id="nav-history" class="nav-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold" data-tooltip="Historial de Cambios">
                         <i data-lucide="history" class="w-3.5 h-3.5 text-slate-400"></i>
@@ -358,8 +360,14 @@
                         selectSpace(val);
                     }
                 </script>
-            <!-- Controles a la derecha del Header: Toggle de Tema + Control de Sesión -->
-            <div class="flex items-center gap-3">
+            <!-- Controles a la derecha del Header: Modo Rendimiento + Toggle de Tema + Control de Sesión -->
+            <div class="flex items-center gap-2.5">
+                <!-- Botón de Modo Rendimiento / Hardware Antiguo (Ultra Optimizado para Debian / Equipos de bajos recursos) -->
+                <button type="button" onclick="toggleLowSpecMode()" id="low-spec-toggle-btn" class="glass-btn px-2.5 py-2 rounded-xl text-slate-300 hover:text-white transition flex items-center gap-1.5 cursor-pointer text-xs font-bold" title="Activar/Desactivar Modo Rendimiento para computadoras antiguas (Debian / Linux)">
+                    <i data-lucide="zap" id="low-spec-icon" class="w-4 h-4 text-emerald-400"></i>
+                    <span id="low-spec-text" class="hidden sm:inline text-3xs font-extrabold tracking-wider">ECO</span>
+                </button>
+
                 <!-- Botón Conmutador Rápido de Tema (Claro / Oscuro) -->
                 <button type="button" onclick="toggleWebTheme()" id="theme-toggle-btn" class="glass-btn p-2 rounded-xl text-slate-300 hover:text-white transition flex items-center justify-center cursor-pointer" title="Cambiar Tema (Claro / Oscuro)">
                     <i data-lucide="sun" id="theme-icon-sun" class="w-4 h-4 text-amber-300 hidden"></i>
@@ -373,6 +381,62 @@
             </div>
 
             <script>
+                function updateLowSpecUI(isActive) {
+                    const btn = document.getElementById('low-spec-toggle-btn');
+                    const text = document.getElementById('low-spec-text');
+                    if (btn) {
+                        if (isActive) {
+                            btn.classList.add('bg-emerald-500/20', 'border-emerald-500/40', 'text-emerald-300');
+                            if (text) text.textContent = 'ECO ON';
+                        } else {
+                            btn.classList.remove('bg-emerald-500/20', 'border-emerald-500/40', 'text-emerald-300');
+                            if (text) text.textContent = 'ECO';
+                        }
+                    }
+                }
+
+                function setLowSpecMode(enable) {
+                    localStorage.setItem('low_spec_mode', enable ? 'true' : 'false');
+                    if (enable) {
+                        document.documentElement.classList.add('low-spec-mode');
+                        document.body.classList.add('low-spec-mode');
+                        if (typeof toggleAmbientBackground === 'function') {
+                            toggleAmbientBackground(false);
+                        }
+                    } else {
+                        document.documentElement.classList.remove('low-spec-mode');
+                        document.body.classList.remove('low-spec-mode');
+                    }
+                    updateLowSpecUI(enable);
+                }
+
+                function toggleLowSpecMode() {
+                    const current = localStorage.getItem('low_spec_mode') === 'true';
+                    const next = !current;
+                    setLowSpecMode(next);
+                    if (typeof showToast === 'function') {
+                        showToast(next ? '⚡ Modo Rendimiento Activado (Optimizado para procesadores antiguos)' : '✨ Modo Estándar Activado', 'info');
+                    }
+                }
+
+                function initLowSpecDetection() {
+                    let shouldEnable = false;
+                    const saved = localStorage.getItem('low_spec_mode');
+                    if (saved !== null) {
+                        shouldEnable = (saved === 'true');
+                    } else {
+                        // Detección automática de hardware modesto (<= 2 núcleos lógicos o <= 2GB RAM o Debian/Linux)
+                        const cores = navigator.hardwareConcurrency || 4;
+                        const memory = navigator.deviceMemory || 4;
+                        const isLinux = /Linux/i.test(navigator.userAgent);
+                        if (cores <= 2 || memory <= 2 || (isLinux && cores <= 4)) {
+                            shouldEnable = true;
+                        }
+                    }
+                    setLowSpecMode(shouldEnable);
+                }
+                document.addEventListener('DOMContentLoaded', initLowSpecDetection);
+
                 function updateThemeToggleUI(themeName) {
                     const sun = document.getElementById('theme-icon-sun');
                     const moon = document.getElementById('theme-icon-moon');

@@ -38,7 +38,7 @@ export default function SubstancesScreen({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0);
 
-  const { user, role, serverUrl } = useContext(AuthContext);
+  const { user, role, serverUrl, syncSignal } = useContext(AuthContext);
   const { theme } = useContext(ThemeContext);
   const isDark = theme.isDark !== false;
 
@@ -63,6 +63,7 @@ export default function SubstancesScreen({ route, navigation }) {
   const [loanUserType, setLoanUserType] = useState('Alumno / Estudiante');
   const [registeredUsers, setRegisteredUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [selectedUserName, setSelectedUserName] = useState('');
   const [loanNotes, setLoanNotes] = useState('');
   const [submittingLoan, setSubmittingLoan] = useState(false);
 
@@ -292,6 +293,10 @@ export default function SubstancesScreen({ route, navigation }) {
   );
 
   useEffect(() => {
+    fetchSubstances();
+  }, [syncSignal]);
+
+  useEffect(() => {
     if (route?.params?.openAddModal) {
       if (route.params.initialRegType) {
         setRegType(route.params.initialRegType);
@@ -454,19 +459,11 @@ export default function SubstancesScreen({ route, navigation }) {
     }
   };
 
-  const openLoanModal = async (substance) => {
+  const openLoanModal = (substance) => {
     setSelectedSubstance(substance);
     setLoanQuantity('1');
-    setLoanUserType('Alumno / Estudiante');
+    setLoanUserType('Responsable');
     setLoanNotes('');
-    try {
-      const usersRes = await apiService.getRegisteredUsers();
-      if (usersRes.status === 'success') {
-        setRegisteredUsers(usersRes.data || []);
-      }
-    } catch (e) {
-      console.warn("No se pudieron cargar usuarios registrados:", e.message);
-    }
     setLoanModalVisible(true);
   };
 
@@ -481,12 +478,18 @@ export default function SubstancesScreen({ route, navigation }) {
     setSubmittingLoan(true);
     try {
       const payload = {
-        item_type: 'substances',
-        item_id: selectedSubstance.id,
-        quantity: reqQty,
-        user_type: loanUserType,
-        target_user_id: selectedUserId,
-        notes: loanNotes.trim()
+        borrower_name: user || 'Docente',
+        borrower_user_id: 0,
+        notes: loanNotes.trim(),
+        items_list: [
+          {
+            id: selectedSubstance.id,
+            name: selectedSubstance.name,
+            quantity: reqQty,
+            unit: selectedSubstance.unit || 'mL',
+            type: 'substance'
+          }
+        ]
       };
 
       const res = await apiService.createLoan(payload);
@@ -528,8 +531,8 @@ export default function SubstancesScreen({ route, navigation }) {
             textColor = isDark ? '#c084fc' : '#581c87';
           } else if (g.includes('corros')) {
             bg = isDark ? 'rgba(245, 158, 11, 0.2)' : '#fef3c7';
-            border = isDark ? 'rgba(245, 158, 11, 0.5)' : '#fde68a';
-            textColor = isDark ? '#fbbf24' : '#78350f';
+            border = isDark ? 'rgba(245, 158, 11, 0.5)' : '#fcd34d';
+            textColor = isDark ? '#fbbf24' : '#92400e';
           } else if (g.includes('irrit')) {
             bg = isDark ? 'rgba(16, 185, 129, 0.2)' : '#d1fae5';
             border = isDark ? 'rgba(16, 185, 129, 0.5)' : '#6ee7b7';
@@ -542,7 +545,7 @@ export default function SubstancesScreen({ route, navigation }) {
 
           return (
             <View key={idx} style={{ backgroundColor: bg, borderColor: border, borderWidth: 1, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-              <Text style={{ color: textColor, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' }}>{group}</Text>
+              <Text style={{ color: textColor, fontSize: 10, fontWeight: '700' }}>{group}</Text>
             </View>
           );
         })}
@@ -550,8 +553,8 @@ export default function SubstancesScreen({ route, navigation }) {
     );
   };
 
-  const renderItem = ({ item }) => {
-    let mainPhotoPath = item.image_path || item.photo || item.image;
+  const resolveItemPhoto = (item) => {
+    let mainPhotoPath = item.image_path || item.photo || item.image || item.photo_url;
     if (!mainPhotoPath && item.presentation_images) {
       try {
         const pImgs = typeof item.presentation_images === 'string' ? JSON.parse(item.presentation_images) : item.presentation_images;
@@ -560,18 +563,22 @@ export default function SubstancesScreen({ route, navigation }) {
         }
       } catch (e) {}
     }
-    const photoUri = getImageUrl(mainPhotoPath, serverUrl);
-    const formattedFormula = formatChemicalFormula(item.chemical_formula);
+    return getImageUrl(mainPhotoPath, serverUrl);
+  };
+
+  const renderSubstanceCard = ({ item }) => {
+    const photoUri = resolveItemPhoto(item);
+    const formattedFormula = formatChemicalFormula ? formatChemicalFormula(item.chemical_formula) : (item.chemical_formula || 'Sin fórmula');
     const isNoExp = item.expiration_date === 'Sin caducidad' || item.expiration_date === 'No aplica';
 
     return (
       <TouchableOpacity
-        activeOpacity={0.85}
+        activeOpacity={0.9}
         onPress={() => navigation.navigate('Detail', { id: item.id, item: item, type: 'substance' })}
         style={{ marginBottom: 14 }}
       >
-        <GlassCard style={styles.substanceItemCard}>
-          {/* Fila 1: Header con Código ID a la izquierda y Fecha a la derecha */}
+        <GlassCard style={[styles.substanceItemCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
+          {/* Top Row: Badge y Caducidad */}
           <View style={styles.itemHeaderTopRow}>
             <View style={styles.codeBadgePill}>
               <Text style={styles.codeBadgePillText}>LAB-SUB-{item.id}</Text>
@@ -582,87 +589,70 @@ export default function SubstancesScreen({ route, navigation }) {
                 <Text style={styles.noExpPillText}>Sin Caducidad</Text>
               </View>
             ) : null}
-
-            <View style={{ flex: 1 }} />
-
-            {getAddedDateFormattedMobile(item) ? (
-              <Text style={styles.itemDateLabel}>
-                🗓️ {getAddedDateFormattedMobile(item)}
-              </Text>
-            ) : null}
           </View>
 
-          {/* Fila 2: Título Limpio de la Sustancia en Grande */}
-          <Text style={styles.itemSubstanceName} numberOfLines={2}>
+          {/* Nombre de la Sustancia en Grande (Legible en Claro y Oscuro) */}
+          <Text style={[styles.itemSubstanceName, { color: textColor }]} numberOfLines={2}>
             {item.name}
           </Text>
 
-          {/* Fila 3: Imagen y Datos Técnicos Alineados a la Izquierda */}
+          {/* Fila Principal: Imagen a la Izquierda + Detalles a la Derecha */}
           <View style={styles.itemBodyRow}>
-            <View style={styles.itemImageContainer}>
+            <View style={[styles.itemImageContainer, { borderColor: cardBorder, backgroundColor: isDark ? '#071526' : '#f1f5f9' }]}>
               {photoUri ? (
                 <Image source={{ uri: photoUri }} style={styles.substanceImage} resizeMode="cover" />
               ) : (
-                <View style={styles.placeholderImage}>
+                <View style={[styles.placeholderImage, { backgroundColor: isDark ? 'rgba(15, 30, 56, 0.8)' : 'rgba(226, 232, 240, 0.95)' }]}>
                   <Text style={{ fontSize: 32 }}>🧪</Text>
                 </View>
               )}
             </View>
 
             <View style={styles.itemDetailsCol}>
-              {item.chemical_formula ? (
-                <View style={styles.fieldRow}>
-                  <Text style={styles.fieldLabel}>Fórmula:</Text>
-                  <Text style={styles.fieldValueFormula} numberOfLines={1}>{formattedFormula}</Text>
-                </View>
-              ) : null}
-
-              {item.cas_number ? (
-                <View style={styles.fieldRow}>
-                  <Text style={styles.fieldLabel}>CAS:</Text>
-                  <Text style={styles.fieldValueText}>{item.cas_number}</Text>
-                </View>
-              ) : null}
-
               <View style={styles.fieldRow}>
-                <Text style={styles.fieldLabel}>Ubicación:</Text>
-                <Text style={styles.fieldValueText} numberOfLines={1}>{item.location || 'Estante A/B'}</Text>
+                <Text style={[styles.fieldLabel, { color: subtextColor }]}>Fórmula:</Text>
+                <Text style={[styles.fieldValueFormula, { color: isDark ? '#22d3ee' : '#0891b2' }]} numberOfLines={1}>{formattedFormula}</Text>
               </View>
 
               <View style={styles.fieldRow}>
-                <Text style={styles.fieldLabel}>Stock:</Text>
-                <Text style={styles.fieldValueStock}>
-                  📦 {item.container_content || `${item.stock_units || 1} envase(s) (${item.quantity || 1} ${item.unit || 'g'})`}
+                <Text style={[styles.fieldLabel, { color: subtextColor }]}>Ubicación:</Text>
+                <Text style={[styles.fieldValueText, { color: textColor }]} numberOfLines={1}>{item.location || 'Estante A/B'}</Text>
+              </View>
+
+              <View style={styles.fieldRow}>
+                <Text style={[styles.fieldLabel, { color: subtextColor }]}>Stock:</Text>
+                <Text style={[styles.fieldValueStock, { color: isDark ? '#38bdf8' : '#0284c7' }]}>
+                  📦 {item.stock || item.quantity || '250'} {item.unit || 'mL'}
                 </Text>
               </View>
             </View>
           </View>
 
-          {/* Fila 4: Clasificación SGA y Grupos */}
+          {/* Insignias SGA */}
           {renderSgaBadgesMobile(item.substance_group)}
 
-          {/* Fila 5: Botones de Acción Neumórficos */}
-          <View style={styles.cardActionButtonsRow}>
+          {/* Botones de Acción Neumórficos con Soporte de Tema */}
+          <View style={[styles.cardActionButtonsRow, { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]}>
             <TouchableOpacity
-              style={styles.cardNeumorphActionBtn}
+              style={[styles.cardNeumorphActionBtn, { backgroundColor: isDark ? 'rgba(18, 38, 68, 0.85)' : 'rgba(241, 245, 249, 0.95)', borderColor: cardBorder }]}
               onPress={() => navigation.navigate('Detail', { id: item.id, item: item, type: 'substance' })}
             >
-              <Text style={styles.cardNeumorphBtnText}>⛶ Ver QR</Text>
+              <Text style={[styles.cardNeumorphBtnText, { color: isDark ? '#22d3ee' : '#0891b2' }]}>📋 Datos</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.cardNeumorphActionBtn}
+              style={[styles.cardNeumorphActionBtn, { backgroundColor: isDark ? 'rgba(18, 38, 68, 0.85)' : 'rgba(241, 245, 249, 0.95)', borderColor: cardBorder }]}
               onPress={() => navigation.navigate('Detail', { id: item.id, item: item, type: 'substance' })}
             >
-              <Text style={styles.cardNeumorphBtnText}>✏️ Editar</Text>
+              <Text style={[styles.cardNeumorphBtnText, { color: isDark ? '#38bdf8' : '#0284c7' }]}>✏️ Editar</Text>
             </TouchableOpacity>
 
             {role !== 'estudiante' ? (
               <TouchableOpacity
-                style={[styles.cardNeumorphActionBtn, { borderColor: 'rgba(6, 182, 212, 0.45)', backgroundColor: 'rgba(6, 182, 212, 0.15)' }]}
+                style={[styles.cardNeumorphActionBtn, { borderColor: isDark ? 'rgba(6, 182, 212, 0.45)' : 'rgba(6, 182, 212, 0.60)', backgroundColor: isDark ? 'rgba(6, 182, 212, 0.15)' : 'rgba(6, 182, 212, 0.12)' }]}
                 onPress={() => openLoanModal(item)}
               >
-                <Text style={[styles.cardNeumorphBtnText, { color: '#22d3ee' }]}>🤝 Prestar</Text>
+                <Text style={[styles.cardNeumorphBtnText, { color: isDark ? '#22d3ee' : '#0891b2' }]}>🤝 Prestar</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -670,6 +660,8 @@ export default function SubstancesScreen({ route, navigation }) {
       </TouchableOpacity>
     );
   };
+
+  const renderItem = renderSubstanceCard;
 
   return (
     <GlassBackground>
@@ -774,7 +766,7 @@ export default function SubstancesScreen({ route, navigation }) {
           <FlatList
             data={filtered}
             keyExtractor={(item) => String(item.id)}
-            renderItem={renderItem}
+            renderItem={renderSubstanceCard}
             contentContainerStyle={styles.listContainer}
             initialNumToRender={6}
             maxToRenderPerBatch={8}
@@ -1307,6 +1299,86 @@ export default function SubstancesScreen({ route, navigation }) {
         onClose={() => setShowEquipoModal(false)}
         onSuccess={fetchSubstances}
       />
+
+      {/* Modal de Solicitud de Préstamo de Sustancia */}
+      <Modal
+        visible={loanModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setLoanModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>🤝 Solicitar Préstamo de Sustancia</Text>
+              <TouchableOpacity onPress={() => setLoanModalVisible(false)}>
+                <Text style={styles.closeBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {selectedSubstance ? (
+              <ScrollView style={{ maxHeight: 440 }}>
+                <View style={{ backgroundColor: '#0f172a', padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#334155', marginBottom: 12 }}>
+                  <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '800' }}>{selectedSubstance.name}</Text>
+                  <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '700', marginTop: 4 }}>
+                    Stock Disponible: {selectedSubstance.stock_units || selectedSubstance.quantity || 1} {selectedSubstance.unit || 'unidades'}
+                  </Text>
+                </View>
+
+                <View style={{ backgroundColor: 'rgba(234, 179, 8, 0.12)', padding: 10, borderRadius: 10, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(234, 179, 8, 0.35)' }}>
+                  <Text style={{ color: '#fbbf24', fontSize: 11, fontWeight: 'bold' }}>
+                    ⏳ La solicitud se enviará a los Administradores para su aprobación.
+                  </Text>
+                </View>
+
+                <Text style={styles.inputLabel}>Cantidad / Unidades *</Text>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={loanQuantity}
+                  onChangeText={setLoanQuantity}
+                  placeholder="1"
+                  placeholderTextColor="#64748b"
+                />
+
+                <Text style={styles.inputLabel}>Solicitante / Responsable *</Text>
+                <View style={{ backgroundColor: '#0f172a', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#334155', flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(6, 182, 212, 0.2)', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 16 }}>👤</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '800' }}>{user || 'Docente'}</Text>
+                    <Text style={{ color: '#22d3ee', fontSize: 11, fontWeight: '600' }}>Perfil con Sesión Activa</Text>
+                  </View>
+                  <View style={{ backgroundColor: 'rgba(16, 185, 129, 0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: 'rgba(16, 185, 129, 0.4)' }}>
+                    <Text style={{ color: '#34d399', fontSize: 10, fontWeight: '800' }}>ACTUAL</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.inputLabel}>Motivo / Observaciones del Préstamo</Text>
+                <TextInput
+                  style={[styles.input, { height: 75, textAlignVertical: 'top' }]}
+                  multiline
+                  placeholder="Ej. Práctica #4 de laboratorio..."
+                  placeholderTextColor="#64748b"
+                  value={loanNotes}
+                  onChangeText={setLoanNotes}
+                />
+
+                <TouchableOpacity
+                  style={[styles.applyDateBtn, { backgroundColor: '#06b6d4', marginTop: 10, opacity: submittingLoan ? 0.6 : 1 }]}
+                  disabled={submittingLoan}
+                  onPress={handleSubstanceLoanSubmit}
+                >
+                  <Text style={styles.applyDateBtnText}>
+                    {submittingLoan ? 'Enviando Solicitud...' : '🤝 Confirmar Solicitud'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </GlassBackground>
   );
 }

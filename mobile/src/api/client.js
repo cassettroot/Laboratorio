@@ -49,6 +49,12 @@ apiClient.interceptors.request.use(async (config) => {
     const inventoryId = await AsyncStorage.getItem('inventory_id') || 'inventario';
     config.headers['X-Inventory-Id'] = inventoryId;
     
+    // Inyectar usuario y rol para peticiones móviles
+    const savedUser = await AsyncStorage.getItem('user');
+    const savedRole = await AsyncStorage.getItem('role');
+    if (savedUser) config.headers['X-User'] = savedUser;
+    if (savedRole) config.headers['X-User-Role'] = savedRole;
+    
   } catch (e) {
     console.warn("No se pudo leer AsyncStorage en el interceptor:", e);
   }

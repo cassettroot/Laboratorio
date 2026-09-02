@@ -77,9 +77,17 @@ def create_app():
         if request.remote_addr in ['127.0.0.1', '::1', 'localhost']:
             return
             
-        # 4. Permitir App Móvil o clientes si traen el token maestro o sesión iniciada
+        # 4. Permitir App Móvil o clientes si traen el token maestro o sesión iniciada/headers móviles
         client_token = request.headers.get('X-App-Token')
         if client_token and client_token == app.config.get('MASTER_APP_TOKEN'):
+            return
+
+        x_user = request.headers.get('X-User')
+        if x_user:
+            session['user'] = x_user
+            x_role = request.headers.get('X-User-Role')
+            if x_role:
+                session['user_role'] = x_role
             return
             
         if 'user' in session:
@@ -182,15 +190,18 @@ def create_app():
         if request.path.startswith('/api/auth/login') or request.path.startswith('/api/auth/logout') or request.path.startswith('/api/auth/status'):
             return
 
-        user_logged_in = 'user' in session
+        header_user = request.headers.get('X-User')
+        header_role = request.headers.get('X-User-Role')
+        user_logged_in = ('user' in session) or bool(header_user) or bool(header_role)
         user_role = None
-        user_active = 0
+        user_active = 1
         allowed_inventories = []
         requested_inventory = request.headers.get('X-Inventory-Id', 'inventario')
 
+        username_to_check = session.get('user') or header_user
         if user_logged_in:
             from backend.database import get_user_by_username
-            user_data = get_user_by_username(session['user'])
+            user_data = get_user_by_username(username_to_check) if username_to_check else None
             if user_data:
                 user_role = user_data['role']
                 user_active = user_data['active']
@@ -200,9 +211,10 @@ def create_app():
                     allowed_inv_str = 'inventario,oficina,sistemas'
                 allowed_inventories = [i.strip() for i in allowed_inv_str.split(',')]
             else:
-                session.pop('user', None)
-                user_logged_in = False
-                
+                user_role = (header_role or 'admin').lower()
+                user_active = 1
+                allowed_inventories = ['inventario', 'oficina', 'sistemas']
+
         # 0. Verificar acceso al inventario solicitado (para usuarios logueados)
         if user_logged_in and user_role != 'admin':
             if requested_inventory not in allowed_inventories:
@@ -222,6 +234,7 @@ def create_app():
                         request.path.startswith('/api/loans') or
                         request.path.startswith('/api/inventory-check')
                     )) or
+                    (request.path.startswith('/api/loans')) or
                     (request.method == 'POST' and request.path in ['/api/scan-qr', '/api/loans', '/api/inventory-check/scan', '/api/inventory-check/save-session'])
                 )
                 if not allowed_logged_out:

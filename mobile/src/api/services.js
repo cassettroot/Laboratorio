@@ -17,6 +17,11 @@ export const apiService = {
     return response.data;
   },
 
+  getAuthStatus: async () => {
+    const response = await apiClient.get('/api/auth/status');
+    return response.data;
+  },
+
   // Sustancias Químicas
   getSubstances: async () => {
     const response = await apiClient.get('/api/substances');
@@ -81,6 +86,16 @@ export const apiService = {
     return response.data;
   },
 
+  updateDidacticMaterial: async (id, data) => {
+    const response = await apiClient.put(`/api/didactic-materials/${id}`, data);
+    return response.data;
+  },
+
+  deleteDidacticMaterial: async (id) => {
+    const response = await apiClient.delete(`/api/didactic-materials/${id}`);
+    return response.data;
+  },
+
   // Préstamos
   getLoans: async () => {
     const response = await apiClient.get('/api/loans');
@@ -94,6 +109,69 @@ export const apiService = {
 
   getRegisteredUsers: async () => {
     const response = await apiClient.get('/api/loans/registered-users');
+    return response.data;
+  },
+
+  approveLoan: async (id) => {
+    const response = await apiClient.post(`/api/loans/${id}/approve-loan`);
+    return response.data;
+  },
+
+  rejectLoan: async (id, reason) => {
+    const response = await apiClient.post(`/api/loans/${id}/reject-loan`, { reason });
+    return response.data;
+  },
+
+  requestReturnLoan: async (id, formData) => {
+    const response = await apiClient.post(`/api/loans/${id}/request-return`, formData, {
+      headers: { 'Accept': 'application/json' },
+      transformRequest: (data, headers) => {
+        if (headers) {
+          delete headers['Content-Type'];
+          delete headers['content-type'];
+        }
+        return data;
+      },
+    });
+    return response.data;
+  },
+
+  approveReturnLoan: async (id) => {
+    const response = await apiClient.post(`/api/loans/${id}/approve-return`);
+    return response.data;
+  },
+
+  rejectReturnLoan: async (id, reason) => {
+    const response = await apiClient.post(`/api/loans/${id}/reject-return`, { reason });
+    return response.data;
+  },
+
+  deleteLoan: async (id) => {
+    const response = await apiClient.delete(`/api/loans/${id}`);
+    return response.data;
+  },
+
+  processControlMayor: async (id, formData) => {
+    const response = await apiClient.post(`/api/loans/${id}/control-mayor`, formData, {
+      headers: { 'Accept': 'application/json' },
+      transformRequest: (data, headers) => {
+        if (headers) {
+          delete headers['Content-Type'];
+          delete headers['content-type'];
+        }
+        return data;
+      },
+    });
+    return response.data;
+  },
+
+  getControlMayorRecords: async () => {
+    const response = await apiClient.get('/api/loans/control-mayor-records');
+    return response.data;
+  },
+
+  clearLoansHistory: async () => {
+    const response = await apiClient.post('/api/loans/clear-history');
     return response.data;
   },
 

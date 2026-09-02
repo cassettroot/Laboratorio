@@ -231,8 +231,8 @@ export default function MaterialsScreen({ route, navigation }) {
                 item 
               })}
             >
-              <Text style={[styles.cardBtnIcon, { color: isDark ? '#22d3ee' : '#0891b2' }]}>⛶</Text>
-              <Text style={[styles.cardBtnText, { color: textColor }]}>Ver QR</Text>
+              <Text style={[styles.cardBtnIcon, { color: isDark ? '#22d3ee' : '#0891b2' }]}>📋</Text>
+              <Text style={[styles.cardBtnText, { color: textColor }]}>Datos</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

@@ -110,3 +110,16 @@ window.showToast = function showToast(message, type = 'info', duration = 3500) {
         setTimeout(() => toast.remove(), 350);
     }, duration);
 };
+
+// ── Debounce para inputs y búsquedas fluidas en hardware modesto ─────────────
+window.debounce = function debounce(func, wait = 150) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+};

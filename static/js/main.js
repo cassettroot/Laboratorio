@@ -330,28 +330,74 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ── Sincronización Automática en Tiempo Real para la Web ───────────
-let _lastSyncState = { pending_count: -1, total_max_id: -1, last_pending_id: -1 };
+let _lastSyncState = { pending_count: -1, total_max_id: -1, last_pending_id: -1, loans_pending_count: -1, last_loan_id: -1, last_loan_activity: '', last_loan_status: '' };
 
 function initRealtimeSync() {
     setInterval(async () => {
         try {
             const res = await originalFetch('/api/sync/status').then(r => r.json());
             if (res.status === 'success') {
-                const { pending_count, total_max_id, last_pending_id } = res;
+                const { pending_count, total_max_id, last_pending_id, loans_pending_count, last_loan_id, latest_loan_info } = res;
                 
+                // Actualizar insignia de préstamos en el menú lateral de la web
+                const loansDot = document.getElementById('loans-badge-dot');
+                const loansBadge = document.getElementById('loans-badge-count');
+                if (loansDot && loansBadge) {
+                    if (loans_pending_count > 0) {
+                        loansDot.classList.remove('hidden');
+                        loansBadge.classList.remove('hidden');
+                        loansBadge.textContent = loans_pending_count > 9 ? '9+' : loans_pending_count;
+                    } else {
+                        loansDot.classList.add('hidden');
+                        loansBadge.classList.add('hidden');
+                    }
+                }
+
                 if (_lastSyncState.pending_count === -1) {
-                    _lastSyncState = { pending_count, total_max_id, last_pending_id };
+                    _lastSyncState = { 
+                        pending_count, 
+                        total_max_id, 
+                        last_pending_id, 
+                        loans_pending_count, 
+                        last_loan_id,
+                        last_loan_activity: latest_loan_info?.last_activity || '',
+                        last_loan_status: latest_loan_info?.status || ''
+                    };
                     return;
                 }
 
                 const hasNewRequest = last_pending_id > (_lastSyncState.last_pending_id || 0);
                 const hasInventoryChange = total_max_id !== _lastSyncState.total_max_id;
+                const hasLoanChange = (loans_pending_count !== _lastSyncState.loans_pending_count) || 
+                                      (last_loan_id && last_loan_id > (_lastSyncState.last_loan_id || 0)) ||
+                                      (latest_loan_info && (
+                                          latest_loan_info.last_activity !== _lastSyncState.last_loan_activity ||
+                                          latest_loan_info.status !== _lastSyncState.last_loan_status
+                                      ));
 
-                if (hasNewRequest || hasInventoryChange) {
-                    _lastSyncState = { pending_count, total_max_id, last_pending_id };
+                if (hasNewRequest || hasInventoryChange || hasLoanChange) {
+                    _lastSyncState = { 
+                        pending_count, 
+                        total_max_id, 
+                        last_pending_id, 
+                        loans_pending_count, 
+                        last_loan_id,
+                        last_loan_activity: latest_loan_info?.last_activity || '',
+                        last_loan_status: latest_loan_info?.status || ''
+                    };
 
                     if (typeof showToast === 'function') {
-                        if (hasNewRequest) {
+                        if (hasLoanChange && latest_loan_info) {
+                            const st = latest_loan_info.status;
+                            if (st === 'Pendiente Aprobación Admin') showToast(`⏳ Solicitud de préstamo: ${latest_loan_info.item_name}`, 'info');
+                            else if (st === 'Prestado') showToast(`🟢 Préstamo aprobado: ${latest_loan_info.item_name}`, 'success');
+                            else if (st === 'Pendiente Verificación Admin') showToast(`📷 Evidencia de devolución: ${latest_loan_info.item_name}`, 'info');
+                            else if (st === 'Devuelto') showToast(`✅ Devolución concluida: ${latest_loan_info.item_name}`, 'success');
+                            else if (st === 'Requiere Atención') showToast(`⚠️ Devolución observada: ${latest_loan_info.item_name}`, 'warning');
+                            else if (st === 'Rechazado') showToast(`✕ Solicitud rechazada: ${latest_loan_info.item_name}`, 'error');
+                            else if (st === 'Control Mayor') showToast(`🏛️ Concluido bajo Control Mayor: ${latest_loan_info.item_name}`, 'info');
+                            else showToast('🤝 Actualización en Préstamos', 'info');
+                        } else if (hasNewRequest) {
                             showToast('🔔 Nueva solicitud de cambio registrada en el laboratorio', 'info');
                         } else {
                             showToast('🔄 Cambios aplicados en el inventario', 'info');
@@ -369,20 +415,26 @@ function initRealtimeSync() {
                         badgeMobile.classList.toggle('hidden', pending_count <= 0);
                     }
 
-                    if (state.activeRoute === '#/notifications' && typeof renderNotificationsView === 'function') {
+                    // Actualización automática de vistas en la web
+                    if (state.activeRoute === '#/loans' && typeof window.loadLoansData === 'function') {
+                        window.loadLoansData();
+                    } else if (state.activeRoute === '#/notifications' && typeof renderNotificationsView === 'function') {
                         const mainEl = document.getElementById('main-content');
                         if (mainEl) renderNotificationsView(mainEl);
-                    } else if (state.activeRoute.includes('#/substances') || state.activeRoute.includes('#/chemical-materials') || state.activeRoute.includes('#/didactic-materials')) {
+                    } else if (!state.activeRoute || state.activeRoute === '#' || state.activeRoute === '#/' || state.activeRoute === '#/home') {
+                        const mainEl = document.getElementById('main-content');
+                        if (mainEl && typeof renderHomeView === 'function') renderHomeView(mainEl);
+                    } else if (state.activeRoute.includes('#/substances') || state.activeRoute.includes('#/chemical-materials') || state.activeRoute.includes('#/didactic-materials') || state.activeRoute.includes('#/cards') || state.activeRoute.includes('#/table')) {
                         const activeInput = document.activeElement;
                         const isTyping = activeInput && (activeInput.tagName === 'INPUT' || activeInput.tagName === 'TEXTAREA');
-                        if (!isTyping) {
+                        if (!isTyping && typeof router === 'function') {
                             router();
                         }
                     }
                 }
             }
         } catch (e) {}
-    }, 4000);
+    }, 2000);
 }
 
 // ── Motor Ambiental Ultra-Optimizado (Orbes Multicolor Fluidos + Estrellas 60FPS) ───────────
@@ -413,10 +465,11 @@ window.toggleAmbientBackground = function(enable) {
 
 function initAmbientBackground() {
     const isEnabled = localStorage.getItem('ambient_bg_enabled') !== 'false';
+    const isLowSpec = localStorage.getItem('low_spec_mode') === 'true' || document.documentElement.classList.contains('low-spec-mode') || document.body.classList.contains('low-spec-mode');
     const canvas = document.getElementById('ambient-bg-canvas');
     if (!canvas) return;
 
-    if (!isEnabled) {
+    if (!isEnabled || isLowSpec) {
         canvas.style.display = 'none';
         return;
     }
@@ -451,7 +504,8 @@ function initAmbientBackground() {
 
     document.addEventListener('visibilitychange', () => {
         isVisible = !document.hidden;
-        if (isVisible && isEnabled && !_ambientLoopRunning) {
+        const lowSpecActive = localStorage.getItem('low_spec_mode') === 'true' || document.documentElement.classList.contains('low-spec-mode');
+        if (isVisible && isEnabled && !lowSpecActive && !_ambientLoopRunning) {
             startTime = performance.now();
             loop();
         }
@@ -461,8 +515,10 @@ function initAmbientBackground() {
 
     function loop() {
         const isCurrentEnabled = localStorage.getItem('ambient_bg_enabled') !== 'false';
-        if (!isVisible || !isCurrentEnabled) {
+        const isCurrentLowSpec = localStorage.getItem('low_spec_mode') === 'true' || document.documentElement.classList.contains('low-spec-mode');
+        if (!isVisible || !isCurrentEnabled || isCurrentLowSpec) {
             _ambientLoopRunning = false;
+            canvas.style.display = 'none';
             return;
         }
 

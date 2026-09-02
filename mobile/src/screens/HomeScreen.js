@@ -36,7 +36,7 @@ export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0);
 
-  const { user, role, logout, syncSignal, serverUrl } = useContext(AuthContext);
+  const { user, role, logout, syncSignal, serverUrl, pendingLoansCount } = useContext(AuthContext);
   const { theme } = useContext(ThemeContext);
   const isDark = theme.isDark !== false;
 
@@ -86,6 +86,17 @@ export default function HomeScreen({ navigation }) {
       setChemList(chems);
       setDidList(dids);
       setLoansList(loans);
+
+      // Si existen préstamos pendientes o activos, priorizar el tab de Préstamos al inicio
+      const hasActiveOrPending = loans.some((l) => 
+        l.status === 'Pendiente Aprobación Admin' || 
+        l.status === 'Prestado' || 
+        l.status === 'Pendiente Verificación Admin' || 
+        l.status === 'Requiere Atención'
+      );
+      if (hasActiveOrPending) {
+        setActiveTab('prestamos');
+      }
 
       // Calcular alertas de caducidad
       const now = new Date();
@@ -157,6 +168,43 @@ export default function HomeScreen({ navigation }) {
       } catch (e) {}
     }
     return getImageUrl(rawPath, serverUrl);
+  };
+
+  const resolveLoanPhoto = (loanItem) => {
+    if (loanItem.return_photo_path) {
+      return getImageUrl(loanItem.return_photo_path, serverUrl);
+    }
+
+    if (loanItem.items_json) {
+      try {
+        const parsed = typeof loanItem.items_json === 'string' ? JSON.parse(loanItem.items_json) : loanItem.items_json;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const first = parsed[0];
+          const raw = first.image_path || first.photo || first.photo_url || first.image;
+          if (raw) return getImageUrl(raw, serverUrl);
+        }
+      } catch (e) {}
+    }
+
+    const subMatch = substancesList.find((s) => s.id === loanItem.item_id || (s.name && loanItem.item_name && loanItem.item_name.includes(s.name)));
+    if (subMatch) {
+      const p = resolveItemPhoto(subMatch);
+      if (p) return p;
+    }
+
+    const chemMatch = chemList.find((c) => c.id === loanItem.item_id || (c.name && loanItem.item_name && loanItem.item_name.includes(c.name)));
+    if (chemMatch) {
+      const p = resolveItemPhoto(chemMatch);
+      if (p) return p;
+    }
+
+    const didMatch = didList.find((d) => d.id === loanItem.item_id || (d.name && loanItem.item_name && loanItem.item_name.includes(d.name)));
+    if (didMatch) {
+      const p = resolveItemPhoto(didMatch);
+      if (p) return p;
+    }
+
+    return null;
   };
 
   const defaultSubstances = [
@@ -339,14 +387,38 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* 4. TABS HORIZONTALES SCROLLABLES (NUNCA SE CORTA "PRÉSTAMOS") */}
-        <View style={styles.sectionTabsOuterWrapper}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.sectionTabsScrollContent}
-          >
+        {/* 4. TABS HORIZONTALES SCROLLABLES DINÁMICOS */}
+        {(() => {
+          const hasActiveLoans = loansList.some((l) => 
+            l.status === 'Pendiente Aprobación Admin' || 
+            l.status === 'Prestado' || 
+            l.status === 'Pendiente Verificación Admin' || 
+            l.status === 'Requiere Atención'
+          );
+
+          const renderPrestamosTab = () => (
             <TouchableOpacity
+              key="tab-prestamos"
+              style={styles.sectionTabBtn}
+              onPress={() => setActiveTab('prestamos')}
+              activeOpacity={0.8}
+            >
+              <Text style={[
+                styles.sectionTabText,
+                { color: subtextColor },
+                activeTab === 'prestamos' && { color: isDark ? '#ffffff' : '#0891b2', fontWeight: '900' }
+              ]}>
+                🤝 Préstamos {hasActiveLoans ? `(${loansList.filter(l => l.status !== 'Devuelto' && l.status !== 'Rechazado').length})` : ''}
+              </Text>
+              {activeTab === 'prestamos' && (
+                <View style={[styles.activeTabGlowLine, { backgroundColor: isDark ? '#22d3ee' : '#0891b2' }]} />
+              )}
+            </TouchableOpacity>
+          );
+
+          const renderSustanciasTab = () => (
+            <TouchableOpacity
+              key="tab-sustancias"
               style={styles.sectionTabBtn}
               onPress={() => setActiveTab('sustancias')}
               activeOpacity={0.8}
@@ -362,8 +434,11 @@ export default function HomeScreen({ navigation }) {
                 <View style={[styles.activeTabGlowLine, { backgroundColor: isDark ? '#22d3ee' : '#0891b2' }]} />
               )}
             </TouchableOpacity>
+          );
 
+          const renderMaterialesTab = () => (
             <TouchableOpacity
+              key="tab-materiales"
               style={styles.sectionTabBtn}
               onPress={() => setActiveTab('materiales')}
               activeOpacity={0.8}
@@ -379,25 +454,23 @@ export default function HomeScreen({ navigation }) {
                 <View style={[styles.activeTabGlowLine, { backgroundColor: isDark ? '#22d3ee' : '#0891b2' }]} />
               )}
             </TouchableOpacity>
+          );
 
-            <TouchableOpacity
-              style={styles.sectionTabBtn}
-              onPress={() => setActiveTab('prestamos')}
-              activeOpacity={0.8}
-            >
-              <Text style={[
-                styles.sectionTabText,
-                { color: subtextColor },
-                activeTab === 'prestamos' && { color: isDark ? '#ffffff' : '#0891b2', fontWeight: '900' }
-              ]}>
-                Préstamos
-              </Text>
-              {activeTab === 'prestamos' && (
-                <View style={[styles.activeTabGlowLine, { backgroundColor: isDark ? '#22d3ee' : '#0891b2' }]} />
-              )}
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
+          return (
+            <View style={styles.sectionTabsOuterWrapper}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.sectionTabsScrollContent}
+              >
+                {hasActiveLoans
+                  ? [renderPrestamosTab(), renderSustanciasTab(), renderMaterialesTab()]
+                  : [renderSustanciasTab(), renderMaterialesTab(), renderPrestamosTab()]
+                }
+              </ScrollView>
+            </View>
+          );
+        })()}
 
         {/* 5. CAROUSEL HORIZONTAL DE TARJETAS */}
         {activeTab === 'sustancias' ? (
@@ -473,15 +546,15 @@ export default function HomeScreen({ navigation }) {
                       </View>
                     </View>
 
-                    {/* Botones Inferiores [ ⛶ QR ] [ ✏️ Editar ] */}
+                    {/* Botones Inferiores [ 📋 Datos ] [ ✏️ Editar ] */}
                     <View style={styles.cardButtonsRow}>
                       <TouchableOpacity
                         style={[styles.cardNeumorphBtn, { backgroundColor: btnBg, borderColor: btnBorder }]}
                         activeOpacity={0.8}
                         onPress={() => navigation.navigate('Detail', { type: 'substance', id: item.id, item })}
                       >
-                        <Text style={[styles.cardBtnIcon, { color: isDark ? '#22d3ee' : '#0891b2' }]}>⛶</Text>
-                        <Text style={[styles.cardBtnText, { color: textColor }]}>QR</Text>
+                        <Text style={[styles.cardBtnIcon, { color: isDark ? '#22d3ee' : '#0891b2' }]}>📋</Text>
+                        <Text style={[styles.cardBtnText, { color: textColor }]}>Datos</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
@@ -594,70 +667,88 @@ export default function HomeScreen({ navigation }) {
             )}
           </ScrollView>
         ) : (
-          /* TAB 3: PRÉSTAMOS ACTIVOS */
+          /* TAB 3: PRÉSTAMOS ACTIVOS Y SOLICITUDES */
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalCardsScroll}>
             {displayLoans.length > 0 ? (
-              displayLoans.map((item, index) => (
-                <View key={item.id || index} style={styles.substanceCardWrapper}>
-                  <View style={[styles.substanceGlassCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-                    <View style={styles.cardHeaderRow}>
-                      <View style={[styles.itemImageContainer, { backgroundColor: 'rgba(234, 179, 8, 0.15)', borderColor: 'rgba(234, 179, 8, 0.4)' }]}>
-                        <Text style={{ fontSize: 28 }}>🤝</Text>
+              displayLoans.map((item, index) => {
+                const isReqPendiente = item.status === 'Pendiente Aprobación Admin';
+                const isPrestado = item.status === 'Prestado';
+                const isPendiente = item.status === 'Pendiente Verificación Admin';
+                const isAtencion = item.status === 'Requiere Atención';
+                const isControlMayor = item.status === 'Control Mayor';
+
+                const loanPhotoUri = resolveLoanPhoto(item);
+
+                return (
+                  <View key={item.id || index} style={styles.substanceCardWrapper}>
+                    <View style={[styles.substanceGlassCard, { backgroundColor: cardBg, borderColor: isAtencion ? '#ef4444' : (isControlMayor ? '#8b5cf6' : cardBorder) }]}>
+                      <View style={styles.cardHeaderRow}>
+                        <View style={[styles.itemImageContainer, { borderColor: cardBorder }]}>
+                          {loanPhotoUri ? (
+                            <Image source={{ uri: loanPhotoUri }} style={styles.itemThumbImage} resizeMode="cover" />
+                          ) : (
+                            <View style={[styles.itemImagePlaceholder, { backgroundColor: isDark ? 'rgba(30, 48, 77, 0.6)' : 'rgba(226, 232, 240, 0.8)' }]}>
+                              <Text style={{ fontSize: 28 }}>🧪</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <View style={styles.itemNameCol}>
+                          <Text style={[styles.itemNameText, { color: textColor }]} numberOfLines={2}>
+                            {item.item_name}
+                          </Text>
+                          <View style={styles.statusDotRow}>
+                            <View style={[styles.statusDotCircle, { backgroundColor: isReqPendiente ? '#eab308' : (isPrestado ? '#38bdf8' : (isPendiente ? '#f97316' : (isAtencion ? '#ef4444' : '#10b981'))) }]} />
+                            <Text style={[styles.statusDotText, { color: isReqPendiente ? '#fbbf24' : (isPrestado ? '#38bdf8' : (isPendiente ? '#f97316' : (isAtencion ? '#ef4444' : '#10b981'))) }]}>
+                              {item.status || 'En Préstamo'}
+                            </Text>
+                          </View>
+                        </View>
                       </View>
 
-                      <View style={styles.itemNameCol}>
-                        <Text style={[styles.itemNameText, { color: textColor }]} numberOfLines={2}>
-                          {item.item_name}
-                        </Text>
-                        <View style={styles.statusDotRow}>
-                          <View style={[styles.statusDotCircle, { backgroundColor: '#eab308' }]} />
-                          <Text style={[styles.statusDotText, { color: '#fbbf24' }]}>
-                            {item.status || 'En Préstamo'}
+                      <View style={[styles.cardDivider, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]} />
+
+                      <View style={styles.cardMetaInfo}>
+                        <View style={styles.metaRowExact}>
+                          <Text style={styles.metaIcon}>👤</Text>
+                          <Text style={[styles.metaLabelText, { color: subtextColor }]}>Solicitante:</Text>
+                          <Text style={[styles.metaValueText, { color: textColor }]} numberOfLines={1}>
+                            {item.borrower_name || item.user_name || item.student_name || 'Docente'}
+                          </Text>
+                        </View>
+
+                        <View style={styles.metaRowExact}>
+                          <Text style={styles.metaIcon}>📅</Text>
+                          <Text style={[styles.metaLabelText, { color: subtextColor }]}>Fecha:</Text>
+                          <Text style={[styles.metaValueText, { color: textColor }]} numberOfLines={1}>
+                            {item.loan_date || 'Reciente'}
+                          </Text>
+                        </View>
+
+                        <View style={styles.metaRowExact}>
+                          <Text style={styles.metaIcon}>⏱️</Text>
+                          <Text style={[styles.metaLabelText, { color: subtextColor }]}>Tiempo:</Text>
+                          <Text style={[styles.metaValueText, { color: isPrestado ? (isDark ? '#22d3ee' : '#0891b2') : textColor, fontWeight: '800' }]}>
+                            {item.elapsed_time || 'Activo'}
                           </Text>
                         </View>
                       </View>
-                    </View>
 
-                    <View style={[styles.cardDivider, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)' }]} />
-
-                    <View style={styles.cardMetaInfo}>
-                      <View style={styles.metaRowExact}>
-                        <Text style={styles.metaIcon}>👤</Text>
-                        <Text style={[styles.metaLabelText, { color: subtextColor }]}>Solicitante:</Text>
-                        <Text style={[styles.metaValueText, { color: textColor }]} numberOfLines={1}>
-                          {item.user_name || item.student_name || 'Estudiante'}
-                        </Text>
+                      <View style={styles.cardButtonsRow}>
+                        <TouchableOpacity
+                          style={[styles.cardNeumorphBtn, { backgroundColor: 'rgba(234, 179, 8, 0.2)', borderColor: '#eab308', width: '100%' }]}
+                          activeOpacity={0.8}
+                          onPress={() => navigation.navigate('Prestamos')}
+                        >
+                          <Text style={[styles.cardBtnText, { color: isDark ? '#fbbf24' : '#d97706', fontWeight: '900' }]}>
+                            {isReqPendiente ? '👑 Revisar y Aprobar ›' : (isPendiente ? '📷 Revisar Devolución ›' : '🤝 Gestionar Préstamo ›')}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
-
-                      <View style={styles.metaRowExact}>
-                        <Text style={styles.metaIcon}>📅</Text>
-                        <Text style={[styles.metaLabelText, { color: subtextColor }]}>Fecha:</Text>
-                        <Text style={[styles.metaValueText, { color: textColor }]} numberOfLines={1}>
-                          {item.loan_date || 'Reciente'}
-                        </Text>
-                      </View>
-
-                      <View style={styles.metaRowExact}>
-                        <Text style={styles.metaIcon}>⏱️</Text>
-                        <Text style={[styles.metaLabelText, { color: subtextColor }]}>Cantidad:</Text>
-                        <Text style={[styles.metaValueText, { color: textColor }]}>
-                          {item.quantity || 1} {item.unit || 'unidad(es)'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.cardButtonsRow}>
-                      <TouchableOpacity
-                        style={[styles.cardNeumorphBtn, { backgroundColor: btnBg, borderColor: 'rgba(234, 179, 8, 0.4)' }]}
-                        activeOpacity={0.8}
-                        onPress={() => navigation.navigate('Prestamos')}
-                      >
-                        <Text style={[styles.cardBtnText, { color: '#fbbf24' }]}>Gestionar Préstamo ›</Text>
-                      </TouchableOpacity>
                     </View>
                   </View>
-                </View>
-              ))
+                );
+              })
             ) : (
               <View style={[styles.emptyTabCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
                 <Text style={{ fontSize: 28, textAlign: 'center', marginBottom: 4 }}>🤝</Text>
@@ -738,6 +829,27 @@ export default function HomeScreen({ navigation }) {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.quickOptionTitle, { color: textColor }]}>+ Registrar Material Didáctico</Text>
                 <Text style={styles.quickOptionSub}>Modelos, kits y sensores</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.quickOptionRow, { backgroundColor: isDark ? 'rgba(15, 23, 42, 0.7)' : 'rgba(241, 245, 249, 0.8)', borderColor: pendingLoansCount > 0 ? '#ef4444' : (isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.08)') }]}
+              onPress={() => {
+                setShowQuickActionsModal(false);
+                navigation.navigate('Prestamos');
+              }}
+            >
+              <Text style={{ fontSize: 24 }}>🤝</Text>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[styles.quickOptionTitle, { color: textColor }]}>Préstamos y Devoluciones</Text>
+                  {pendingLoansCount > 0 && (
+                    <View style={{ backgroundColor: '#ef4444', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 }}>
+                      <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900' }}>{pendingLoansCount} pendientes</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.quickOptionSub}>Solicitar, gestionar préstamos activos y validar devoluciones</Text>
               </View>
             </TouchableOpacity>
 

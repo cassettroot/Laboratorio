@@ -1,8 +1,8 @@
 import React, { useContext } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, View, Platform } from 'react-native';
+import { Text, View, Platform, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthContext } from '../context/AuthContext';
@@ -23,8 +23,77 @@ import InventoryCheckScreen from '../screens/InventoryCheckScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+function FloatingLoanBanner({ alertData, onDismiss, onNavigate }) {
+  if (!alertData) return null;
+
+  return (
+    <View style={{
+      position: 'absolute',
+      top: Platform.OS === 'ios' ? 52 : 38,
+      left: 14,
+      right: 14,
+      zIndex: 99999,
+      backgroundColor: 'rgba(11, 25, 48, 0.96)',
+      borderRadius: 18,
+      borderWidth: 1.5,
+      borderColor: '#22d3ee',
+      padding: 14,
+      shadowColor: '#22d3ee',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.45,
+      shadowRadius: 12,
+      elevation: 12,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#ef4444' }} />
+          <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900' }}>
+            {alertData.title}
+          </Text>
+        </View>
+        <TouchableOpacity onPress={onDismiss} style={{ padding: 4 }}>
+          <Text style={{ color: '#94a3b8', fontSize: 16, fontWeight: 'bold' }}>✕</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={{ color: '#cbd5e1', fontSize: 12.5, lineHeight: 17, marginBottom: 10 }}>
+        {alertData.message}
+      </Text>
+
+      <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end' }}>
+        <TouchableOpacity
+          onPress={onDismiss}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 10,
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+          }}
+        >
+          <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: 'bold' }}>Descartar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            onDismiss();
+            onNavigate();
+          }}
+          style={{
+            paddingHorizontal: 14,
+            paddingVertical: 6,
+            borderRadius: 10,
+            backgroundColor: '#06b6d4',
+          }}
+        >
+          <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '900' }}>🚀 Ver Préstamos</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 function MainTabs() {
-  const { role, pendingRequestsCount } = useContext(AuthContext);
+  const { role, pendingRequestsCount, pendingLoansCount } = useContext(AuthContext);
   const { theme } = useContext(ThemeContext);
   const isDark = theme.isDark !== false;
 
@@ -76,31 +145,77 @@ function MainTabs() {
             iconName = focused ? 'settings' : 'settings-outline';
           }
 
+          const hasBadge = (route.name === 'Prestamos' && pendingLoansCount > 0);
+
           if (focused) {
             return (
-              <View style={{
-                width: 38,
-                height: 38,
-                borderRadius: 19,
-                backgroundColor: isDark ? 'rgba(6, 182, 212, 0.22)' : 'rgba(6, 182, 212, 0.15)',
-                borderWidth: 1,
-                borderColor: isDark ? '#22d3ee' : '#0891b2',
-                justifyContent: 'center',
-                alignItems: 'center',
-                shadowColor: isDark ? '#22d3ee' : '#0891b2',
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: isDark ? 0.8 : 0.3,
-                shadowRadius: 8,
-                elevation: 4,
-                marginTop: -4,
-              }}>
-                <Ionicons name={iconName} size={20} color={isDark ? '#22d3ee' : '#0891b2'} />
+              <View style={{ position: 'relative' }}>
+                <View style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  backgroundColor: isDark ? 'rgba(6, 182, 212, 0.22)' : 'rgba(6, 182, 212, 0.15)',
+                  borderWidth: 1,
+                  borderColor: isDark ? '#22d3ee' : '#0891b2',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  shadowColor: isDark ? '#22d3ee' : '#0891b2',
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: isDark ? 0.8 : 0.3,
+                  shadowRadius: 8,
+                  elevation: 4,
+                  marginTop: -4,
+                }}>
+                  <Ionicons name={iconName} size={20} color={isDark ? '#22d3ee' : '#0891b2'} />
+                </View>
+                {hasBadge && (
+                  <View style={{
+                    position: 'absolute',
+                    top: -6,
+                    right: -4,
+                    backgroundColor: '#ef4444',
+                    borderRadius: 9,
+                    minWidth: 16,
+                    height: 16,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    paddingHorizontal: 3,
+                    borderWidth: 1.5,
+                    borderColor: isDark ? '#090d16' : '#ffffff'
+                  }}>
+                    <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900' }}>
+                      {pendingLoansCount > 9 ? '9+' : pendingLoansCount}
+                    </Text>
+                  </View>
+                )}
               </View>
             );
           }
 
           return (
-            <Ionicons name={iconName} size={21} color={color} />
+            <View style={{ position: 'relative' }}>
+              <Ionicons name={iconName} size={21} color={color} />
+              {hasBadge && (
+                <View style={{
+                  position: 'absolute',
+                  top: -4,
+                  right: -8,
+                  backgroundColor: '#ef4444',
+                  borderRadius: 9,
+                  minWidth: 16,
+                  height: 16,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  paddingHorizontal: 3,
+                  borderWidth: 1.5,
+                  borderColor: isDark ? '#090d16' : '#ffffff'
+                }}>
+                  <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900' }}>
+                    {pendingLoansCount > 9 ? '9+' : pendingLoansCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           );
         },
       })}
@@ -119,14 +234,26 @@ function MainTabs() {
 }
 
 export default function AppNavigator() {
-  const { user, loading } = useContext(AuthContext);
+  const { user, loading, floatingLoanAlert, dismissFloatingAlert } = useContext(AuthContext);
+  const navigationRef = useNavigationContainerRef();
 
   if (loading) {
     return null;
   }
 
+  const handleNavigateToLoans = () => {
+    if (navigationRef.isReady()) {
+      navigationRef.navigate('Main', { screen: 'Prestamos' });
+    }
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
+      <FloatingLoanBanner
+        alertData={floatingLoanAlert}
+        onDismiss={dismissFloatingAlert}
+        onNavigate={handleNavigateToLoans}
+      />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
           <>
@@ -138,7 +265,10 @@ export default function AppNavigator() {
             <Stack.Screen name="Chequeo" component={InventoryCheckScreen} />
           </>
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="QRScanner" component={QRScannerScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

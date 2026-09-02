@@ -532,6 +532,31 @@ def get_sync_status():
         max_req_row = cursor.fetchone()
         total_max_id = max_req_row[0] if (max_req_row and max_req_row[0]) else 0
 
+        cursor.execute("SELECT COUNT(*), MAX(id) FROM loans WHERE status IN ('Pendiente Aprobación Admin', 'Pendiente Verificación Admin', 'Requiere Atención')")
+        loan_row = cursor.fetchone()
+        loans_pending_count = loan_row[0] if loan_row else 0
+        last_loan_id = loan_row[1] if (loan_row and loan_row[1]) else 0
+
+        # Obtener la actividad y estado más reciente en préstamos para notificar aprobaciones, rechazos, devoluciones y control mayor
+        cursor.execute('''
+            SELECT id, item_name, borrower_name, status, verification_status,
+                   COALESCE(return_date, rejection_date, verified_at, loan_date, created_at) as last_activity
+            FROM loans 
+            ORDER BY COALESCE(return_date, rejection_date, verified_at, loan_date, created_at, id) DESC 
+            LIMIT 1
+        ''')
+        latest_loan_row = cursor.fetchone()
+        latest_loan_info = None
+        if latest_loan_row:
+            latest_loan_info = {
+                "id": latest_loan_row['id'],
+                "item_name": latest_loan_row['item_name'],
+                "borrower_name": latest_loan_row['borrower_name'],
+                "status": latest_loan_row['status'],
+                "verification_status": latest_loan_row['verification_status'],
+                "last_activity": str(latest_loan_row['last_activity'] or '')
+            }
+
         conn.close()
 
         import time
@@ -540,6 +565,9 @@ def get_sync_status():
             "pending_count": pending_count,
             "last_pending_id": last_pending_id,
             "total_max_id": total_max_id,
+            "loans_pending_count": loans_pending_count,
+            "last_loan_id": last_loan_id,
+            "latest_loan_info": latest_loan_info,
             "timestamp": int(time.time())
         })
     except Exception as e:
